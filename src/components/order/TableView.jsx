@@ -130,8 +130,8 @@ export default function TableView({ onOpenTable }) {
                   borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
                   textAlign: 'left', opacity: 0.6,
                 }}>
-                <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 15 }}>Table {t.num}</div>
-                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Available</div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Table {t.num}</div>
+                <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 4 }}>Available</div>
               </button>
             )
           })}

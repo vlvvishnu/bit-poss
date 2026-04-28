@@ -13,13 +13,12 @@ import SettingsPage from '../components/manage/Settings'
 import Modal from '../components/ui/Modal'
 
 const NAV = [
-  { id: 'order',      icon: '🛒', label: 'Order'    },
-  { id: 'tables',     icon: '🍽', label: 'Tables'   },
-  { id: 'kitchen',    icon: '🍳', label: 'Kitchen'  },
-  { id: 'history',    icon: '📋', label: 'History'  },
-  { id: 'products',   icon: '🏷', label: 'Products' },
+  { id: 'order',      icon: '🛒', label: 'Order'      },
+  { id: 'kitchen',    icon: '🍳', label: 'Kitchen'    },
+  { id: 'history',    icon: '📋', label: 'History'    },
+  { id: 'products',   icon: '🏷', label: 'Products'   },
   { id: 'categories', icon: '📦', label: 'Categories' },
-  { id: 'settings',   icon: '⚙️', label: 'Settings' },
+  { id: 'settings',   icon: '⚙️', label: 'Settings'   },
 ]
 
 // ── Table checkout modal ──────────────────────────────────────────
