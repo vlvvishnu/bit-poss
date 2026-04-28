@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 import { useStore } from '../store/useStore'
+import { useTheme } from '../store/useTheme'
 import OrderPage from '../components/order/OrderPage'
 import ProductsPage from '../components/manage/Products'
 import CategoriesPage from '../components/manage/Categories'
@@ -25,6 +26,7 @@ const PAGES = {
 
 export default function POS() {
   const { page, setPage, setCategories, setProducts, tenantId, user, showToast, settings, setSettings } = useStore()
+  const { dark, toggle: toggleTheme } = useTheme()
   const [mobNavOpen, setMobNavOpen] = useState(false)
   const [clock, setClock] = useState('')
 
@@ -120,6 +122,11 @@ export default function POS() {
             borderRadius: 6, padding: '3px 8px', maxWidth: 120,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>{bizName}</div>
+          <button onClick={toggleTheme} title="Toggle theme" style={{
+            background: 'none', border: '1px solid var(--border)',
+            borderRadius: 6, color: 'var(--text2)', padding: '4px 8px',
+            fontSize: 14, cursor: 'pointer',
+          }}>{dark ? '☀️' : '🌙'}</button>
           <button onClick={handleSignOut} style={{
             background: 'none', border: '1px solid var(--border)',
             borderRadius: 6, color: 'var(--text2)', padding: '4px 8px',
