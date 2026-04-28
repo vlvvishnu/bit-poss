@@ -35,12 +35,35 @@ export default function App() {
   }, [])
 
   async function loadTenantId(userId) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .select('tenant_id')
       .eq('id', userId)
-      .single()
-    if (data?.tenant_id) setTenantId(data.tenant_id)
+      .maybeSingle()
+    if (error) console.error('[BITE] profiles error:', error)
+    if (data?.tenant_id) {
+      setTenantId(data.tenant_id)
+    } else {
+      // Fallback: try tenants table directly via owner_email
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.email) {
+        const { data: tenant, error: te } = await supabase
+          .from('tenants')
+          .select('id')
+          .eq('owner_email', user.email)
+          .maybeSingle()
+        if (te) console.error('[BITE] tenants fallback error:', te)
+        if (tenant?.id) {
+          setTenantId(tenant.id)
+          // Auto-fix: create missing profile row
+          await supabase.from('profiles').upsert({
+            id: userId,
+            tenant_id: tenant.id,
+            role: 'owner',
+          })
+        }
+      }
+    }
   }
 
   if (loading) return (
