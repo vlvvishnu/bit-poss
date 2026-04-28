@@ -1,0 +1,70 @@
+/* ── RESET ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+
+/* ── TOKENS ─────────────────────────────────────────────────── */
+:root {
+  --bg:       #0D0B08;
+  --bg2:      #131109;
+  --card:     #1C1916;
+  --card2:    #231F1A;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.12);
+  --text:     #F5F0E8;
+  --text2:    rgba(245,240,232,0.55);
+  --text3:    rgba(245,240,232,0.3);
+  --brand:    #E8440A;
+  --brand-dk: #C53A08;
+  --brand-lt: rgba(232,68,10,0.12);
+  --brand-lt2:rgba(232,68,10,0.06);
+  --green:    #22C55E;
+  --green-bg: rgba(34,197,94,0.1);
+  --red:      #EF4444;
+  --red-bg:   rgba(239,68,68,0.1);
+  --amber:    #F59E0B;
+  --amber-bg: rgba(245,158,11,0.1);
+  --blue:     #3B82F6;
+  --blue-bg:  rgba(59,130,246,0.1);
+  --r:        10px;
+  --r-lg:     16px;
+  --r-sm:     6px;
+}
+
+/* ── SCROLLBAR ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* ── UTILITY ─────────────────────────────────────────────────── */
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+/* ── ANIMATIONS ─────────────────────────────────────────────── */
+@keyframes fadeIn   { from { opacity:0 } to { opacity:1 } }
+@keyframes slideUp  { from { opacity:0; transform:translateY(12px) } to { opacity:1; transform:translateY(0) } }
+@keyframes popIn    { from { opacity:0; transform:scale(0.94) } to { opacity:1; transform:scale(1) } }
+@keyframes spin     { to { transform:rotate(360deg) } }
+@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── COMMON COMPONENTS ───────────────────────────────────────── */
+.spinner {
+  width:18px; height:18px;
+  border:2.5px solid rgba(255,255,255,0.2);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin 0.65s linear infinite;
+  display:inline-block;
+}
+.badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:18px; height:18px; padding:0 5px;
+  background:var(--brand); color:#fff;
+  font-size:10px; font-weight:700; border-radius:9px;
+}
