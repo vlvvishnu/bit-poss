@@ -7,82 +7,105 @@ import POS from './pages/POS'
 import Toast from './components/ui/Toast'
 
 export default function App() {
-  const [loading, setLoading]   = useState(true)
-  const [timedOut, setTimedOut] = useState(false)
-  const { user, setUser, setTenantId } = useStore()
+  const [status, setStatus] = useState('loading') // 'loading' | 'authed' | 'guest'
+  const { setUser, setTenantId } = useStore()
   const { init: initTheme } = useTheme()
 
   useEffect(() => {
     initTheme()
-    let done = false
 
-    // Hard 4-second timeout — never hang forever
-    const timer = setTimeout(() => {
-      if (!done) { done = true; setLoading(false); setTimedOut(true) }
-    }, 4000)
+    // Hard timeout — never hang
+    const timer = setTimeout(() => setStatus(s => s === 'loading' ? 'guest' : s), 5000)
 
-    async function boot() {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        if (error) throw error
+    // Listen FIRST — catches the initial session event
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[BITE] auth event:', event, session?.user?.email)
+        clearTimeout(timer)
+
+        if (event === 'SIGNED_OUT' || !session) {
+          setUser(null)
+          setTenantId(null)
+          setStatus('guest')
+          return
+        }
+
         if (session?.user) {
           setUser(session.user)
           await loadTenant(session.user)
-        }
-      } catch (e) {
-        console.error('[BITE] boot error:', e?.message)
-      } finally {
-        if (!done) { done = true; clearTimeout(timer); setLoading(false) }
-      }
-    }
-
-    boot()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_OUT') { setUser(null); setTenantId(null) }
-        if (event === 'SIGNED_IN' && session?.user) {
-          setUser(session.user)
-          await loadTenant(session.user)
+          setStatus('authed')
         }
       }
     )
+
+    // Also do an explicit getSession in case onAuthStateChange doesn't fire
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        clearTimeout(timer)
+        setStatus(s => s === 'loading' ? 'guest' : s)
+      }
+      // If session exists, onAuthStateChange will handle it
+    })
+
     return () => { subscription.unsubscribe(); clearTimeout(timer) }
   }, [])
 
   async function loadTenant(authUser) {
     try {
-      // Try profiles first
       const { data: profile } = await supabase
-        .from('profiles').select('tenant_id').eq('id', authUser.id).maybeSingle()
-      if (profile?.tenant_id) { setTenantId(profile.tenant_id); return }
+        .from('profiles')
+        .select('tenant_id')
+        .eq('id', authUser.id)
+        .maybeSingle()
 
-      // Fallback: find by owner_email
+      if (profile?.tenant_id) {
+        setTenantId(profile.tenant_id)
+        return
+      }
+
+      // Fallback: find tenant by owner_email
       const { data: tenant } = await supabase
-        .from('tenants').select('id').eq('owner_email', authUser.email).maybeSingle()
+        .from('tenants')
+        .select('id')
+        .eq('owner_email', authUser.email)
+        .maybeSingle()
+
       if (tenant?.id) {
         setTenantId(tenant.id)
-        // Auto-create profile
         await supabase.from('profiles').upsert({
-          id: authUser.id, tenant_id: tenant.id, role: 'owner'
+          id: authUser.id,
+          tenant_id: tenant.id,
+          role: 'owner',
         })
       }
     } catch (e) {
-      console.error('[BITE] loadTenant error:', e?.message)
+      console.error('[BITE] loadTenant:', e?.message)
     }
   }
 
-  if (loading) return (
-    <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#0D0B08', gap:16 }}>
-      <div style={{ width:32, height:32, border:'3px solid rgba(232,68,10,0.3)', borderTopColor:'#E8440A', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />
-      <div style={{ color:'rgba(255,255,255,0.3)', fontSize:12 }}>Loading BITE.</div>
+  if (status === 'loading') return (
+    <div style={{
+      height: '100vh', display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: '#0D0B08', gap: 14,
+    }}>
+      <div style={{
+        width: 36, height: 36,
+        border: '3px solid rgba(232,68,10,0.25)',
+        borderTopColor: '#E8440A',
+        borderRadius: '50%',
+        animation: 'spin 0.7s linear infinite',
+      }} />
+      <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12, letterSpacing: '0.5px' }}>
+        BITE.
+      </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 
   return (
     <>
-      {user ? <POS /> : <Landing />}
+      {status === 'authed' ? <POS /> : <Landing />}
       <Toast />
     </>
   )

@@ -1,33 +1,41 @@
-// public/_worker.js
-// Cloudflare Pages Worker — injects secrets at edge so they never sit in source
+// Cloudflare Pages Worker
+// Injects environment variables into the HTML before serving
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
+    const url = new URL(request.url)
 
-    // Only process HTML responses — let assets (JS/CSS) pass through untouched
-    if (!url.pathname.endsWith('.html') && url.pathname !== '/') {
-      return env.ASSETS.fetch(request);
+    // Only process HTML — let JS/CSS/assets pass through untouched
+    const isHtml = url.pathname === '/'
+      || url.pathname === '/index.html'
+      || !url.pathname.includes('.')  // SPA routes like /dashboard
+
+    if (!isHtml) {
+      return env.ASSETS.fetch(request)
     }
 
-    const response = await env.ASSETS.fetch(request);
-    const html = await response.text();
+    const response = await env.ASSETS.fetch(request)
+    if (!response.ok) return response
 
-    // Inject secrets as a <script> at the top of <head>
-    const injected = html.replace(
-      '<head>',
-      `<head>
-<script>
-  window.__ENV__ = {
-    SUPABASE_URL:      "${env.SUPABASE_URL || ''}",
-    SUPABASE_ANON_KEY: "${env.SUPABASE_ANON_KEY || ''}",
-    BREVO_KEY:         "${env.BREVO_API_KEY || ''}",
-  };
+    const html = await response.text()
+
+    // Inject as the VERY FIRST script in <head> so it runs before any module
+    const envScript = `<script>
+window.__ENV__ = {
+  SUPABASE_URL:      "${(env.SUPABASE_URL      || '').replace(/"/g, '')}",
+  SUPABASE_ANON_KEY: "${(env.SUPABASE_ANON_KEY || '').replace(/"/g, '')}",
+  BREVO_KEY:         "${(env.BREVO_API_KEY      || '').replace(/"/g, '')}",
+};
 </script>`
-    );
+
+    const injected = html.replace('<head>', '<head>\n' + envScript)
 
     return new Response(injected, {
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-    });
+      status: response.status,
+      headers: {
+        'Content-Type': 'text/html;charset=UTF-8',
+        'Cache-Control': 'no-store',  // never cache the HTML with injected keys
+      },
+    })
   },
-};
+}

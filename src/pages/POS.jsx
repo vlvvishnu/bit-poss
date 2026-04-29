@@ -105,7 +105,7 @@ function TableCheckoutModal({ data, onClose, onDone }) {
 }
 
 export default function POS() {
-  const { page, setPage, setCategories, setProducts, tenantId, user, showToast, settings, setSettings } = useStore()
+  const { page, setPage, setCategories, setProducts, tenantId, user, showToast, settings, setSettings, setTenantId, setUser } = useStore()
   const { dark, toggle: toggleTheme } = useTheme()
   const [clock, setClock]         = useState('')
   const [openTable, setOpenTable] = useState(null)    // { table_number, table_name, ... }
@@ -145,7 +145,21 @@ export default function POS() {
 
   async function handleSignOut() {
     if (!confirm('Sign out?')) return
-    await supabase.auth.signOut()
+    try {
+      // Clear local state first
+      setCategories([])
+      setProducts([])
+      setSettings(null)
+      setTenantId(null)
+      setUser(null)
+      setPage('order')
+      // Then sign out from Supabase
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch(e) {
+      console.error('Sign out error:', e)
+      // Force it anyway
+      await supabase.auth.signOut({ scope: 'local' })
+    }
   }
 
   const bizName = settings?.biz_name || settings?.name || user?.user_metadata?.biz_name || 'BITE.'

@@ -1,17 +1,29 @@
 import { createClient } from '@supabase/supabase-js'
 
-const env = window.__ENV__ || {}
-
-const SUPABASE_URL  = env.SUPABASE_URL  || import.meta.env.VITE_SUPABASE_URL  || ''
-const SUPABASE_ANON = env.SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-
-if (!SUPABASE_URL || !SUPABASE_ANON) {
-  console.error(
-    '[BITE] Supabase not configured.\n' +
-    'Local dev: create .env.local with VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY\n' +
-    'Production: set SUPABASE_URL and SUPABASE_ANON_KEY in Cloudflare Pages env vars'
+// Env vars injected by Cloudflare _worker.js into window.__ENV__
+// or from Vite .env.local for local dev
+function getEnv(key, viteKey) {
+  return (
+    window.__ENV__?.[key] ||
+    import.meta.env[viteKey] ||
+    ''
   )
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON)
-export const BREVO_KEY = env.BREVO_KEY || import.meta.env.VITE_BREVO_KEY || ''
+const SUPABASE_URL  = getEnv('SUPABASE_URL',       'VITE_SUPABASE_URL')
+const SUPABASE_ANON = getEnv('SUPABASE_ANON_KEY',  'VITE_SUPABASE_ANON_KEY')
+
+export const BREVO_KEY = getEnv('BREVO_KEY', 'VITE_BREVO_KEY')
+
+if (!SUPABASE_URL || !SUPABASE_ANON) {
+  console.error('[BITE] Supabase keys missing. Check Cloudflare env vars or .env.local')
+}
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: {
+    persistSession:    true,      // keep session in localStorage
+    autoRefreshToken:  true,      // auto-refresh JWT
+    detectSessionInUrl: true,     // handle magic link callbacks
+    storageKey: 'bite-pos-auth',  // named key to avoid conflicts
+  },
+})
