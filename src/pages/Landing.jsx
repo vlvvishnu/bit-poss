@@ -4,19 +4,19 @@ import { useStore } from '../store/useStore'
 
 const S = {
   page: {
-    minHeight: '100vh', background: 'var(--bg)',
-    color: 'var(--text)', display: 'flex', flexDirection: 'column',
+    minHeight: '100vh', background: '#F9F7F4',
+    color: '#1A1208', display: 'flex', flexDirection: 'column',
   },
   nav: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '0 5%', height: 60, flexShrink: 0,
-    background: 'rgba(13,11,8,0.9)', backdropFilter: 'blur(12px)',
+    background: '#fff',
+    borderBottom: '1px solid #e8e4e0',
     position: 'sticky', top: 0, zIndex: 100,
-    borderBottom: '1px solid var(--border)',
   },
   logo: {
     fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 20,
-    color: 'var(--text)', textDecoration: 'none', letterSpacing: '-0.5px',
+    color: '#1A1208', textDecoration: 'none', letterSpacing: '-0.5px',
   },
   dot: { color: 'var(--brand)' },
   hero: {
