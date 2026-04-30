@@ -141,7 +141,11 @@ export default function Landing() {
       {/* Nav */}
       <nav style={L.nav}>
         <span style={L.logo}>BITE<span style={L.logoDot}>.</span></span>
-        <div style={{ display:'flex', gap:8 }}>
+        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+          <a href="/install" style={{ fontSize:12, color:'#7A6E65', textDecoration:'none',
+            fontWeight:500, display:'flex', alignItems:'center', gap:4 }}>
+            📲 Install app
+          </a>
           <button style={L.btnSec} onClick={() => openAuth('login')}>Sign in</button>
           <button style={L.btnPri} onClick={() => openAuth('signup')}>Get started</button>
         </div>

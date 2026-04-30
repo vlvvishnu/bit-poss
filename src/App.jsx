@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import { useStore } from './store/useStore'
 import { useTheme } from './store/useTheme'
 import Landing from './pages/Landing'
+import Install from './pages/Install'
 import POS from './pages/POS'
 import Toast from './components/ui/Toast'
 
@@ -88,6 +89,9 @@ export default function App() {
       console.error('[BITE] loadTenant:', e?.message)
     }
   }
+
+  // /install route — standalone page, no auth needed
+  if (window.location.pathname === '/install') return <Install />
 
   if (status === 'loading') return (
     <div style={{ height:'100vh', display:'flex', flexDirection:'column',
