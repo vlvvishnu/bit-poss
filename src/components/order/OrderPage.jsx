@@ -80,7 +80,8 @@ function TablePicker({ count, selected, onSelect, tenantId }) {
 function RoundAccordion({
   order, defaultOpen, isNew, isMobile,
   onSendToKitchen, sendingKOT, tableNum,
-  onRemoveItem,
+  onRemoveItem, onAddItem, onChangeNote,
+  notes, // { [itemId]: string } — only for isNew
 }) {
   const [open, setOpen] = useState(defaultOpen)
 
@@ -95,7 +96,7 @@ function RoundAccordion({
       borderRadius:10, marginBottom:6, overflow:'hidden',
       background: isNew?'var(--brand-lt2)':'var(--card)',
     }}>
-      {/* Header — always visible */}
+      {/* Accordion header */}
       <button onClick={()=>setOpen(o=>!o)} style={{
         width:'100%',display:'flex',alignItems:'center',gap:8,
         padding:'10px 12px',background:'none',border:'none',
@@ -113,9 +114,7 @@ function RoundAccordion({
               {STATUS[order.status]?.label||'⏳ Waiting'}
             </span>
             {rejected.length>0 && (
-              <span style={{ fontSize:10,color:'var(--red)' }}>
-                {rejected.length} removed
-              </span>
+              <span style={{ fontSize:10,color:'var(--red)' }}>{rejected.length} removed</span>
             )}
           </div>
           {!open && (
@@ -129,48 +128,77 @@ function RoundAccordion({
         </span>
       </button>
 
-      {/* Expanded body */}
       {open && (
         <div style={{ borderTop:'1px solid var(--border)' }}>
-          {/* Items */}
-          {active.map(item => (
-            <div key={item.id} style={{ display:'flex',alignItems:'flex-start',
-              gap:8,padding:'8px 12px',borderBottom:'1px solid var(--border)' }}>
-              <span style={{ fontSize:15,flexShrink:0,marginTop:1 }}>
-                {item.product_icon||item.icon||'🍽'}</span>
-              <div style={{ flex:1,minWidth:0 }}>
-                <div style={{ fontSize:12,fontWeight:500,color:'var(--text)' }}>
-                  {item.product_name||item.name}
-                  <span style={{ color:'var(--text3)',marginLeft:4 }}>×{item.qty}</span>
+
+          {/* Active items */}
+          {active.map(item => {
+            const itemNote = isNew ? (notes?.[item.id]||'') : (item.notes||'')
+            return (
+              <div key={item.id} style={{ borderBottom:'1px solid var(--border)' }}>
+                <div style={{ display:'flex',alignItems:'center',gap:8,padding:'8px 12px' }}>
+                  <span style={{ fontSize:15,flexShrink:0 }}>
+                    {item.product_icon||item.icon||'🍽'}</span>
+                  <div style={{ flex:1,minWidth:0 }}>
+                    <div style={{ fontSize:12,fontWeight:500,color:'var(--text)',
+                      overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
+                      {item.product_name||item.name}
+                    </div>
+                    {!isNew && item.notes && (
+                      <div style={{ fontSize:10,color:'var(--amber)',marginTop:1 }}>
+                        📝 {item.notes}</div>
+                    )}
+                    {!isNew && (
+                      <div style={{ marginTop:2 }}>
+                        <StatusPill status={order.status||'pending'}/>
+                      </div>
+                    )}
+                  </div>
+                  {/* Qty controls for new round */}
+                  {isNew ? (
+                    <div style={{ display:'flex',alignItems:'center',gap:5,flexShrink:0 }}>
+                      <button onClick={()=>onRemoveItem&&onRemoveItem(item.id)}
+                        style={{ width:22,height:22,borderRadius:'50%',
+                          background:'var(--card)',border:'1px solid var(--border)',
+                          color:'var(--text)',fontSize:13,display:'flex',
+                          alignItems:'center',justifyContent:'center',cursor:'pointer' }}>−</button>
+                      <span style={{ fontSize:12,fontWeight:700,minWidth:16,
+                        textAlign:'center',color:'var(--text)' }}>{item.qty}</span>
+                      <button onClick={()=>onAddItem&&onAddItem(item)}
+                        style={{ width:22,height:22,borderRadius:'50%',
+                          background:'var(--brand)',border:'none',color:'#fff',
+                          fontSize:13,display:'flex',alignItems:'center',
+                          justifyContent:'center',cursor:'pointer' }}>+</button>
+                    </div>
+                  ) : (
+                    <div style={{ flexShrink:0,textAlign:'right' }}>
+                      <div style={{ fontSize:11,fontWeight:600,color:'var(--brand)' }}>
+                        ×{item.qty}</div>
+                      {/* Remove button for pending kitchen items */}
+                      {order.status==='pending' && onRemoveItem && (
+                        <button onClick={()=>onRemoveItem(item,order.id)}
+                          style={{ fontSize:10,color:'var(--red)',background:'none',
+                            border:'none',cursor:'pointer',padding:0,marginTop:2 }}>
+                          reject</button>
+                      )}
+                    </div>
+                  )}
                 </div>
-                {item.notes && (
-                  <div style={{ fontSize:10,color:'var(--amber)',marginTop:1 }}>
-                    📝 {item.notes}</div>
-                )}
-                {!isNew && (
-                  <div style={{ marginTop:2 }}>
-                    <StatusPill status={order.status||'pending'}/>
+                {/* Per-item note input (new round only) */}
+                {isNew && (
+                  <div style={{ padding:'0 12px 8px' }}>
+                    <input
+                      value={itemNote}
+                      onChange={e => onChangeNote&&onChangeNote(item.id, e.target.value)}
+                      placeholder="Note for kitchen (e.g. no onions)…"
+                      style={{ width:'100%',padding:'5px 9px',fontSize:11,
+                        background:'var(--bg)',border:'1px solid var(--border)',
+                        borderRadius:6,color:'var(--text)',outline:'none' }}/>
                   </div>
                 )}
               </div>
-              <div style={{ flexShrink:0,textAlign:'right' }}>
-                <div style={{ fontSize:11,fontWeight:600,color:'var(--brand)' }}>
-                  ₹{(Number(item.unit_price||item.price)*item.qty).toFixed(2)}</div>
-                {isNew && onRemoveItem && (
-                  <button onClick={()=>onRemoveItem(item.id)}
-                    style={{ fontSize:10,color:'var(--text3)',background:'none',
-                      border:'none',cursor:'pointer',padding:0,marginTop:2 }}>
-                    remove</button>
-                )}
-                {!isNew && order.status==='pending' && onRemoveItem && (
-                  <button onClick={()=>onRemoveItem(item,order.id)}
-                    style={{ fontSize:10,color:'var(--text3)',background:'none',
-                      border:'none',cursor:'pointer',padding:0,marginTop:2 }}>
-                    remove</button>
-                )}
-              </div>
-            </div>
-          ))}
+            )
+          })}
 
           {/* Rejected items */}
           {rejected.map(item => (
@@ -183,15 +211,15 @@ function RoundAccordion({
             </div>
           ))}
 
-          {/* Send to Kitchen — inside accordion, desktop + mobile new round */}
+          {/* Send to Kitchen — inside accordion, desktop new round only */}
           {isNew && !isMobile && (
-            <div style={{ padding:'10px 12px', background:'var(--brand-lt2)' }}>
+            <div style={{ padding:'10px 12px',background:'var(--brand-lt2)' }}>
               <button onClick={onSendToKitchen}
                 disabled={sendingKOT||!tableNum}
                 style={{
                   width:'100%',border:'none',borderRadius:8,
                   padding:'11px',fontWeight:800,fontSize:14,
-                  background:!tableNum?'var(--card2)':'#E8440A',
+                  background:!tableNum?'var(--card2)':' #E8440A',
                   color:!tableNum?'var(--text3)':'#fff',
                   cursor:!tableNum?'default':'pointer',
                   display:'flex',alignItems:'center',justifyContent:'center',gap:7,
@@ -207,17 +235,19 @@ function RoundAccordion({
   )
 }
 
-// ── Table Order Panel (single column, all rounds) ─────────────────
+
 function TableOrderPanel({
   tableNum, tableName,
-  cartItems,          // unsent items in current cart
+  cartItems,
   onAddToCart, onRemoveFromCart,
   onSendToKitchen, sendingKOT,
   onCheckout,
   settings, isMobile,
+  notes, onChangeNote,
+  optimisticRounds,   // rounds shown immediately after send
 }) {
   const { tenantId, showToast } = useStore()
-  const [rounds, setRounds]     = useState([])  // existing orders from DB
+  const [rounds, setRounds]     = useState([])
 
   const taxRate = (settings?.tax_rate||0)/100
 
@@ -309,22 +339,40 @@ function TableOrderPanel({
             sendingKOT={sendingKOT}
             tableNum={tableNum}
             onRemoveItem={(id) => onRemoveFromCart(id)}
+            onAddItem={(item) => onAddToCart(item)}
+            onChangeNote={onChangeNote}
+            notes={notes}
           />
         )}
 
         {/* Existing sent rounds */}
-        {rounds.length===0 && cartItems.length===0 && (
+        {rounds.length===0 && (optimisticRounds||[]).length===0 && cartItems.length===0 && (
           <div style={{ textAlign:'center',padding:'20px',color:'var(--text3)' }}>
             <div style={{ fontSize:22,marginBottom:6 }}>🍳</div>
             <div style={{ fontSize:11 }}>No rounds sent yet.<br/>Add items and send to kitchen.</div>
           </div>
         )}
 
+        {/* Optimistic rounds — shown immediately after send, before DB confirms */}
+        {(optimisticRounds||[]).map((order,idx) => (
+          <RoundAccordion
+            key={order.id}
+            order={order}
+            defaultOpen={true}
+            isNew={false}
+            isMobile={isMobile}
+            onSendToKitchen={null}
+            sendingKOT={false}
+            tableNum={tableNum}
+            onRemoveItem={null}
+          />
+        ))}
+
         {rounds.map((order,idx) => (
           <RoundAccordion
             key={order.id}
             order={order}
-            defaultOpen={idx===0 && cartItems.length===0}
+            defaultOpen={idx===0 && cartItems.length===0 && (optimisticRounds||[]).length===0}
             isNew={false}
             isMobile={isMobile}
             onSendToKitchen={null}
@@ -435,7 +483,7 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) 
 // Single sheet, no tabs. Shows TableOrderPanel or CartPanel accordingly.
 function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   cartItems, onAdd, onRemove, onSendToKitchen, onCheckout, onTableCheckout,
-  sendingKOT, settings }) {
+  sendingKOT, settings, notes, onChangeNote, optimisticRounds }) {
 
   if (!open) return null
 
@@ -474,6 +522,9 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
               onCheckout={data => { onTableCheckout(data); onClose() }}
               settings={settings}
               isMobile={true}
+              notes={notes}
+              onChangeNote={onChangeNote}
+              optimisticRounds={optimisticRounds}
             />
           ) : (
             <CartPanel
@@ -701,6 +752,8 @@ export default function OrderPage({ defaultType='takeaway' }) {
   const [successOrder, setSuccessOrder] = useState(null)
   const [sheetOpen, setSheetOpen]       = useState(false)
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
+  const [itemNotes, setItemNotes]       = useState({})    // { productId: note }
+  const [optimisticRounds, setOptimisticRounds] = useState([])
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 860)
@@ -708,7 +761,11 @@ export default function OrderPage({ defaultType='takeaway' }) {
     return () => window.removeEventListener('resize', h)
   }, [])
 
-  useEffect(() => { clearCart() }, [tableNum])
+  useEffect(() => {
+    clearCart()
+    setItemNotes({})
+    setOptimisticRounds([])
+  }, [tableNum])
 
   const isDine     = orderType === 'dine'
   const items      = cartItems()
@@ -720,10 +777,31 @@ export default function OrderPage({ defaultType='takeaway' }) {
   const tableName  = tableNum ? `T${tableNum}` : null
 
   async function handleSendToKitchen() {
-    if (!tableNum)   { showToast('Select a table first','warning'); return }
+    if (!tableNum)    { showToast('Select a table first','warning'); return }
     if (!items.length){ showToast('No items to send','warning'); return }
-    if (!tenantId)   { showToast('Not connected — refresh','error'); return }
+    if (!tenantId)    { showToast('Not connected — refresh','error'); return }
     setSendingKOT(true)
+
+    // Immediately show optimistic round in Table Order
+    const optimisticOrder = {
+      id: `opt-${Date.now()}`,
+      order_number: null,
+      status: 'pending',
+      order_items: items.map(i => ({
+        id: `oi-${i.id}`,
+        product_name: i.name,
+        product_icon: i.icon||'',
+        qty: i.qty,
+        unit_price: i.price,
+        status: 'active',
+        notes: itemNotes[i.id]||null,
+      })),
+    }
+    setOptimisticRounds(prev => [optimisticOrder, ...prev])
+    clearCart()
+    setItemNotes({})
+    setSheetOpen(false)
+
     try {
       const s=sub, t=s*taxRate, tot=s+t
       const {data:existing} = await supabase.from('orders')
@@ -755,14 +833,23 @@ export default function OrderPage({ defaultType='takeaway' }) {
           product_id:i.id, product_name:i.name,
           product_icon:i.icon||'', unit_price:Number(i.price),
           qty:Number(i.qty), status:'active',
+          notes:itemNotes[i.id]||null,
         }))
       )
       if (error) throw error
-      clearCart()
-      setSheetOpen(false)
+      // Remove optimistic once DB confirms — realtime sub in TableOrderPanel will load real data
+      setOptimisticRounds(prev => prev.filter(o => o.id !== optimisticOrder.id))
       showToast(`🍳 ${cartCount} item${cartCount!==1?'s':''} sent to kitchen!`,'success')
-    } catch(e) { showToast(e.message||'Error','error') }
+    } catch(e) {
+      // Revert optimistic on failure — put items back
+      setOptimisticRounds(prev => prev.filter(o => o.id !== optimisticOrder.id))
+      showToast(e.message||'Error','error')
+    }
     setSendingKOT(false)
+  }
+
+  function handleNoteChange(productId, val) {
+    setItemNotes(prev => ({ ...prev, [productId]: val }))
   }
 
   function openCheckout() {
@@ -883,6 +970,9 @@ export default function OrderPage({ defaultType='takeaway' }) {
                 onCheckout={openTableCheckout}
                 settings={settings}
                 isMobile={false}
+                notes={itemNotes}
+                onChangeNote={handleNoteChange}
+                optimisticRounds={optimisticRounds}
               />
             ) : (
               <CartPanel
@@ -962,7 +1052,9 @@ export default function OrderPage({ defaultType='takeaway' }) {
         cartItems={items} onAdd={addToCart} onRemove={removeFromCart}
         onSendToKitchen={handleSendToKitchen}
         onCheckout={openCheckout} onTableCheckout={openTableCheckout}
-        sendingKOT={sendingKOT} settings={settings} />
+        sendingKOT={sendingKOT} settings={settings}
+        notes={itemNotes} onChangeNote={handleNoteChange}
+        optimisticRounds={optimisticRounds} />
 
       <CheckoutModal open={!!checkoutData} onClose={()=>setCheckoutData(null)}
         checkoutData={checkoutData}

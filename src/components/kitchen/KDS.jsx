@@ -6,7 +6,7 @@ function tableColor(status) {
   return { pending: '#F59E0B', preparing: '#3B82F6', ready: '#22C55E' }[status] || '#F59E0B'
 }
 
-function OrderCard({ order, onStatusChange }) {
+function OrderCard({ order, onStatusChange, rejectItemInOrder }) {
   const age = Math.floor((Date.now() - new Date(order.created_at)) / 60000)
   const ageColor = age > 20 ? '#EF4444' : age > 10 ? '#F59E0B' : 'var(--text3)'
   const activeItems = (order.order_items || []).filter(i => i.status !== 'rejected')
@@ -25,10 +25,16 @@ function OrderCard({ order, onStatusChange }) {
       </div>
       <div style={{ padding:'6px 10px' }}>
         {activeItems.map(item => (
-          <div key={item.id} style={{ display:'flex', gap:6, padding:'3px 0', fontSize:12, borderBottom:'1px solid var(--border)' }}>
+          <div key={item.id} style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 0', fontSize:12, borderBottom:'1px solid var(--border)' }}>
             <span>{item.product_icon}</span>
             <span style={{ flex:1 }}>{item.product_name}</span>
-            <span style={{ fontWeight:700, color:'var(--brand)' }}>×{item.qty}</span>
+            <span style={{ fontWeight:700, color:'var(--brand)', marginRight:4 }}>×{item.qty}</span>
+            <button onClick={() => rejectItemInOrder(item, order.id)}
+              style={{ fontSize:10, padding:'1px 7px', background:'rgba(239,68,68,0.08)',
+                color:'var(--red)', border:'1px solid rgba(239,68,68,0.2)',
+                borderRadius:5, cursor:'pointer', flexShrink:0 }}>
+              reject
+            </button>
           </div>
         ))}
         {activeItems.filter(i => i.notes).map(i => (
@@ -112,6 +118,14 @@ export default function KDS() {
     load()
   }
 
+  async function rejectItemInOrder(item, orderId) {
+    await supabase.from('order_items')
+      .update({ status:'rejected', rejected_at:new Date().toISOString() })
+      .eq('id', item.id)
+    showToast(`"${item.product_name}" rejected`, 'info')
+    load()
+  }
+
   const pending   = orders.filter(o => o.status==='pending')
   const preparing = orders.filter(o => o.status==='preparing')
   const ready     = orders.filter(o => o.status==='ready')
@@ -151,7 +165,7 @@ export default function KDS() {
               </div>
               {col.items.length===0
                 ? <div style={{ textAlign:'center', padding:20, color:'var(--text3)', fontSize:12 }}>Empty</div>
-                : col.items.map(o => <OrderCard key={o.id} order={o} onStatusChange={updateStatus} />)
+                : col.items.map(o => <OrderCard key={o.id} order={o} onStatusChange={updateStatus} rejectItemInOrder={rejectItemInOrder} />)
               }
             </div>
           ))}
