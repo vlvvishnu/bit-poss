@@ -80,8 +80,8 @@ function TablePicker({ count, selected, onSelect, tenantId }) {
 function RoundAccordion({
   order, defaultOpen, isNew, isMobile,
   onSendToKitchen, sendingKOT, tableNum,
-  onRemoveItem, onAddItem, onChangeNote,
-  notes, // { [itemId]: string } — only for isNew
+  onRemoveItem, onAddItem, onQtyChange, onChangeNote,
+  notes,
 }) {
   const [open, setOpen] = useState(defaultOpen)
 
@@ -174,12 +174,41 @@ function RoundAccordion({
                     <div style={{ flexShrink:0,textAlign:'right' }}>
                       <div style={{ fontSize:11,fontWeight:600,color:'var(--brand)' }}>
                         ×{item.qty}</div>
-                      {/* Remove button for pending kitchen items */}
-                      {order.status==='pending' && onRemoveItem && (
-                        <button onClick={()=>onRemoveItem(item,order.id)}
-                          style={{ fontSize:10,color:'var(--red)',background:'none',
-                            border:'none',cursor:'pointer',padding:0,marginTop:2 }}>
-                          reject</button>
+                      {/* Qty controls + reject for pending items */}
+                      {order.status==='pending' && onRemoveItem && onAddItem ? (
+                        <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4 }}>
+                          <div style={{ display:'flex',alignItems:'center',gap:4 }}>
+                            <button onClick={e=>{e.stopPropagation();onQtyChange&&onQtyChange(item,-1,order.id)}}
+                              style={{ width:20,height:20,borderRadius:'50%',background:'var(--card2)',
+                                border:'1px solid var(--border)',color:'var(--text)',fontSize:12,
+                                display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>−</button>
+                            <span style={{ fontSize:12,fontWeight:700,minWidth:14,textAlign:'center',color:'var(--text)' }}>
+                              {item.qty}</span>
+                            <button onClick={e=>{e.stopPropagation();onQtyChange&&onQtyChange(item,1,order.id)}}
+                              style={{ width:20,height:20,borderRadius:'50%',background:'var(--brand)',
+                                border:'none',color:'#fff',fontSize:12,
+                                display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>+</button>
+                          </div>
+                          <button onClick={e=>{e.stopPropagation();onRemoveItem(item,order.id)}}
+                            style={{ fontSize:10,color:'var(--red)',background:'none',
+                              border:'none',cursor:'pointer',padding:0 }}>reject</button>
+                        </div>
+                      ) : order.status==='pending' && onReduceItem ? (
+                        <div style={{ display:'flex',alignItems:'center',gap:5 }}>
+                          <button onClick={e=>{e.stopPropagation();onReduceItem(item,order.id)}}
+                            style={{ width:22,height:22,borderRadius:'50%',background:'var(--card2)',
+                              border:'1px solid var(--border)',color:'var(--text)',fontSize:13,
+                              display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>−</button>
+                          <span style={{ fontSize:12,fontWeight:700,minWidth:16,
+                            textAlign:'center',color:'var(--text)' }}>×{item.qty}</span>
+                          <button onClick={e=>{e.stopPropagation();onRemoveItem&&onRemoveItem(item,order.id)}}
+                            style={{ fontSize:10,color:'var(--red)',background:'rgba(239,68,68,0.08)',
+                              border:'1px solid rgba(239,68,68,0.2)',borderRadius:5,
+                              padding:'2px 6px',cursor:'pointer',whiteSpace:'nowrap' }}>
+                            reject</button>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize:11,fontWeight:600,color:'var(--text2)' }}>×{item.qty}</div>
                       )}
                     </div>
                   )}
@@ -286,6 +315,21 @@ function TableOrderPanel({
     loadRounds()
   }
 
+  async function reduceItem(item, orderId) {
+    if (item.qty <= 1) {
+      // qty would hit 0 — reject the item entirely
+      await supabase.from('order_items')
+        .update({status:'rejected',rejected_at:new Date().toISOString()})
+        .eq('id',item.id)
+      showToast(`"${item.product_name}" removed`,'info')
+    } else {
+      await supabase.from('order_items')
+        .update({qty: item.qty - 1})
+        .eq('id',item.id)
+    }
+    loadRounds()
+  }
+
   // All active items across all rounds for billing
   const allActive = rounds.flatMap(o =>
     (o.order_items||[]).filter(i=>i.status!=='rejected')
@@ -385,6 +429,17 @@ function TableOrderPanel({
             sendingKOT={false}
             tableNum={tableNum}
             onRemoveItem={removeItem}
+            onQtyChange={async (item, delta, orderId) => {
+              if (delta < 0) await reduceItem(item, orderId)
+              else {
+                // Increase qty in DB
+                await supabase.from('order_items')
+                  .update({ qty: item.qty + 1 })
+                  .eq('id', item.id)
+                await loadRounds()
+              }
+            }}
+            onAddItem={null}
           />
         ))}
       </div>
@@ -408,7 +463,8 @@ function TableOrderPanel({
           <button
             onClick={() => onCheckout({
               orderId:primaryId, total, sub, tax,
-              activeItems:allActive, tableNum, tableName
+              activeItems:allActive, tableNum, tableName,
+              tableNumber:tableNum  // pass for bulk update
             })}
             style={{ width:'100%',background:'#16A34A',color:'#fff',border:'none',
               borderRadius:'var(--r)',padding:'11px',fontWeight:700,fontSize:13,cursor:'pointer' }}>
@@ -578,9 +634,14 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
     setLoading(true);setError('')
     try {
       if (isDine && existingOrderId) {
+        // Mark ALL open orders for this table as paid
+        const tNum = checkoutData?.tableNumber || tableNum
         const {error} = await supabase.from('orders')
           .update({status:'paid',payment_method:payMethod,paid_at:new Date().toISOString()})
-          .eq('id',existingOrderId)
+          .eq('tenant_id',tenantId)
+          .eq('order_type','dine')
+          .eq('table_number',String(tNum||''))
+          .in('status',['pending','preparing','ready'])
         if (error) throw error
         showToast('Table checked out ✓','success')
         onSuccess({order_number:'—',total,payMethod,isDine:true})
@@ -758,8 +819,9 @@ export default function OrderPage({ defaultType='takeaway' }) {
   const [checkoutData, setCheckoutData] = useState(null)
   const [successOrder, setSuccessOrder] = useState(null)
   const [sheetOpen, setSheetOpen]       = useState(false)
+  const [confirmKOT, setConfirmKOT]     = useState(false) // mobile confirm sheet
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
-  const [itemNotes, setItemNotes]       = useState({})    // { productId: note }
+  const [itemNotes, setItemNotes]       = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
 
   useEffect(() => {
@@ -813,29 +875,15 @@ export default function OrderPage({ defaultType='takeaway' }) {
 
     try {
       const s=sub, t=s*taxRate, tot=s+t
-      const {data:existing} = await supabase.from('orders')
-        .select('id')
-        .eq('tenant_id',tenantId).eq('order_type','dine')
-        .eq('table_number',String(tableNum))
-        .in('status',['pending','preparing','ready'])
-        .maybeSingle()
-
-      let orderId = existing?.id
-      if (!orderId) {
-        const {data:o,error} = await supabase.from('orders').insert({
-          tenant_id:tenantId, status:'pending', order_type:'dine',
-          table_number:String(tableNum), payment_method:'cash',
-          subtotal:Number(s.toFixed(2)), tax:Number(t.toFixed(2)),
-          total:Number(tot.toFixed(2)),
-        }).select('id').single()
-        if (error) throw error
-        orderId = o.id
-      } else {
-        try {
-          await supabase.rpc('increment_order_total',
-            {order_id:orderId,add_subtotal:s,add_tax:t,add_total:tot})
-        } catch(e){ console.warn('[BITE] rpc:',e?.message) }
-      }
+      // Always create a NEW order row per round — this keeps rounds separate
+      const {data:o, error:oErr} = await supabase.from('orders').insert({
+        tenant_id:tenantId, status:'pending', order_type:'dine',
+        table_number:String(tableNum), payment_method:'cash',
+        subtotal:Number(s.toFixed(2)), tax:Number(t.toFixed(2)),
+        total:Number(tot.toFixed(2)),
+      }).select('id').single()
+      if (oErr) throw oErr
+      const orderId = o.id
       const {error} = await supabase.from('order_items').insert(
         items.map(i=>({
           tenant_id:tenantId, order_id:orderId,
@@ -873,8 +921,10 @@ export default function OrderPage({ defaultType='takeaway' }) {
       tableNum:data.tableNum, tableName:data.tableName,
       total:data.total, sub:data.sub, tax:data.tax,
       existingOrderId:data.orderId,
+      tableNumber:data.tableNum,  // for bulk marking all orders paid
     })
     setSheetOpen(false)
+    setConfirmKOT(false)
   }
 
   const groups = useMemo(() => {
@@ -962,7 +1012,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
               </div>
             </div>
           ))}
-          {isMobile&&<div style={{ height:84 }}/>}
+          {isMobile&&<div style={{ height:100 }}/>}
         </div>
 
         {/* Desktop right panel — ONE column */}
@@ -998,14 +1048,15 @@ export default function OrderPage({ defaultType='takeaway' }) {
 
       {/* Mobile FAB */}
       {isMobile&&(
-        <div style={{ position:'absolute',bottom:0,left:0,right:0,
-          padding:'10px 12px 14px',background:'var(--bg)',
-          borderTop:'1px solid var(--border)',display:'flex',gap:8 }}>
+        <div style={{ position:'fixed',bottom:0,left:0,right:0,
+          padding:'10px 12px',paddingBottom:'calc(14px + env(safe-area-inset-bottom, 8px))',
+          background:'var(--bg)',borderTop:'1px solid var(--border)',
+          display:'flex',gap:8,zIndex:100 }}>
           {isDine ? (
             <>
-              {/* Send to kitchen — direct action */}
+              {/* Send to kitchen — opens confirm sheet on mobile */}
               <button
-                onClick={cartCount>0?handleSendToKitchen:undefined}
+                onClick={() => { if(!tableNum){showToast('Select a table first','warning');return} if(cartCount>0) setConfirmKOT(true) }}
                 disabled={sendingKOT}
                 style={{
                   flex:1.8,
@@ -1056,6 +1107,87 @@ export default function OrderPage({ defaultType='takeaway' }) {
           ) : <div style={{ height:46 }}/>}
         </div>
       )}
+
+      {/* Mobile KOT confirmation sheet */}
+      {confirmKOT && isMobile && (
+        <div style={{ position:'fixed',inset:0,zIndex:400,
+          display:'flex',flexDirection:'column',justifyContent:'flex-end',
+          background:'rgba(0,0,0,0.6)',backdropFilter:'blur(3px)' }}
+          onClick={e=>e.target===e.currentTarget&&setConfirmKOT(false)}>
+          <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
+            display:'flex',flexDirection:'column',
+            boxShadow:'0 -8px 40px rgba(0,0,0,0.5)' }}>
+            {/* Handle */}
+            <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
+              <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
+            </div>
+            {/* Header */}
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',
+              padding:'10px 16px',borderBottom:'1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontWeight:800,fontSize:15,color:'var(--text)' }}>
+                  🍳 Send to Kitchen
+                </div>
+                <div style={{ fontSize:11,color:'var(--text3)',marginTop:1 }}>
+                  Table {tableName||'?'} · {cartCount} item{cartCount!==1?'s':''}
+                </div>
+              </div>
+              <button onClick={()=>setConfirmKOT(false)}
+                style={{ background:'none',border:'none',color:'var(--text2)',
+                  fontSize:20,cursor:'pointer',lineHeight:1 }}>✕</button>
+            </div>
+            {/* Items preview as accordion */}
+            <div style={{ overflowY:'auto',maxHeight:'45vh',padding:'8px 14px' }}>
+              <RoundAccordion
+                order={{
+                  id:'confirm-preview',
+                  order_number:null,
+                  status:'pending',
+                  order_items:items.map(i=>({
+                    id:`p-${i.id}`,product_name:i.name,
+                    product_icon:i.icon||'',qty:i.qty,
+                    unit_price:i.price,status:'active',
+                    notes:itemNotes[i.id]||null,
+                  })),
+                }}
+                defaultOpen={true}
+                isNew={true}
+                isMobile={true}
+                onSendToKitchen={null}
+                sendingKOT={false}
+                tableNum={tableNum}
+                onRemoveItem={id=>removeFromCart(id)}
+                onAddItem={item=>addToCart(item)}
+                onChangeNote={(id,v)=>setItemNotes(p=>({...p,[id]:v}))}
+                notes={itemNotes}
+              />
+            </div>
+            {/* CTA */}
+            <div style={{ padding:'12px 16px',paddingBottom:'calc(12px + env(safe-area-inset-bottom,0px))',
+              borderTop:'1px solid var(--border)' }}>
+              <div style={{ display:'flex',justifyContent:'space-between',
+                fontSize:14,fontWeight:800,marginBottom:12 }}>
+                <span>Total</span>
+                <span style={{ color:'var(--brand)' }}>
+                  ₹{(items.reduce((s,i)=>s+i.price*i.qty,0)*(1+(settings?.tax_rate||0)/100)).toFixed(2)}
+                </span>
+              </div>
+              <button
+                onClick={async()=>{ setConfirmKOT(false); await handleSendToKitchen() }}
+                disabled={sendingKOT||!tableNum}
+                style={{ width:'100%',background:!tableNum?'var(--card2)':'#E8440A',
+                  color:!tableNum?'var(--text3)':'#fff',border:'none',borderRadius:14,
+                  padding:'15px',fontWeight:800,fontSize:16,
+                  cursor:!tableNum?'default':'pointer',
+                  display:'flex',alignItems:'center',justifyContent:'center',gap:8 }}>
+                {sendingKOT?<Spinner size={16}/>:'🍳'}
+                {!tableNum?'Select a table first':'Confirm — Send to Kitchen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <MobileSheet open={sheetOpen} onClose={()=>setSheetOpen(false)}
         isDine={isDine} tableNum={tableNum} tableName={tableName}
