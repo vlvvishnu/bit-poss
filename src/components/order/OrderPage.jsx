@@ -244,7 +244,8 @@ function TableOrderPanel({
   onCheckout,
   settings, isMobile,
   notes, onChangeNote,
-  optimisticRounds,   // rounds shown immediately after send
+  optimisticRounds,
+  onRealDataLoaded,
 }) {
   const { tenantId, showToast } = useStore()
   const [rounds, setRounds]     = useState([])
@@ -269,7 +270,12 @@ function TableOrderPanel({
       .eq('table_number',String(tableNum))
       .in('status',['pending','preparing','ready'])
       .order('created_at',{ascending:false})   // newest first
-    setRounds(data||[])
+    const newRounds = data||[]
+    setRounds(newRounds)
+    // If we got real rounds, clear any optimistic ones
+    if (newRounds.length > 0 && onRealDataLoaded) {
+      onRealDataLoaded()
+    }
   }
 
   async function removeItem(item, orderId) {
@@ -483,7 +489,7 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) 
 // Single sheet, no tabs. Shows TableOrderPanel or CartPanel accordingly.
 function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   cartItems, onAdd, onRemove, onSendToKitchen, onCheckout, onTableCheckout,
-  sendingKOT, settings, notes, onChangeNote, optimisticRounds }) {
+  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded }) {
 
   if (!open) return null
 
@@ -525,6 +531,7 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
               notes={notes}
               onChangeNote={onChangeNote}
               optimisticRounds={optimisticRounds}
+              onRealDataLoaded={onRealDataLoaded}
             />
           ) : (
             <CartPanel
@@ -781,6 +788,8 @@ export default function OrderPage({ defaultType='takeaway' }) {
     if (!items.length){ showToast('No items to send','warning'); return }
     if (!tenantId)    { showToast('Not connected — refresh','error'); return }
     setSendingKOT(true)
+    // Safety: always stop loading after 8s
+    const safetyTimer = setTimeout(() => setSendingKOT(false), 8000)
 
     // Immediately show optimistic round in Table Order
     const optimisticOrder = {
@@ -837,11 +846,11 @@ export default function OrderPage({ defaultType='takeaway' }) {
         }))
       )
       if (error) throw error
-      // Remove optimistic once DB confirms — realtime sub in TableOrderPanel will load real data
-      setOptimisticRounds(prev => prev.filter(o => o.id !== optimisticOrder.id))
+      // Optimistic round stays until TableOrderPanel's realtime loads real data
+      // TableOrderPanel calls clearOptimistic when it gets DB rounds
       showToast(`🍳 ${cartCount} item${cartCount!==1?'s':''} sent to kitchen!`,'success')
     } catch(e) {
-      // Revert optimistic on failure — put items back
+      // Revert optimistic on failure
       setOptimisticRounds(prev => prev.filter(o => o.id !== optimisticOrder.id))
       showToast(e.message||'Error','error')
     }
@@ -973,6 +982,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
                 notes={itemNotes}
                 onChangeNote={handleNoteChange}
                 optimisticRounds={optimisticRounds}
+                onRealDataLoaded={() => setOptimisticRounds([])}
               />
             ) : (
               <CartPanel
@@ -1054,7 +1064,8 @@ export default function OrderPage({ defaultType='takeaway' }) {
         onCheckout={openCheckout} onTableCheckout={openTableCheckout}
         sendingKOT={sendingKOT} settings={settings}
         notes={itemNotes} onChangeNote={handleNoteChange}
-        optimisticRounds={optimisticRounds} />
+        optimisticRounds={optimisticRounds}
+        onRealDataLoaded={() => setOptimisticRounds([])} />
 
       <CheckoutModal open={!!checkoutData} onClose={()=>setCheckoutData(null)}
         checkoutData={checkoutData}

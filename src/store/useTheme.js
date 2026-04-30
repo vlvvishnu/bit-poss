@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 export const useTheme = create((set, get) => ({
-  dark: true,
+  dark: false,
   toggle: () => {
     const dark = !get().dark
     set({ dark })
@@ -10,7 +10,7 @@ export const useTheme = create((set, get) => ({
   },
   init: () => {
     const saved = localStorage.getItem('bite_theme')
-    const dark = saved ? saved === 'dark' : true
+    const dark = saved ? saved === 'dark' : false
     set({ dark })
     applyTheme(dark)
   },

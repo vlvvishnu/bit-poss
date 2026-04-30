@@ -11,14 +11,14 @@ import SettingsPage from '../components/manage/Settings'
 
 // Pages that live directly in the top nav
 const TOP_NAV = [
-  { id: 'takeaway',  label: '🛍 Takeaway',  isOrder: true  },
-  { id: 'delivery',  label: '🚚 Delivery',   isOrder: true  },
-  { id: 'dine',      label: '🍽 Dine In',    isOrder: true  },
-  { id: 'history',   label: '📋 History',    isOrder: false },
+  { id: 'takeaway', label: '🛍 Takeaway', isOrder: true },
+  { id: 'delivery', label: '🚚 Delivery', isOrder: true },
+  { id: 'dine',     label: '🍽 Dine In',  isOrder: true },
 ]
 
 // Pages inside "More" dropdown
 const MORE_NAV = [
+  { id: 'history',    icon: '📋', label: 'History'    },
   { id: 'kitchen',    icon: '🍳', label: 'Kitchen'    },
   { id: 'products',   icon: '🏷', label: 'Products'   },
   { id: 'categories', icon: '📦', label: 'Categories' },
@@ -141,9 +141,18 @@ export default function POS() {
 
   async function handleSignOut() {
     if (!confirm('Sign out?')) return
+    // Clear all local state first
     setCategories([]); setProducts([]); setSettings(null)
     setTenantId(null); setUser(null); setPage('takeaway')
-    await supabase.auth.signOut({ scope:'local' })
+    // Sign out from Supabase — triggers onAuthStateChange(SIGNED_OUT) in App.jsx
+    // which sets status='guest' and shows Landing page
+    try {
+      await supabase.auth.signOut({ scope: 'local' })
+    } catch(e) {
+      // Force it by clearing storage directly
+      localStorage.removeItem('bite-pos-auth')
+      window.location.reload()
+    }
   }
 
   const bizName = settings?.biz_name || settings?.name || user?.user_metadata?.biz_name || 'BITE.'
