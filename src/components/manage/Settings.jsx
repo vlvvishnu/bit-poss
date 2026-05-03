@@ -88,7 +88,17 @@ export default function SettingsPage() {
     showToast('Business settings saved ✓', 'success')
   }
 
-  async function saveUpi() {
+  const [waWebhook, setWaWebhook] = useState('')
+  const [savingWa, setSavingWa]   = useState(false)
+
+  async function saveWhatsApp() {
+    setSavingWa(true)
+    await supabase.from('tenants').update({ wa_webhook_url: waWebhook }).eq('id', tenantId)
+    showToast('WhatsApp settings saved ✓', 'success')
+    setSavingWa(false)
+  }
+
+    async function saveUpi() {
     setSavingUpi(true)
     const { error } = await supabase.from('tenants').update({
       upi_id: upiId || null,
@@ -143,6 +153,22 @@ export default function SettingsPage() {
           </Field>
           <div style={{ paddingTop: 14 }}>
             <SaveBtn saving={savingUpi} onClick={saveUpi} label="Save UPI" />
+          </div>
+        </Section>
+
+        {/* WhatsApp / Emovur */}
+        <Section title="📲 WhatsApp Invoice">
+          <div style={{ fontSize:12,color:'var(--text3)',marginBottom:10,lineHeight:1.65 }}>
+            After getting your template approved in Emovur, go to<br/>
+            <strong>Dashboard → Templates → View/Edit Webhook</strong> and paste the URL below.
+          </div>
+          <Field label="Emovur Webhook URL" hint="Per-template webhook from your Emovur dashboard">
+            <input value={waWebhook} onChange={e=>setWaWebhook(e.target.value)}
+              placeholder="https://adminapis.backendprod.com/lms_campaign/api/whatsapp/template/…/process"
+              style={inputStyle}/>
+          </Field>
+          <div style={{ marginTop:8 }}>
+            <SaveButton saving={savingWa} onClick={saveWhatsApp} label="Save WhatsApp" />
           </div>
         </Section>
 

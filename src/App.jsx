@@ -4,6 +4,7 @@ import { useStore } from './store/useStore'
 import { useTheme } from './store/useTheme'
 import Landing from './pages/Landing'
 import Install from './pages/Install'
+import Invoice from './pages/Invoice'
 import POS from './pages/POS'
 import Toast from './components/ui/Toast'
 
@@ -92,6 +93,7 @@ export default function App() {
 
   // /install route — standalone page, no auth needed
   if (window.location.pathname === '/install') return <Install />
+  if (window.location.pathname.startsWith('/invoice/')) return <Invoice />
 
   if (status === 'loading') return (
     <div style={{ height:'100vh', display:'flex', flexDirection:'column',

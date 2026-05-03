@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabase'
+import { sendInvoiceWhatsApp, formatItemsList, formatDate } from '../../utils/whatsapp'
 import { useStore } from '../../store/useStore'
 
 // ── helpers ───────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ const TYPE_LABEL = {
 }
 
 // ── Order Detail panel / sheet ────────────────────────────────────
-function OrderDetail({ order, onClose, onRefund, isMobile }) {
+function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
   if (!order) return null
   const items    = order.order_items || []
   const active   = items.filter(i => i.status !== 'rejected')
@@ -129,9 +130,19 @@ function OrderDetail({ order, onClose, onRefund, isMobile }) {
         </div>
 
         {/* Refund */}
+        {/* WhatsApp resend */}
+        {order.customer_phone && (
+          <button onClick={() => onResend(order)}
+            style={{ width:'100%', marginTop:12, background:'rgba(37,211,102,0.08)',
+              color:'#25D366', border:'1px solid rgba(37,211,102,0.25)',
+              borderRadius:8, padding:'10px', fontWeight:600, fontSize:13,
+              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+            📱 Resend Invoice on WhatsApp
+          </button>
+        )}
         {order.status === 'paid' && (
           <button onClick={() => onRefund(order.id)}
-            style={{ width:'100%', marginTop:12, background:'rgba(239,68,68,0.08)',
+            style={{ width:'100%', marginTop:8, background:'rgba(239,68,68,0.08)',
               color:'var(--red)', border:'1px solid rgba(239,68,68,0.2)',
               borderRadius:8, padding:'10px', fontWeight:600, fontSize:13,
               cursor:'pointer' }}>
@@ -217,7 +228,7 @@ function OrderDetail({ order, onClose, onRefund, isMobile }) {
 
 // ── Main History Page ─────────────────────────────────────────────
 export default function HistoryPage() {
-  const { tenantId, showToast } = useStore()
+  const { tenantId, showToast, settings } = useStore()
   const [orders, setOrders]     = useState([])
   const [loading, setLoading]   = useState(true)
   const [selected, setSelected] = useState(null)
@@ -318,6 +329,32 @@ export default function HistoryPage() {
     await load()
     setSelected(null)
     showToast('Order refunded', 'success')
+  }
+
+  async function resendWhatsApp(order) {
+    if (!settings?.wa_webhook_url) {
+      showToast('Set Emovur webhook URL in Settings first', 'warning'); return
+    }
+    if (!order.customer_phone) {
+      showToast('No phone number for this order', 'warning'); return
+    }
+    try {
+      const invoiceUrl = `${window.location.origin}/invoice/${order.id}`
+      await sendInvoiceWhatsApp({
+        webhookUrl:  settings.wa_webhook_url,
+        receiver:    order.customer_phone,
+        bizName:     settings?.biz_name || settings?.name || 'Restaurant',
+        orderNumber: order.order_number,
+        date:        formatDate(order.created_at),
+        items:       formatItemsList(order.order_items||[]),
+        total:       Number(order.total).toFixed(2),
+        payMethod:   (order.payment_method||'').toUpperCase(),
+        invoiceUrl,
+      })
+      showToast('📱 Invoice sent on WhatsApp!', 'success')
+    } catch(e) {
+      showToast(e.message||'Failed to send', 'error')
+    }
   }
 
   function openOrder(o) {
@@ -513,6 +550,7 @@ export default function HistoryPage() {
         order={selected}
         onClose={() => setSelected(null)}
         onRefund={refund}
+        onResend={resendWhatsApp}
         isMobile={isMobile}
       />
     </div>
