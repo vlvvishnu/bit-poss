@@ -10,8 +10,6 @@ export default function App() {
   const { setUser, setTenantId, setSettings } = useStore()
 
   async function bootstrap(session) {
-    console.log('[BITE] bootstrap called, session:', session?.user?.email || 'none')
-
     if (!session?.user) {
       setUser(null)
       setTenantId(null)
@@ -21,33 +19,33 @@ export default function App() {
 
     setUser(session.user)
 
-    // Try fetching tenant — log whatever comes back
     const { data, error } = await supabase
       .from('tenants')
       .select('*')
       .eq('user_id', session.user.id)
       .single()
 
-    console.log('[BITE] tenant fetch → data:', data, 'error:', error)
+    if (error) console.warn('[BITE] tenant fetch error:', error.message)
 
     if (data) {
       setTenantId(data.id)
       setSettings(data)
     }
 
-    // Set authed regardless — POS will handle missing tenant gracefully
     setStatus('authed')
   }
 
   useEffect(() => {
+    // getSession handles the initial load — covers both fresh visits and refreshes
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[BITE] getSession:', session?.user?.email || 'no session')
       bootstrap(session)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('[BITE] onAuthStateChange event:', event)
+        // INITIAL_SESSION fires on page load — already handled by getSession above, skip it
+        // Only react to actual sign-in / sign-out events
+        if (event === 'INITIAL_SESSION') return
         bootstrap(session)
       }
     )
@@ -71,8 +69,6 @@ export default function App() {
       </div>
     )
   }
-
-  console.log('[BITE] rendering status:', status)
 
   return (
     <>

@@ -4,8 +4,6 @@ import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
 import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 
-const ALLOWED_ORDER_TYPES = ['dine', 'takeaway', 'stall', 'delivery']
-
 // ── Status config ─────────────────────────────────────────────────
 const STATUS = {
   pending:   { label:'⏳ Waiting',   bg:'rgba(245,158,11,0.12)', color:'#F59E0B' },
@@ -526,9 +524,11 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
   const [payMethod,setPayMethod] = useState('cash')
   const [loading,setLoading]     = useState(false)
   const [error,setError]         = useState('')
-const safeOrderType = ALLOWED_ORDER_TYPES.includes(orderType) ? orderType : 'takeaway'
 
+  // ── Guard: render nothing until we have data ──────────────────
   if (!checkoutData) return null
+
+  // Destructure AFTER the null guard
   const { items, orderType, tableNum, tableName, total, sub, tax, existingOrderId } = checkoutData
   const isDine = orderType === 'dine'
   const upiId  = settings?.upi_id || ''
@@ -547,7 +547,6 @@ const safeOrderType = ALLOWED_ORDER_TYPES.includes(orderType) ? orderType : 'tak
     setLoading(true); setError('')
     try {
       if (isDine && existingOrderId) {
-        // Mark ALL open orders for this table as paid
         const tNum = checkoutData?.tableNumber || tableNum
         const { error } = await supabase.from('orders')
           .update({ status:'paid', payment_method:payMethod, paid_at:new Date().toISOString() })
@@ -560,22 +559,26 @@ const safeOrderType = ALLOWED_ORDER_TYPES.includes(orderType) ? orderType : 'tak
         onSuccess({ order_number:'—', total, payMethod, isDine:true })
         handleClose()
       } else {
-        // ── Takeaway / delivery / stall order ──
         const txRate = (settings?.tax_rate||0)/100
         const s = sub || (items||[]).reduce((a,i) => a+Number(i.unit_price||i.price)*i.qty, 0)
         const t = tax || s * txRate
 
+        // ── Safe order_type: defined here, after orderType is available ──
+        const safeOrderType = ['dine','takeaway','stall','delivery'].includes(orderType)
+          ? orderType
+          : 'takeaway'
+
         const { data:order, error:oErr } = await supabase.from('orders').insert({
-          tenant_id:       tenantId,
-          status:          'paid',
-          order_type:      safeOrderType,
-          payment_method:  payMethod,
-          subtotal:        Number(s.toFixed(2)),
-          tax:             Number(t.toFixed(2)),
-          total:           Number(total.toFixed(2)),
-          customer_name:   name  || null,
-          customer_phone:  phone || null,
-          paid_at:         new Date().toISOString(),
+          tenant_id:      tenantId,
+          status:         'paid',
+          order_type:     safeOrderType,
+          payment_method: payMethod,
+          subtotal:       Number(s.toFixed(2)),
+          tax:            Number(t.toFixed(2)),
+          total:          Number(total.toFixed(2)),
+          customer_name:  name  || null,
+          customer_phone: phone || null,
+          paid_at:        new Date().toISOString(),
         }).select('id,order_number').single()
         if (oErr) throw oErr
 
@@ -598,7 +601,7 @@ const safeOrderType = ALLOWED_ORDER_TYPES.includes(orderType) ? orderType : 'tak
         onSuccess({ ...order, total, payMethod, isDine:false })
         handleClose()
 
-        // ── Auto-send WhatsApp invoice (non-blocking) ──────────────
+        // Auto-send WhatsApp invoice (non-blocking)
         if (phone && settings?.wa_webhook_url) {
           const bizName = settings?.biz_name || settings?.name || 'Restaurant'
           sendInvoiceWhatsApp(
@@ -606,12 +609,9 @@ const safeOrderType = ALLOWED_ORDER_TYPES.includes(orderType) ? orderType : 'tak
             bizName,
             settings.wa_webhook_url
           )
-            .then(r => {
-              if (r.success) showToast('📱 Invoice sent on WhatsApp', 'success')
-            })
+            .then(r => { if (r.success) showToast('📱 Invoice sent on WhatsApp', 'success') })
             .catch(e => console.warn('[BITE] WA send failed:', e?.message))
         }
-        // ──────────────────────────────────────────────────────────
       }
     } catch(e) { setError(e.message || 'Error — try again') }
     setLoading(false)
@@ -1047,9 +1047,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',
               padding:'10px 16px',borderBottom:'1px solid var(--border)' }}>
               <div>
-                <div style={{ fontWeight:800,fontSize:15,color:'var(--text)' }}>
-                  🍳 Send to Kitchen
-                </div>
+                <div style={{ fontWeight:800,fontSize:15,color:'var(--text)' }}>🍳 Send to Kitchen</div>
                 <div style={{ fontSize:11,color:'var(--text3)',marginTop:1 }}>
                   Table {tableName||'?'} · {cartCount} item{cartCount!==1?'s':''}
                 </div>
