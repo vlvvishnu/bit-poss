@@ -6,43 +6,48 @@ import POS from './pages/POS'
 import Toast from './components/ui/Toast'
 
 export default function App() {
-  const [status, setStatus] = useState('loading') // 'loading' | 'authed' | 'guest'
+  const [status, setStatus] = useState('loading')
   const { setUser, setTenantId, setSettings } = useStore()
 
   async function bootstrap(session) {
+    console.log('[BITE] bootstrap called, session:', session?.user?.email || 'none')
+
     if (!session?.user) {
       setUser(null)
       setTenantId(null)
       setStatus('guest')
       return
     }
+
     setUser(session.user)
-    // Load tenant
-    const { data } = await supabase
+
+    // Try fetching tenant — log whatever comes back
+    const { data, error } = await supabase
       .from('tenants')
       .select('*')
       .eq('user_id', session.user.id)
       .single()
+
+    console.log('[BITE] tenant fetch → data:', data, 'error:', error)
+
     if (data) {
       setTenantId(data.id)
       setSettings(data)
     }
+
+    // Set authed regardless — POS will handle missing tenant gracefully
     setStatus('authed')
   }
 
   useEffect(() => {
-    // 1. Check existing session first
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[BITE] getSession:', session?.user?.email || 'no session')
       bootstrap(session)
     })
 
-    // 2. Listen for sign-in / sign-out events
-    // This fires AFTER signInWithPassword resolves — so the Landing page
-    // sign-in button triggers this and we redirect immediately.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        // Only re-bootstrap if status has already been determined
-        // (avoids double-bootstrap on initial load)
+      (event, session) => {
+        console.log('[BITE] onAuthStateChange event:', event)
         bootstrap(session)
       }
     )
@@ -53,7 +58,7 @@ export default function App() {
     return (
       <div style={{
         height: '100vh', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', background: 'var(--bg, #0D0B08)'
+        justifyContent: 'center', background: '#0D0B08'
       }}>
         <span style={{
           width: 28, height: 28,
@@ -66,6 +71,8 @@ export default function App() {
       </div>
     )
   }
+
+  console.log('[BITE] rendering status:', status)
 
   return (
     <>
