@@ -4,6 +4,8 @@ import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
 import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 
+const ALLOWED_ORDER_TYPES = ['dine', 'takeaway', 'stall', 'delivery']
+
 // ── Status config ─────────────────────────────────────────────────
 const STATUS = {
   pending:   { label:'⏳ Waiting',   bg:'rgba(245,158,11,0.12)', color:'#F59E0B' },
@@ -524,6 +526,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
   const [payMethod,setPayMethod] = useState('cash')
   const [loading,setLoading]     = useState(false)
   const [error,setError]         = useState('')
+const safeOrderType = ALLOWED_ORDER_TYPES.includes(orderType) ? orderType : 'takeaway'
 
   if (!checkoutData) return null
   const { items, orderType, tableNum, tableName, total, sub, tax, existingOrderId } = checkoutData
@@ -565,7 +568,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
         const { data:order, error:oErr } = await supabase.from('orders').insert({
           tenant_id:       tenantId,
           status:          'paid',
-          order_type:      orderType,
+          order_type:      safeOrderType,
           payment_method:  payMethod,
           subtotal:        Number(s.toFixed(2)),
           tax:             Number(t.toFixed(2)),
