@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
+import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 
 // ── Status config ─────────────────────────────────────────────────
 const STATUS = {
@@ -75,8 +76,6 @@ function TablePicker({ count, selected, onSelect, tenantId }) {
 }
 
 // ── Single round accordion ────────────────────────────────────────
-// isNew   = unsent cart items (no send button on mobile, has it on desktop)
-// isMobile = controls whether to show Send to Kitchen inside accordion
 function RoundAccordion({
   order, defaultOpen, isNew, isMobile,
   onSendToKitchen, sendingKOT, tableNum,
@@ -96,7 +95,6 @@ function RoundAccordion({
       borderRadius:10, marginBottom:6, overflow:'hidden',
       background: isNew?'var(--brand-lt2)':'var(--card)',
     }}>
-      {/* Accordion header */}
       <button onClick={()=>setOpen(o=>!o)} style={{
         width:'100%',display:'flex',alignItems:'center',gap:8,
         padding:'10px 12px',background:'none',border:'none',
@@ -130,8 +128,6 @@ function RoundAccordion({
 
       {open && (
         <div style={{ borderTop:'1px solid var(--border)' }}>
-
-          {/* Active items */}
           {active.map(item => {
             const itemNote = isNew ? (notes?.[item.id]||'') : (item.notes||'')
             return (
@@ -154,7 +150,6 @@ function RoundAccordion({
                       </div>
                     )}
                   </div>
-                  {/* Qty controls for new round */}
                   {isNew ? (
                     <div style={{ display:'flex',alignItems:'center',gap:5,flexShrink:0 }}>
                       <button onClick={()=>onRemoveItem&&onRemoveItem(item.id)}
@@ -174,7 +169,6 @@ function RoundAccordion({
                     <div style={{ flexShrink:0,textAlign:'right' }}>
                       <div style={{ fontSize:11,fontWeight:600,color:'var(--brand)' }}>
                         ×{item.qty}</div>
-                      {/* Qty controls + reject for pending items */}
                       {order.status==='pending' && onRemoveItem && onAddItem ? (
                         <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4 }}>
                           <div style={{ display:'flex',alignItems:'center',gap:4 }}>
@@ -193,27 +187,12 @@ function RoundAccordion({
                             style={{ fontSize:10,color:'var(--red)',background:'none',
                               border:'none',cursor:'pointer',padding:0 }}>reject</button>
                         </div>
-                      ) : order.status==='pending' && onReduceItem ? (
-                        <div style={{ display:'flex',alignItems:'center',gap:5 }}>
-                          <button onClick={e=>{e.stopPropagation();onReduceItem(item,order.id)}}
-                            style={{ width:22,height:22,borderRadius:'50%',background:'var(--card2)',
-                              border:'1px solid var(--border)',color:'var(--text)',fontSize:13,
-                              display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>−</button>
-                          <span style={{ fontSize:12,fontWeight:700,minWidth:16,
-                            textAlign:'center',color:'var(--text)' }}>×{item.qty}</span>
-                          <button onClick={e=>{e.stopPropagation();onRemoveItem&&onRemoveItem(item,order.id)}}
-                            style={{ fontSize:10,color:'var(--red)',background:'rgba(239,68,68,0.08)',
-                              border:'1px solid rgba(239,68,68,0.2)',borderRadius:5,
-                              padding:'2px 6px',cursor:'pointer',whiteSpace:'nowrap' }}>
-                            reject</button>
-                        </div>
                       ) : (
                         <div style={{ fontSize:11,fontWeight:600,color:'var(--text2)' }}>×{item.qty}</div>
                       )}
                     </div>
                   )}
                 </div>
-                {/* Per-item note input (new round only) */}
                 {isNew && (
                   <div style={{ padding:'0 12px 8px' }}>
                     <input
@@ -229,7 +208,6 @@ function RoundAccordion({
             )
           })}
 
-          {/* Rejected items */}
           {rejected.map(item => (
             <div key={item.id} style={{ display:'flex',gap:8,padding:'5px 12px',
               opacity:0.4,textDecoration:'line-through',fontSize:11,
@@ -240,7 +218,6 @@ function RoundAccordion({
             </div>
           ))}
 
-          {/* Send to Kitchen — inside accordion, desktop new round only */}
           {isNew && !isMobile && (
             <div style={{ padding:'10px 12px',background:'var(--brand-lt2)' }}>
               <button onClick={onSendToKitchen}
@@ -248,7 +225,7 @@ function RoundAccordion({
                 style={{
                   width:'100%',border:'none',borderRadius:8,
                   padding:'11px',fontWeight:800,fontSize:14,
-                  background:!tableNum?'var(--card2)':' #E8440A',
+                  background:!tableNum?'var(--card2)':'#E8440A',
                   color:!tableNum?'var(--text3)':'#fff',
                   cursor:!tableNum?'default':'pointer',
                   display:'flex',alignItems:'center',justifyContent:'center',gap:7,
@@ -264,21 +241,15 @@ function RoundAccordion({
   )
 }
 
-
 function TableOrderPanel({
-  tableNum, tableName,
-  cartItems,
+  tableNum, tableName, cartItems,
   onAddToCart, onRemoveFromCart,
-  onSendToKitchen, sendingKOT,
-  onCheckout,
-  settings, isMobile,
-  notes, onChangeNote,
-  optimisticRounds,
-  onRealDataLoaded,
+  onSendToKitchen, sendingKOT, onCheckout,
+  settings, isMobile, notes, onChangeNote,
+  optimisticRounds, onRealDataLoaded,
 }) {
   const { tenantId, showToast } = useStore()
-  const [rounds, setRounds]     = useState([])
-
+  const [rounds, setRounds] = useState([])
   const taxRate = (settings?.tax_rate||0)/100
 
   useEffect(() => {
@@ -298,13 +269,10 @@ function TableOrderPanel({
       .eq('tenant_id',tenantId).eq('order_type','dine')
       .eq('table_number',String(tableNum))
       .in('status',['pending','preparing','ready'])
-      .order('created_at',{ascending:false})   // newest first
+      .order('created_at',{ascending:false})
     const newRounds = data||[]
     setRounds(newRounds)
-    // If we got real rounds, clear any optimistic ones
-    if (newRounds.length > 0 && onRealDataLoaded) {
-      onRealDataLoaded()
-    }
+    if (newRounds.length > 0 && onRealDataLoaded) onRealDataLoaded()
   }
 
   async function removeItem(item, orderId) {
@@ -317,34 +285,22 @@ function TableOrderPanel({
 
   async function reduceItem(item, orderId) {
     if (item.qty <= 1) {
-      // qty would hit 0 — reject the item entirely
       await supabase.from('order_items')
         .update({status:'rejected',rejected_at:new Date().toISOString()})
         .eq('id',item.id)
       showToast(`"${item.product_name}" removed`,'info')
     } else {
-      await supabase.from('order_items')
-        .update({qty: item.qty - 1})
-        .eq('id',item.id)
+      await supabase.from('order_items').update({qty: item.qty - 1}).eq('id',item.id)
     }
     loadRounds()
   }
 
-  // All active items across all rounds for billing
-  const allActive = rounds.flatMap(o =>
-    (o.order_items||[]).filter(i=>i.status!=='rejected')
-  )
-  const sub     = allActive.reduce((s,i)=>s+Number(i.unit_price)*i.qty,0)
-  const tax     = sub*taxRate
-  const total   = sub+tax
+  const allActive = rounds.flatMap(o => (o.order_items||[]).filter(i=>i.status!=='rejected'))
+  const sub    = allActive.reduce((s,i)=>s+Number(i.unit_price)*i.qty,0)
+  const tax    = sub*taxRate
+  const total  = sub+tax
+  const primaryId = rounds[rounds.length-1]?.id
 
-  // Cart sub-total for the "new round" pending row
-  const cartSub    = cartItems.reduce((s,i)=>s+i.price*i.qty,0)
-  const cartTotal  = cartSub + cartSub*taxRate
-  const cartCount  = cartItems.reduce((s,i)=>s+i.qty,0)
-  const primaryId  = rounds[rounds.length-1]?.id  // oldest open order
-
-  // Build new-round order object for the accordion
   const newRoundOrder = {
     id:'new', order_number:null, status:'pending',
     order_items: cartItems.map(i=>({
@@ -365,7 +321,6 @@ function TableOrderPanel({
 
   return (
     <div style={{ display:'flex',flexDirection:'column',height:'100%' }}>
-      {/* Panel header */}
       <div style={{ padding:'10px 14px',borderBottom:'1px solid var(--border)',flexShrink:0 }}>
         <div style={{ fontFamily:"'Plus Jakarta Sans'",fontWeight:800,fontSize:13,color:'var(--text)' }}>
           📋 Table Order — {tableName}
@@ -375,27 +330,17 @@ function TableOrderPanel({
         </div>
       </div>
 
-      {/* Rounds list */}
       <div style={{ flex:1,overflowY:'auto',padding:'8px 10px' }}>
-
-        {/* New round (cart) — always shown if there are cart items */}
         {cartItems.length>0 && (
           <RoundAccordion
-            order={newRoundOrder}
-            defaultOpen={true}
-            isNew={true}
-            isMobile={isMobile}
-            onSendToKitchen={onSendToKitchen}
-            sendingKOT={sendingKOT}
-            tableNum={tableNum}
+            order={newRoundOrder} defaultOpen={true} isNew={true} isMobile={isMobile}
+            onSendToKitchen={onSendToKitchen} sendingKOT={sendingKOT} tableNum={tableNum}
             onRemoveItem={(id) => onRemoveFromCart(id)}
             onAddItem={(item) => onAddToCart(item)}
-            onChangeNote={onChangeNote}
-            notes={notes}
+            onChangeNote={onChangeNote} notes={notes}
           />
         )}
 
-        {/* Existing sent rounds */}
         {rounds.length===0 && (optimisticRounds||[]).length===0 && cartItems.length===0 && (
           <div style={{ textAlign:'center',padding:'20px',color:'var(--text3)' }}>
             <div style={{ fontSize:22,marginBottom:6 }}>🍳</div>
@@ -403,39 +348,23 @@ function TableOrderPanel({
           </div>
         )}
 
-        {/* Optimistic rounds — shown immediately after send, before DB confirms */}
-        {(optimisticRounds||[]).map((order,idx) => (
-          <RoundAccordion
-            key={order.id}
-            order={order}
-            defaultOpen={true}
-            isNew={false}
-            isMobile={isMobile}
-            onSendToKitchen={null}
-            sendingKOT={false}
-            tableNum={tableNum}
-            onRemoveItem={null}
-          />
+        {(optimisticRounds||[]).map((order) => (
+          <RoundAccordion key={order.id} order={order} defaultOpen={true}
+            isNew={false} isMobile={isMobile} onSendToKitchen={null}
+            sendingKOT={false} tableNum={tableNum} onRemoveItem={null}/>
         ))}
 
         {rounds.map((order,idx) => (
           <RoundAccordion
-            key={order.id}
-            order={order}
+            key={order.id} order={order}
             defaultOpen={idx===0 && cartItems.length===0 && (optimisticRounds||[]).length===0}
-            isNew={false}
-            isMobile={isMobile}
-            onSendToKitchen={null}
-            sendingKOT={false}
-            tableNum={tableNum}
+            isNew={false} isMobile={isMobile}
+            onSendToKitchen={null} sendingKOT={false} tableNum={tableNum}
             onRemoveItem={removeItem}
             onQtyChange={async (item, delta, orderId) => {
               if (delta < 0) await reduceItem(item, orderId)
               else {
-                // Increase qty in DB
-                await supabase.from('order_items')
-                  .update({ qty: item.qty + 1 })
-                  .eq('id', item.id)
+                await supabase.from('order_items').update({ qty: item.qty + 1 }).eq('id', item.id)
                 await loadRounds()
               }
             }}
@@ -444,7 +373,6 @@ function TableOrderPanel({
         ))}
       </div>
 
-      {/* Bill total + checkout */}
       {allActive.length>0 && (
         <div style={{ borderTop:'1px solid var(--border)',padding:12,flexShrink:0 }}>
           {taxRate>0 && (
@@ -464,7 +392,7 @@ function TableOrderPanel({
             onClick={() => onCheckout({
               orderId:primaryId, total, sub, tax,
               activeItems:allActive, tableNum, tableName,
-              tableNumber:tableNum  // pass for bulk update
+              tableNumber:tableNum,
             })}
             style={{ width:'100%',background:'#16A34A',color:'#fff',border:'none',
               borderRadius:'var(--r)',padding:'11px',fontWeight:700,fontSize:13,cursor:'pointer' }}>
@@ -481,7 +409,6 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) 
   const sub    = items.reduce((s,i)=>s+i.price*i.qty,0)
   const taxRate= (settings?.tax_rate||0)/100
   const total  = sub+sub*taxRate
-  const count  = items.reduce((s,i)=>s+i.qty,0)
   const typeLabel = orderType==='delivery'?'🚚 Delivery':'🛍 Takeaway'
 
   return (
@@ -542,13 +469,11 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) 
 }
 
 // ── Mobile bottom sheet ────────────────────────────────────────────
-// Single sheet, no tabs. Shows TableOrderPanel or CartPanel accordingly.
 function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   cartItems, onAdd, onRemove, onSendToKitchen, onCheckout, onTableCheckout,
   sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded }) {
 
   if (!open) return null
-
   return (
     <div style={{ position:'fixed',inset:0,zIndex:300,
       display:'flex',flexDirection:'column',justifyContent:'flex-end',
@@ -557,11 +482,9 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
       <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
         height:'90vh',display:'flex',flexDirection:'column',
         boxShadow:'0 -8px 40px rgba(0,0,0,0.45)' }}>
-        {/* Drag handle */}
         <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
           <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
         </div>
-        {/* Header */}
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',
           padding:'8px 16px 0',flexShrink:0 }}>
           <span style={{ fontWeight:800,fontSize:15,color:'var(--text)' }}>
@@ -570,34 +493,21 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
           <button onClick={onClose} style={{ background:'none',border:'none',
             color:'var(--text2)',fontSize:20,cursor:'pointer',padding:'0 4px',lineHeight:1 }}>✕</button>
         </div>
-        {/* Scrollable content — no send to kitchen inside accordions on mobile */}
         <div style={{ flex:1,overflowY:'auto',padding:'8px 12px' }}>
           {isDine ? (
             <TableOrderPanel
-              tableNum={tableNum}
-              tableName={tableName}
-              cartItems={cartItems}
-              onAddToCart={onAdd}
-              onRemoveFromCart={onRemove}
-              onSendToKitchen={onSendToKitchen}
-              sendingKOT={sendingKOT}
+              tableNum={tableNum} tableName={tableName} cartItems={cartItems}
+              onAddToCart={onAdd} onRemoveFromCart={onRemove}
+              onSendToKitchen={onSendToKitchen} sendingKOT={sendingKOT}
               onCheckout={data => { onTableCheckout(data); onClose() }}
-              settings={settings}
-              isMobile={true}
-              notes={notes}
-              onChangeNote={onChangeNote}
-              optimisticRounds={optimisticRounds}
-              onRealDataLoaded={onRealDataLoaded}
+              settings={settings} isMobile={true} notes={notes} onChangeNote={onChangeNote}
+              optimisticRounds={optimisticRounds} onRealDataLoaded={onRealDataLoaded}
             />
           ) : (
-            <CartPanel
-              items={cartItems}
-              orderType="takeaway"
-              onAdd={onAdd}
-              onRemove={onRemove}
+            <CartPanel items={cartItems} orderType="takeaway"
+              onAdd={onAdd} onRemove={onRemove}
               onCheckout={() => { onCheckout(); onClose() }}
-              settings={settings}
-            />
+              settings={settings}/>
           )}
         </div>
       </div>
@@ -607,7 +517,7 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
 
 // ── Checkout modal ─────────────────────────────────────────────────
 function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
-  const { clearCart,tenantId,settings,showToast } = useStore()
+  const { clearCart, tenantId, settings, showToast } = useStore()
   const [step,setStep]           = useState(1)
   const [phone,setPhone]         = useState('')
   const [name,setName]           = useState('')
@@ -616,72 +526,102 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
   const [error,setError]         = useState('')
 
   if (!checkoutData) return null
-  const { items,orderType,tableNum,tableName,total,sub,tax,existingOrderId } = checkoutData
-  const isDine = orderType==='dine'
-  const upiId  = settings?.upi_id||''
+  const { items, orderType, tableNum, tableName, total, sub, tax, existingOrderId } = checkoutData
+  const isDine = orderType === 'dine'
+  const upiId  = settings?.upi_id || ''
   const PAY = [
-    {id:'cash',icon:'💵',label:'Cash'  },
-    {id:'upi', icon:'📱',label:'UPI'   },
-    {id:'card',icon:'💳',label:'Card'  },
-    {id:'other',icon:'🔖',label:'Other'},
+    {id:'cash', icon:'💵', label:'Cash'  },
+    {id:'upi',  icon:'📱', label:'UPI'   },
+    {id:'card', icon:'💳', label:'Card'  },
+    {id:'other',icon:'🔖', label:'Other' },
   ]
 
-  function reset(){ setStep(1);setPhone('');setName('');setPayMethod('cash');setError('') }
-  function handleClose(){ reset();onClose() }
+  function reset() { setStep(1); setPhone(''); setName(''); setPayMethod('cash'); setError('') }
+  function handleClose() { reset(); onClose() }
 
   async function confirm() {
-    if (!tenantId){ setError('Not connected — refresh');return }
-    setLoading(true);setError('')
+    if (!tenantId) { setError('Not connected — refresh'); return }
+    setLoading(true); setError('')
     try {
       if (isDine && existingOrderId) {
         // Mark ALL open orders for this table as paid
         const tNum = checkoutData?.tableNumber || tableNum
-        const {error} = await supabase.from('orders')
-          .update({status:'paid',payment_method:payMethod,paid_at:new Date().toISOString()})
-          .eq('tenant_id',tenantId)
-          .eq('order_type','dine')
-          .eq('table_number',String(tNum||''))
-          .in('status',['pending','preparing','ready'])
+        const { error } = await supabase.from('orders')
+          .update({ status:'paid', payment_method:payMethod, paid_at:new Date().toISOString() })
+          .eq('tenant_id', tenantId)
+          .eq('order_type', 'dine')
+          .eq('table_number', String(tNum||''))
+          .in('status', ['pending','preparing','ready'])
         if (error) throw error
-        showToast('Table checked out ✓','success')
-        onSuccess({order_number:'—',total,payMethod,isDine:true})
+        showToast('Table checked out ✓', 'success')
+        onSuccess({ order_number:'—', total, payMethod, isDine:true })
         handleClose()
       } else {
-        const txRate=(settings?.tax_rate||0)/100
-        const s=sub||(items||[]).reduce((a,i)=>a+Number(i.unit_price||i.price)*i.qty,0)
-        const t=tax||s*txRate
-        const {data:order,error:oErr}=await supabase.from('orders').insert({
-          tenant_id:tenantId,status:'paid',order_type:orderType,
-          payment_method:payMethod,
-          subtotal:Number(s.toFixed(2)),tax:Number(t.toFixed(2)),total:Number(total.toFixed(2)),
-          customer_name:name||null,customer_phone:phone||null,
-          paid_at:new Date().toISOString(),
+        // ── Takeaway / delivery / stall order ──
+        const txRate = (settings?.tax_rate||0)/100
+        const s = sub || (items||[]).reduce((a,i) => a+Number(i.unit_price||i.price)*i.qty, 0)
+        const t = tax || s * txRate
+
+        const { data:order, error:oErr } = await supabase.from('orders').insert({
+          tenant_id:       tenantId,
+          status:          'paid',
+          order_type:      orderType,
+          payment_method:  payMethod,
+          subtotal:        Number(s.toFixed(2)),
+          tax:             Number(t.toFixed(2)),
+          total:           Number(total.toFixed(2)),
+          customer_name:   name  || null,
+          customer_phone:  phone || null,
+          paid_at:         new Date().toISOString(),
         }).select('id,order_number').single()
         if (oErr) throw oErr
-        const {error:iErr}=await supabase.from('order_items').insert(
-          (items||[]).map(i=>({
-            tenant_id:tenantId,order_id:order.id,
-            product_id:i.id||i.product_id,
-            product_name:i.name||i.product_name,
-            product_icon:i.icon||i.product_icon||'',
-            unit_price:Number(i.price||i.unit_price),
-            qty:Number(i.qty),status:'active',
+
+        const { error:iErr } = await supabase.from('order_items').insert(
+          (items||[]).map(i => ({
+            tenant_id:    tenantId,
+            order_id:     order.id,
+            product_id:   i.id || i.product_id,
+            product_name: i.name || i.product_name,
+            product_icon: i.icon || i.product_icon || '',
+            unit_price:   Number(i.price || i.unit_price),
+            qty:          Number(i.qty),
+            status:       'active',
           }))
         )
         if (iErr) throw iErr
+
         clearCart()
-        showToast(`Order #${order.order_number} placed ✓`,'success')
-        onSuccess({...order,total,payMethod,isDine:false})
+        showToast(`Order #${order.order_number} placed ✓`, 'success')
+        onSuccess({ ...order, total, payMethod, isDine:false })
         handleClose()
+
+        // ── Auto-send WhatsApp invoice (non-blocking) ──────────────
+        if (phone && settings?.wa_webhook_url) {
+          const bizName = settings?.biz_name || settings?.name || 'Restaurant'
+          sendInvoiceWhatsApp(
+            { id: order.id, customer_phone: phone },
+            bizName,
+            settings.wa_webhook_url
+          )
+            .then(r => {
+              if (r.success) showToast('📱 Invoice sent on WhatsApp', 'success')
+            })
+            .catch(e => console.warn('[BITE] WA send failed:', e?.message))
+        }
+        // ──────────────────────────────────────────────────────────
       }
-    } catch(e){ setError(e.message||'Error — try again') }
+    } catch(e) { setError(e.message || 'Error — try again') }
     setLoading(false)
   }
 
   const BtnRow = () => (
     <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
-      {error&&<div style={{ fontSize:12,color:'var(--red)',background:'rgba(239,68,68,0.08)',
-        border:'1px solid rgba(239,68,68,0.2)',borderRadius:6,padding:'8px 10px' }}>⚠ {error}</div>}
+      {error && (
+        <div style={{ fontSize:12,color:'var(--red)',background:'rgba(239,68,68,0.08)',
+          border:'1px solid rgba(239,68,68,0.2)',borderRadius:6,padding:'8px 10px' }}>
+          ⚠ {error}
+        </div>
+      )}
       {isDine ? (
         <button onClick={confirm} disabled={loading}
           style={{ width:'100%',background:loading?'var(--card2)':'#16A34A',
@@ -691,13 +631,13 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           {loading&&<Spinner/>}
           {loading?'Processing…':`Collect ₹${total.toFixed(2)} →`}
         </button>
-      ):step===1?(
+      ) : step===1 ? (
         <button onClick={()=>{setError('');setStep(2)}}
           style={{ width:'100%',background:'var(--brand)',color:'#fff',border:'none',
             borderRadius:8,padding:13,fontWeight:700,fontSize:14,cursor:'pointer' }}>
           Next: Payment →
         </button>
-      ):(
+      ) : (
         <div style={{ display:'flex',gap:8 }}>
           <button onClick={()=>{setStep(1);setError('')}}
             style={{ flex:'0 0 72px',background:'var(--card2)',color:'var(--text)',
@@ -720,7 +660,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
     <Modal open={open} onClose={handleClose}
       title={isDine?`Checkout — ${tableName}`:'Checkout'}
       footer={<BtnRow/>}>
-      {!isDine&&(
+      {!isDine && (
         <div style={{ display:'flex',marginBottom:14,background:'var(--bg)',
           borderRadius:8,padding:3 }}>
           {[['1 · Customer',1],['2 · Payment',2]].map(([l,s])=>(
@@ -731,45 +671,58 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           ))}
         </div>
       )}
-      {/* Bill */}
+      {/* Bill summary */}
       <div style={{ background:'var(--bg)',borderRadius:8,padding:'10px 12px',marginBottom:14 }}>
         <div style={{ color:'var(--brand)',fontWeight:700,fontSize:12,marginBottom:5 }}>
-          {isDine?`🍽 ${tableName}`:orderType==='delivery'?'🚚 Delivery':'🛍 Takeaway'}</div>
+          {isDine?`🍽 ${tableName}`:orderType==='delivery'?'🚚 Delivery':'🛍 Takeaway'}
+        </div>
         {(items||[]).map((i,idx)=>(
           <div key={idx} style={{ display:'flex',justifyContent:'space-between',
-            padding:'2px 0',color:'var(--text2)',fontSize:12,borderBottom:'1px solid var(--border)' }}>
+            padding:'2px 0',color:'var(--text2)',fontSize:12,
+            borderBottom:'1px solid var(--border)' }}>
             <span>{i.product_icon||i.icon||'🍽'} {i.product_name||i.name} ×{i.qty}</span>
             <span>₹{(Number(i.unit_price||i.price)*i.qty).toFixed(2)}</span>
           </div>
         ))}
         <div style={{ display:'flex',justifyContent:'space-between',fontSize:14,
           fontWeight:800,marginTop:5 }}>
-          <span>Total</span><span style={{ color:'var(--brand)' }}>₹{total.toFixed(2)}</span>
+          <span>Total</span>
+          <span style={{ color:'var(--brand)' }}>₹{total.toFixed(2)}</span>
         </div>
       </div>
-      {!isDine&&step===1&&(
+      {/* Step 1 — Customer info */}
+      {!isDine && step===1 && (
         <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
           {[
-            {label:'Phone',value:phone,set:setPhone,type:'tel',placeholder:'+91 98765'},
-            {label:'Name', value:name, set:setName, placeholder:'Optional'},
+            {label:'Phone', value:phone, set:setPhone, type:'tel',  placeholder:'+91 98765'},
+            {label:'Name',  value:name,  set:setName,  type:'text', placeholder:'Optional'},
           ].map(f=>(
             <label key={f.label} style={{ display:'flex',flexDirection:'column',gap:4 }}>
               <span style={{ fontSize:11,fontWeight:700,color:'var(--text2)',
                 textTransform:'uppercase',letterSpacing:'0.4px' }}>{f.label}</span>
               <input value={f.value} onChange={e=>f.set(e.target.value)}
-                type={f.type||'text'} placeholder={f.placeholder}
+                type={f.type} placeholder={f.placeholder}
                 style={{ width:'100%',padding:'9px 12px',background:'var(--bg)',
                   border:'1.5px solid var(--border2)',borderRadius:8,
                   color:'var(--text)',fontSize:14,outline:'none' }}/>
             </label>
           ))}
+          {phone && settings?.wa_webhook_url && (
+            <div style={{ fontSize:11,color:'#25D366',display:'flex',alignItems:'center',gap:5,
+              background:'rgba(37,211,102,0.06)',border:'1px solid rgba(37,211,102,0.2)',
+              borderRadius:7,padding:'6px 10px' }}>
+              📱 Invoice will be sent on WhatsApp
+            </div>
+          )}
         </div>
       )}
-      {(isDine||step===2)&&(
+      {/* Step 2 — Payment method */}
+      {(isDine || step===2) && (
         <div>
           <div style={{ fontSize:11,fontWeight:700,color:'var(--text2)',
             textTransform:'uppercase',letterSpacing:'0.4px',marginBottom:10 }}>
-            Payment Method</div>
+            Payment Method
+          </div>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8 }}>
             {PAY.map(m=>(
               <button key={m.id} onClick={()=>setPayMethod(m.id)} style={{
@@ -778,8 +731,9 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
                 borderRadius:10,padding:'12px 8px',cursor:'pointer',textAlign:'center' }}>
                 <div style={{ fontSize:24,marginBottom:4 }}>{m.icon}</div>
                 <div style={{ fontSize:12,fontWeight:700,color:'var(--text)' }}>{m.label}</div>
-                {m.id==='upi'&&!upiId&&<div style={{ fontSize:10,color:'var(--amber)',marginTop:2 }}>
-                  Set in Settings</div>}
+                {m.id==='upi'&&!upiId&&(
+                  <div style={{ fontSize:10,color:'var(--amber)',marginTop:2 }}>Set in Settings</div>
+                )}
               </button>
             ))}
           </div>
@@ -792,16 +746,24 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
 function SuccessModal({ order, onClose }) {
   if (!order) return null
   return (
-    <Modal open onClose={onClose} title={order.isDine?'Table Checked Out ✓':'Order Complete ✓'}
-      footer={<button onClick={onClose} style={{ width:'100%',background:'var(--brand)',
-        color:'#fff',border:'none',borderRadius:8,padding:13,fontWeight:700,cursor:'pointer' }}>Done</button>}>
+    <Modal open onClose={onClose}
+      title={order.isDine?'Table Checked Out ✓':'Order Complete ✓'}
+      footer={
+        <button onClick={onClose} style={{ width:'100%',background:'var(--brand)',
+          color:'#fff',border:'none',borderRadius:8,padding:13,fontWeight:700,cursor:'pointer' }}>
+          Done
+        </button>
+      }>
       <div style={{ textAlign:'center',padding:'8px 0' }}>
         <div style={{ fontSize:48,marginBottom:8 }}>✅</div>
         <div style={{ fontSize:28,fontWeight:800,color:'var(--brand)',margin:'8px 0' }}>
-          ₹{Number(order.total).toFixed(2)}</div>
+          ₹{Number(order.total).toFixed(2)}
+        </div>
         <div style={{ fontSize:13,color:'var(--text2)' }}>
-          {order.payMethod==='cash'?'💵 Cash':order.payMethod==='upi'?'📱 UPI':
-           order.payMethod==='card'?'💳 Card':'🔖 Other'}</div>
+          {order.payMethod==='cash'?'💵 Cash':
+           order.payMethod==='upi' ?'📱 UPI' :
+           order.payMethod==='card'?'💳 Card':'🔖 Other'}
+        </div>
       </div>
     </Modal>
   )
@@ -819,7 +781,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
   const [checkoutData, setCheckoutData] = useState(null)
   const [successOrder, setSuccessOrder] = useState(null)
   const [sheetOpen, setSheetOpen]       = useState(false)
-  const [confirmKOT, setConfirmKOT]     = useState(false) // mobile confirm sheet
+  const [confirmKOT, setConfirmKOT]     = useState(false)
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
   const [itemNotes, setItemNotes]       = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
@@ -831,9 +793,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
   }, [])
 
   useEffect(() => {
-    clearCart()
-    setItemNotes({})
-    setOptimisticRounds([])
+    clearCart(); setItemNotes({}); setOptimisticRounds([])
   }, [tableNum])
 
   const isDine     = orderType === 'dine'
@@ -850,58 +810,41 @@ export default function OrderPage({ defaultType='takeaway' }) {
     if (!items.length){ showToast('No items to send','warning'); return }
     if (!tenantId)    { showToast('Not connected — refresh','error'); return }
     setSendingKOT(true)
-    // Safety: always stop loading after 8s
     const safetyTimer = setTimeout(() => setSendingKOT(false), 8000)
 
-    // Immediately show optimistic round in Table Order
     const optimisticOrder = {
-      id: `opt-${Date.now()}`,
-      order_number: null,
-      status: 'pending',
+      id: `opt-${Date.now()}`, order_number: null, status: 'pending',
       order_items: items.map(i => ({
-        id: `oi-${i.id}`,
-        product_name: i.name,
-        product_icon: i.icon||'',
-        qty: i.qty,
-        unit_price: i.price,
-        status: 'active',
-        notes: itemNotes[i.id]||null,
+        id:`oi-${i.id}`, product_name:i.name, product_icon:i.icon||'',
+        qty:i.qty, unit_price:i.price, status:'active', notes:itemNotes[i.id]||null,
       })),
     }
     setOptimisticRounds(prev => [optimisticOrder, ...prev])
-    clearCart()
-    setItemNotes({})
-    setSheetOpen(false)
+    clearCart(); setItemNotes({}); setSheetOpen(false)
 
     try {
       const s=sub, t=s*taxRate, tot=s+t
-      // Always create a NEW order row per round — this keeps rounds separate
-      const {data:o, error:oErr} = await supabase.from('orders').insert({
+      const { data:o, error:oErr } = await supabase.from('orders').insert({
         tenant_id:tenantId, status:'pending', order_type:'dine',
         table_number:String(tableNum), payment_method:'cash',
-        subtotal:Number(s.toFixed(2)), tax:Number(t.toFixed(2)),
-        total:Number(tot.toFixed(2)),
+        subtotal:Number(s.toFixed(2)), tax:Number(t.toFixed(2)), total:Number(tot.toFixed(2)),
       }).select('id').single()
       if (oErr) throw oErr
-      const orderId = o.id
-      const {error} = await supabase.from('order_items').insert(
+      const { error } = await supabase.from('order_items').insert(
         items.map(i=>({
-          tenant_id:tenantId, order_id:orderId,
-          product_id:i.id, product_name:i.name,
-          product_icon:i.icon||'', unit_price:Number(i.price),
-          qty:Number(i.qty), status:'active',
+          tenant_id:tenantId, order_id:o.id,
+          product_id:i.id, product_name:i.name, product_icon:i.icon||'',
+          unit_price:Number(i.price), qty:Number(i.qty), status:'active',
           notes:itemNotes[i.id]||null,
         }))
       )
       if (error) throw error
-      // Optimistic round stays until TableOrderPanel's realtime loads real data
-      // TableOrderPanel calls clearOptimistic when it gets DB rounds
       showToast(`🍳 ${cartCount} item${cartCount!==1?'s':''} sent to kitchen!`,'success')
     } catch(e) {
-      // Revert optimistic on failure
       setOptimisticRounds(prev => prev.filter(o => o.id !== optimisticOrder.id))
       showToast(e.message||'Error','error')
     }
+    clearTimeout(safetyTimer)
     setSendingKOT(false)
   }
 
@@ -911,7 +854,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
 
   function openCheckout() {
     if (!items.length){ showToast('Cart is empty','warning'); return }
-    setCheckoutData({items,orderType,tableNum,tableName,total,sub,tax:sub*taxRate,existingOrderId:null})
+    setCheckoutData({ items, orderType, tableNum, tableName, total, sub, tax:sub*taxRate, existingOrderId:null })
     setSheetOpen(false)
   }
 
@@ -920,11 +863,9 @@ export default function OrderPage({ defaultType='takeaway' }) {
       items:data.activeItems, orderType:'dine',
       tableNum:data.tableNum, tableName:data.tableName,
       total:data.total, sub:data.sub, tax:data.tax,
-      existingOrderId:data.orderId,
-      tableNumber:data.tableNum,  // for bulk marking all orders paid
+      existingOrderId:data.orderId, tableNumber:data.tableNum,
     })
-    setSheetOpen(false)
-    setConfirmKOT(false)
+    setSheetOpen(false); setConfirmKOT(false)
   }
 
   const groups = useMemo(() => {
@@ -933,24 +874,21 @@ export default function OrderPage({ defaultType='takeaway' }) {
     if (activeCat!=='all') return [{name:'',icon:'',items:filtered}]
     const map = {}
     filtered.forEach(p=>{
-      const key=p.category_id||'other'
-      if (!map[key]) map[key]={name:p.catName||'Other',icon:p.catIcon||'',items:[]}
+      const key = p.category_id||'other'
+      if (!map[key]) map[key] = { name:p.catName||'Other', icon:p.catIcon||'', items:[] }
       map[key].items.push(p)
     })
     return Object.values(map)
-  }, [products,activeCat])
+  }, [products, activeCat])
 
   return (
-    <div style={{ flex:1,display:'flex',flexDirection:'column',
-      overflow:'hidden',position:'relative' }}>
+    <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative' }}>
 
-      {/* Table picker */}
       {isDine && (
         <TablePicker count={tableCount} selected={tableNum}
-          onSelect={setTableNum} tenantId={tenantId} />
+          onSelect={setTableNum} tenantId={tenantId}/>
       )}
 
-      {/* Category strip */}
       <div style={{ display:'flex',gap:5,padding:'6px 12px',overflowX:'auto',
         borderBottom:'1px solid var(--border)',flexShrink:0,scrollbarWidth:'none' }}>
         {[{id:'all',name:'All',icon:''},...categories].map(cat=>(
@@ -963,10 +901,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
         ))}
       </div>
 
-      {/* Body */}
       <div style={{ flex:1,display:'flex',overflow:'hidden' }}>
-
-        {/* Menu */}
         <div style={{ flex:1,overflowY:'auto',padding:10 }}>
           {products.length===0&&(
             <div style={{ textAlign:'center',padding:40,color:'var(--text2)' }}>
@@ -979,7 +914,8 @@ export default function OrderPage({ defaultType='takeaway' }) {
               {group.name&&(
                 <div style={{ fontSize:10,fontWeight:700,color:'var(--text3)',
                   textTransform:'uppercase',letterSpacing:'0.5px',padding:'8px 0 5px' }}>
-                  {group.icon} {group.name}</div>
+                  {group.icon} {group.name}
+                </div>
               )}
               <div style={{ display:'grid',
                 gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',
@@ -1015,38 +951,28 @@ export default function OrderPage({ defaultType='takeaway' }) {
           {isMobile&&<div style={{ height:100 }}/>}
         </div>
 
-        {/* Desktop right panel — ONE column */}
         {!isMobile && (
           <div style={{ width:320,flexShrink:0,borderLeft:'1px solid var(--border)',
             display:'flex',flexDirection:'column',overflow:'hidden' }}>
             {isDine ? (
               <TableOrderPanel
-                tableNum={tableNum} tableName={tableName}
-                cartItems={items}
+                tableNum={tableNum} tableName={tableName} cartItems={items}
                 onAddToCart={addToCart} onRemoveFromCart={removeFromCart}
-                onSendToKitchen={handleSendToKitchen}
-                sendingKOT={sendingKOT}
-                onCheckout={openTableCheckout}
-                settings={settings}
-                isMobile={false}
-                notes={itemNotes}
-                onChangeNote={handleNoteChange}
+                onSendToKitchen={handleSendToKitchen} sendingKOT={sendingKOT}
+                onCheckout={openTableCheckout} settings={settings} isMobile={false}
+                notes={itemNotes} onChangeNote={handleNoteChange}
                 optimisticRounds={optimisticRounds}
                 onRealDataLoaded={() => setOptimisticRounds([])}
               />
             ) : (
-              <CartPanel
-                items={items} orderType={orderType}
+              <CartPanel items={items} orderType={orderType}
                 onAdd={addToCart} onRemove={removeFromCart}
-                onCheckout={openCheckout}
-                settings={settings}
-              />
+                onCheckout={openCheckout} settings={settings}/>
             )}
           </div>
         )}
       </div>
 
-      {/* Mobile FAB */}
       {isMobile&&(
         <div style={{ position:'fixed',bottom:0,left:0,right:0,
           padding:'10px 12px',paddingBottom:'calc(14px + env(safe-area-inset-bottom, 8px))',
@@ -1054,26 +980,21 @@ export default function OrderPage({ defaultType='takeaway' }) {
           display:'flex',gap:8,zIndex:100 }}>
           {isDine ? (
             <>
-              {/* Send to kitchen — opens confirm sheet on mobile */}
               <button
                 onClick={() => { if(!tableNum){showToast('Select a table first','warning');return} if(cartCount>0) setConfirmKOT(true) }}
                 disabled={sendingKOT}
-                style={{
-                  flex:1.8,
+                style={{ flex:1.8,
                   background:(!tableNum||cartCount===0)?'var(--card2)':'#E8440A',
                   color:(!tableNum||cartCount===0)?'var(--text3)':'#fff',
                   border:`1.5px solid ${(!tableNum||cartCount===0)?'var(--border)':'#E8440A'}`,
-                  borderRadius:14,padding:'13px 8px',
-                  fontWeight:800,fontSize:14,
+                  borderRadius:14,padding:'13px 8px',fontWeight:800,fontSize:14,
                   cursor:(!tableNum||cartCount===0)?'default':'pointer',
                   display:'flex',alignItems:'center',justifyContent:'center',gap:6,
-                  transition:'all 0.15s',
-                }}>
+                  transition:'all 0.15s' }}>
                 {sendingKOT?<Spinner size={16}/>:<span style={{ fontSize:17 }}>🍳</span>}
                 {sendingKOT?'Sending…':!tableNum?'Select table':
                  cartCount>0?`Send ${cartCount} to Kitchen`:'Send to Kitchen'}
               </button>
-              {/* Cart icon — opens sheet with Table Order accordion */}
               <button onClick={()=>setSheetOpen(true)}
                 style={{ flex:1,background:'var(--card)',
                   border:'1.5px solid var(--border)',borderRadius:14,
@@ -1117,11 +1038,9 @@ export default function OrderPage({ defaultType='takeaway' }) {
           <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
             display:'flex',flexDirection:'column',
             boxShadow:'0 -8px 40px rgba(0,0,0,0.5)' }}>
-            {/* Handle */}
             <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
               <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
             </div>
-            {/* Header */}
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',
               padding:'10px 16px',borderBottom:'1px solid var(--border)' }}>
               <div>
@@ -1136,13 +1055,10 @@ export default function OrderPage({ defaultType='takeaway' }) {
                 style={{ background:'none',border:'none',color:'var(--text2)',
                   fontSize:20,cursor:'pointer',lineHeight:1 }}>✕</button>
             </div>
-            {/* Items preview as accordion */}
             <div style={{ overflowY:'auto',maxHeight:'45vh',padding:'8px 14px' }}>
               <RoundAccordion
                 order={{
-                  id:'confirm-preview',
-                  order_number:null,
-                  status:'pending',
+                  id:'confirm-preview', order_number:null, status:'pending',
                   order_items:items.map(i=>({
                     id:`p-${i.id}`,product_name:i.name,
                     product_icon:i.icon||'',qty:i.qty,
@@ -1150,20 +1066,16 @@ export default function OrderPage({ defaultType='takeaway' }) {
                     notes:itemNotes[i.id]||null,
                   })),
                 }}
-                defaultOpen={true}
-                isNew={true}
-                isMobile={true}
-                onSendToKitchen={null}
-                sendingKOT={false}
-                tableNum={tableNum}
+                defaultOpen={true} isNew={true} isMobile={true}
+                onSendToKitchen={null} sendingKOT={false} tableNum={tableNum}
                 onRemoveItem={id=>removeFromCart(id)}
                 onAddItem={item=>addToCart(item)}
                 onChangeNote={(id,v)=>setItemNotes(p=>({...p,[id]:v}))}
                 notes={itemNotes}
               />
             </div>
-            {/* CTA */}
-            <div style={{ padding:'12px 16px',paddingBottom:'calc(12px + env(safe-area-inset-bottom,0px))',
+            <div style={{ padding:'12px 16px',
+              paddingBottom:'calc(12px + env(safe-area-inset-bottom,0px))',
               borderTop:'1px solid var(--border)' }}>
               <div style={{ display:'flex',justifyContent:'space-between',
                 fontSize:14,fontWeight:800,marginBottom:12 }}>
@@ -1188,7 +1100,6 @@ export default function OrderPage({ defaultType='takeaway' }) {
         </div>
       )}
 
-
       <MobileSheet open={sheetOpen} onClose={()=>setSheetOpen(false)}
         isDine={isDine} tableNum={tableNum} tableName={tableName}
         cartItems={items} onAdd={addToCart} onRemove={removeFromCart}
@@ -1197,12 +1108,12 @@ export default function OrderPage({ defaultType='takeaway' }) {
         sendingKOT={sendingKOT} settings={settings}
         notes={itemNotes} onChangeNote={handleNoteChange}
         optimisticRounds={optimisticRounds}
-        onRealDataLoaded={() => setOptimisticRounds([])} />
+        onRealDataLoaded={() => setOptimisticRounds([])}/>
 
       <CheckoutModal open={!!checkoutData} onClose={()=>setCheckoutData(null)}
         checkoutData={checkoutData}
-        onSuccess={o=>{ setSuccessOrder(o); setCheckoutData(null) }} />
-      <SuccessModal order={successOrder} onClose={()=>setSuccessOrder(null)} />
+        onSuccess={o=>{ setSuccessOrder(o); setCheckoutData(null) }}/>
+      <SuccessModal order={successOrder} onClose={()=>setSuccessOrder(null)}/>
     </div>
   )
 }

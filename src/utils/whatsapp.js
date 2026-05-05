@@ -1,60 +1,59 @@
-// Emovur WhatsApp API — send invoice link via template message
-// Docs: https://support.emovur.com/developers/api-documentation/send-template-message-api
+// ─────────────────────────────────────────────────────────────
+// BITE. — Emvour WhatsApp Utility
+// Template: order_invoice1
+// Body: "Your invoice from *{{1}}* is ready. 🧾 View & download here 👇 {{2}} Thank you for dining with us! 🙏"
+// {{1}} = restaurant/business name   |   {{2}} = invoice link
+// ─────────────────────────────────────────────────────────────
 
-export function formatPhone(phone) {
-  if (!phone) return null
-  let digits = phone.replace(/\D/g, '')
-  if (digits.length === 10) digits = '91' + digits
-  return '+' + digits
-}
+const RECEIPT_BASE = `${window.location.origin}/receipt`
 
-export function formatItemsList(orderItems) {
-  return (orderItems||[])
-    .filter(i => i.status !== 'rejected')
-    .map(i => `• ${i.product_name} ×${i.qty}  ₹${(Number(i.unit_price)*i.qty).toFixed(2)}`)
-    .join('\n')
-}
+/**
+ * Send invoice WhatsApp via Emvour template order_invoice1
+ * @param {object} order        - order row from Supabase (needs .id, .customer_phone)
+ * @param {string} bizName      - tenant/restaurant name e.g. "Boba Baba"
+ * @param {string} webhookUrl   - from tenants.wa_webhook_url
+ */
+export async function sendInvoiceWhatsApp(order, bizName, webhookUrl) {
+  if (!webhookUrl) {
+    console.warn('[BITE] WhatsApp webhook URL not configured')
+    return { success: false, message: 'WhatsApp not configured in Settings' }
+  }
 
-export function formatDate(iso) {
-  return new Date(iso).toLocaleString('en-IN', {
-    day:'numeric', month:'short', year:'numeric',
-    hour:'2-digit', minute:'2-digit', hour12:true,
-  })
-}
+  const phone = order.customer_phone
+  if (!phone) return { success: false, message: 'No phone number on order' }
 
-// Main send function — posts to the per-template webhook URL from Emovur dashboard
-export async function sendInvoiceWhatsApp({ webhookUrl, receiver, bizName,
-  orderNumber, date, items, total, payMethod, invoiceUrl }) {
+  // Normalize → 91XXXXXXXXXX (strip spaces, dashes, +)
+  const digits   = phone.replace(/[\s\-\+\(\)]/g, '')
+  const receiver = digits.startsWith('91') ? digits : '91' + digits
 
-  if (!webhookUrl) throw new Error('Emovur webhook URL not set in Settings → WhatsApp')
-  if (!receiver)   throw new Error('No phone number for this order')
+  const invoiceUrl = `${RECEIPT_BASE}?id=${order.id}`
 
-  const phone = formatPhone(receiver)
-  if (!phone) throw new Error('Invalid phone number format')
-
-  // Emovur payload: receiver + numbered variable values matching template
   const payload = {
-    receiver: phone,
+    receiver,
     values: {
-      '1': String(bizName),
-      '2': String(orderNumber),
-      '3': String(date),
-      '4': String(items),
-      '5': String(total),
-      '6': String(payMethod),
-      '7': String(invoiceUrl),
+      '1': bizName || 'Restaurant',  // {{1}} = business name
+      '2': invoiceUrl,               // {{2}} = invoice link
     },
+    media_url: invoiceUrl,           // WhatsApp link preview
   }
 
-  const res = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = await res.json().catch(() => ({}))
 
-  if (!res.ok) {
-    const txt = await res.text().catch(()=>res.statusText)
-    throw new Error(`Emovur API error (${res.status}): ${txt}`)
+    if (res.ok) {
+      console.log('[BITE] ✅ WhatsApp invoice sent to', receiver)
+      return { success: true, message: 'Invoice sent on WhatsApp!' }
+    } else {
+      console.error('[BITE] ❌ Emvour error:', data)
+      return { success: false, message: data?.message || 'WhatsApp send failed' }
+    }
+  } catch (err) {
+    console.error('[BITE] ❌ WhatsApp network error:', err)
+    return { success: false, message: 'Network error — WhatsApp not sent' }
   }
-  return res.json().catch(()=>({ success:true }))
 }

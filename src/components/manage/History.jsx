@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabase'
-import { sendInvoiceWhatsApp, formatItemsList, formatDate } from '../../utils/whatsapp'
+import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 import { useStore } from '../../store/useStore'
 
 // ── helpers ───────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ const TYPE_LABEL = {
 }
 
 // ── Order Detail panel / sheet ────────────────────────────────────
-function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
+function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }) {
   if (!order) return null
   const items    = order.order_items || []
   const active   = items.filter(i => i.status !== 'rejected')
@@ -53,108 +53,122 @@ function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
   const content = (
     <>
       {/* Items */}
-      <div style={{ padding: isMobile ? '0' : '0' }}>
-        {active.map(i => (
-          <div key={i.id} style={{ display:'flex', alignItems:'center', gap:8,
-            padding:'8px 0', borderBottom:'1px solid var(--border)' }}>
-            <span style={{ fontSize:16, flexShrink:0 }}>{i.product_icon||'🍽'}</span>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:13, fontWeight:500, color:'var(--text)' }}>
-                {i.product_name}
-              </div>
-              {i.notes && (
-                <div style={{ fontSize:11, color:'var(--amber)' }}>📝 {i.notes}</div>
-              )}
+      {active.map(i => (
+        <div key={i.id} style={{ display:'flex', alignItems:'center', gap:8,
+          padding:'8px 0', borderBottom:'1px solid var(--border)' }}>
+          <span style={{ fontSize:16, flexShrink:0 }}>{i.product_icon||'🍽'}</span>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:13, fontWeight:500, color:'var(--text)' }}>
+              {i.product_name}
             </div>
-            <span style={{ fontSize:12, color:'var(--text2)', marginRight:8 }}>×{i.qty}</span>
-            <span style={{ fontSize:13, fontWeight:600, color:'var(--brand)', flexShrink:0 }}>
-              ₹{(Number(i.unit_price)*i.qty).toFixed(2)}
-            </span>
+            {i.notes && (
+              <div style={{ fontSize:11, color:'var(--amber)' }}>📝 {i.notes}</div>
+            )}
           </div>
-        ))}
-
-        {rejected.length > 0 && (
-          <div style={{ marginTop:8 }}>
-            <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)',
-              textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>
-              Removed items
-            </div>
-            {rejected.map(i => (
-              <div key={i.id} style={{ display:'flex', gap:8, padding:'4px 0',
-                opacity:0.45, textDecoration:'line-through', fontSize:12, color:'var(--text3)' }}>
-                <span>{i.product_icon||'🍽'}</span>
-                <span style={{ flex:1 }}>{i.product_name} ×{i.qty}</span>
-                <span style={{ color:'var(--red)' }}>removed</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Total */}
-        <div style={{ display:'flex', justifyContent:'space-between',
-          padding:'10px 0 0', fontWeight:800, fontSize:15,
-          borderTop:'1px solid var(--border)', marginTop:4 }}>
-          <span>Total</span>
-          <span style={{ color:'var(--brand)' }}>₹{Number(order.total).toFixed(2)}</span>
+          <span style={{ fontSize:12, color:'var(--text2)', marginRight:8 }}>×{i.qty}</span>
+          <span style={{ fontSize:13, fontWeight:600, color:'var(--brand)', flexShrink:0 }}>
+            ₹{(Number(i.unit_price)*i.qty).toFixed(2)}
+          </span>
         </div>
+      ))}
 
-        {/* Meta */}
-        <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:5,
-          background:'var(--bg)', borderRadius:8, padding:'10px 12px',
-          fontSize:12, color:'var(--text2)' }}>
-          <div style={{ display:'flex', justifyContent:'space-between' }}>
-            <span>Order #</span>
-            <span style={{ fontWeight:700, color:'var(--text)' }}>#{order.order_number}</span>
+      {rejected.length > 0 && (
+        <div style={{ marginTop:8 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)',
+            textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>
+            Removed items
           </div>
-          <div style={{ display:'flex', justifyContent:'space-between' }}>
-            <span>Type</span>
-            <span>{TYPE_LABEL[order.order_type]?.(order) || order.order_type}</span>
-          </div>
-          <div style={{ display:'flex', justifyContent:'space-between' }}>
-            <span>Payment</span>
-            <span>{order.payment_method==='upi'?'📱 UPI':order.payment_method==='cash'?'💵 Cash':order.payment_method==='card'?'💳 Card':'🔖 Other'}</span>
-          </div>
-          {order.customer_name  && (
-            <div style={{ display:'flex', justifyContent:'space-between' }}>
-              <span>Customer</span><span>👤 {order.customer_name}</span>
+          {rejected.map(i => (
+            <div key={i.id} style={{ display:'flex', gap:8, padding:'4px 0',
+              opacity:0.45, textDecoration:'line-through', fontSize:12, color:'var(--text3)' }}>
+              <span>{i.product_icon||'🍽'}</span>
+              <span style={{ flex:1 }}>{i.product_name} ×{i.qty}</span>
+              <span style={{ color:'var(--red)' }}>removed</span>
             </div>
-          )}
-          {order.customer_phone && (
-            <div style={{ display:'flex', justifyContent:'space-between' }}>
-              <span>Phone</span><span>📞 {order.customer_phone}</span>
-            </div>
-          )}
-          <div style={{ display:'flex', justifyContent:'space-between' }}>
-            <span>Time</span><span>🕐 {fmtFull(order.created_at)}</span>
-          </div>
+          ))}
         </div>
+      )}
 
-        {/* Refund */}
-        {/* WhatsApp resend */}
-        {order.customer_phone && (
-          <button onClick={() => onResend(order)}
-            style={{ width:'100%', marginTop:12, background:'rgba(37,211,102,0.08)',
-              color:'#25D366', border:'1px solid rgba(37,211,102,0.25)',
-              borderRadius:8, padding:'10px', fontWeight:600, fontSize:13,
-              cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-            📱 Resend Invoice on WhatsApp
-          </button>
-        )}
-        {order.status === 'paid' && (
-          <button onClick={() => onRefund(order.id)}
-            style={{ width:'100%', marginTop:8, background:'rgba(239,68,68,0.08)',
-              color:'var(--red)', border:'1px solid rgba(239,68,68,0.2)',
-              borderRadius:8, padding:'10px', fontWeight:600, fontSize:13,
-              cursor:'pointer' }}>
-            ↩ Refund this order
-          </button>
-        )}
+      {/* Total */}
+      <div style={{ display:'flex', justifyContent:'space-between',
+        padding:'10px 0 0', fontWeight:800, fontSize:15,
+        borderTop:'1px solid var(--border)', marginTop:4 }}>
+        <span>Total</span>
+        <span style={{ color:'var(--brand)' }}>₹{Number(order.total).toFixed(2)}</span>
       </div>
+
+      {/* Meta */}
+      <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:5,
+        background:'var(--bg)', borderRadius:8, padding:'10px 12px',
+        fontSize:12, color:'var(--text2)' }}>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <span>Order #</span>
+          <span style={{ fontWeight:700, color:'var(--text)' }}>#{order.order_number}</span>
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <span>Type</span>
+          <span>{TYPE_LABEL[order.order_type]?.(order) || order.order_type}</span>
+        </div>
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <span>Payment</span>
+          <span>
+            {order.payment_method==='upi' ? '📱 UPI'
+            :order.payment_method==='cash'? '💵 Cash'
+            :order.payment_method==='card'? '💳 Card'
+            :'🔖 Other'}
+          </span>
+        </div>
+        {order.customer_name && (
+          <div style={{ display:'flex', justifyContent:'space-between' }}>
+            <span>Customer</span><span>👤 {order.customer_name}</span>
+          </div>
+        )}
+        {order.customer_phone && (
+          <div style={{ display:'flex', justifyContent:'space-between' }}>
+            <span>Phone</span><span>📞 {order.customer_phone}</span>
+          </div>
+        )}
+        <div style={{ display:'flex', justifyContent:'space-between' }}>
+          <span>Time</span><span>🕐 {fmtFull(order.created_at)}</span>
+        </div>
+      </div>
+
+      {/* WhatsApp resend — only if phone exists */}
+      {order.customer_phone && (
+        <button
+          onClick={() => onResend(order)}
+          disabled={resending}
+          style={{ width:'100%', marginTop:12,
+            background: resending ? 'var(--card2)' : 'rgba(37,211,102,0.08)',
+            color: resending ? 'var(--text3)' : '#25D366',
+            border:`1px solid ${resending ? 'var(--border)' : 'rgba(37,211,102,0.25)'}`,
+            borderRadius:8, padding:'10px', fontWeight:600, fontSize:13,
+            cursor: resending ? 'default' : 'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+            transition:'all 0.15s',
+          }}>
+          {resending
+            ? <><span style={{ width:12, height:12, border:'2px solid currentColor',
+                borderTopColor:'transparent', borderRadius:'50%', display:'inline-block',
+                animation:'spin 0.6s linear infinite' }}/> Sending…</>
+            : '📱 Resend Invoice on WhatsApp'
+          }
+        </button>
+      )}
+
+      {/* Refund */}
+      {order.status === 'paid' && (
+        <button onClick={() => onRefund(order.id)}
+          style={{ width:'100%', marginTop:8, background:'rgba(239,68,68,0.08)',
+            color:'var(--red)', border:'1px solid rgba(239,68,68,0.2)',
+            borderRadius:8, padding:'10px', fontWeight:600, fontSize:13, cursor:'pointer' }}>
+          ↩ Refund this order
+        </button>
+      )}
     </>
   )
 
   if (isMobile) {
-    // Bottom sheet
     return (
       <div style={{ position:'fixed', inset:0, zIndex:300,
         display:'flex', flexDirection:'column', justifyContent:'flex-end',
@@ -163,11 +177,9 @@ function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
         <div style={{ background:'var(--card)', borderRadius:'18px 18px 0 0',
           maxHeight:'85vh', display:'flex', flexDirection:'column',
           boxShadow:'0 -8px 40px rgba(0,0,0,0.4)' }}>
-          {/* Handle */}
           <div style={{ display:'flex', justifyContent:'center', padding:'10px 0 0', flexShrink:0 }}>
             <div style={{ width:40, height:4, borderRadius:2, background:'var(--border2)' }}/>
           </div>
-          {/* Header */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
             padding:'8px 16px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
             <div>
@@ -175,14 +187,13 @@ function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
                 Order #{order.order_number}
               </span>
               <div style={{ marginTop:2, display:'flex', gap:6, alignItems:'center' }}>
-                <StatusBadge status={order.status} />
+                <StatusBadge status={order.status}/>
                 <span style={{ fontSize:11, color:'var(--text3)' }}>{fmt(order.created_at)}</span>
               </div>
             </div>
             <button onClick={onClose} style={{ background:'none', border:'none',
               color:'var(--text2)', fontSize:20, cursor:'pointer', lineHeight:1 }}>✕</button>
           </div>
-          {/* Content */}
           <div style={{ flex:1, overflowY:'auto', padding:'12px 16px 20px' }}>
             {content}
           </div>
@@ -191,7 +202,6 @@ function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
     )
   }
 
-  // Desktop popup
   return (
     <div style={{ position:'fixed', inset:0, zIndex:300,
       background:'rgba(0,0,0,0.5)', backdropFilter:'blur(4px)',
@@ -201,7 +211,6 @@ function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
         maxHeight:'85vh', display:'flex', flexDirection:'column',
         border:'1px solid var(--border2)', boxShadow:'0 16px 48px rgba(0,0,0,0.3)',
         animation:'popIn 0.2s ease', overflow:'hidden' }}>
-        {/* Header */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'14px 18px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
           <div>
@@ -210,14 +219,13 @@ function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
               Order #{order.order_number}
             </div>
             <div style={{ display:'flex', gap:6, alignItems:'center', marginTop:3 }}>
-              <StatusBadge status={order.status} />
+              <StatusBadge status={order.status}/>
               <span style={{ fontSize:11, color:'var(--text3)' }}>{fmtFull(order.created_at)}</span>
             </div>
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none',
             color:'var(--text2)', fontSize:18, cursor:'pointer', padding:4 }}>✕</button>
         </div>
-        {/* Body */}
         <div style={{ flex:1, overflowY:'auto', padding:'14px 18px 18px' }}>
           {content}
         </div>
@@ -229,19 +237,19 @@ function OrderDetail({ order, onClose, onRefund, onResend, isMobile }) {
 // ── Main History Page ─────────────────────────────────────────────
 export default function HistoryPage() {
   const { tenantId, showToast, settings } = useStore()
-  const [orders, setOrders]     = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [selected, setSelected] = useState(null)
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [orders, setOrders]       = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [selected, setSelected]   = useState(null)
+  const [resending, setResending] = useState(false)
+  const [isMobile, setIsMobile]   = useState(window.innerWidth < 768)
 
-  // Filters
-  const [dateRange, setDateRange]   = useState('today')
-  const [search, setSearch]         = useState('')
+  const [dateRange,    setDateRange]    = useState('today')
+  const [search,       setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [typeFilter, setTypeFilter]     = useState('all')
-  const [customFrom, setCustomFrom]     = useState('')
-  const [customTo, setCustomTo]         = useState('')
-  const [showFilters, setShowFilters]   = useState(false)
+  const [typeFilter,   setTypeFilter]   = useState('all')
+  const [customFrom,   setCustomFrom]   = useState('')
+  const [customTo,     setCustomTo]     = useState('')
+  const [showFilters,  setShowFilters]  = useState(false)
 
   const DATE_OPTS = [
     { id:'today',  label:'Today'      },
@@ -268,7 +276,6 @@ export default function HistoryPage() {
       .eq('tenant_id', tenantId)
       .order('created_at', { ascending:false })
 
-    // Date filter
     const now = new Date()
     if (dateRange === 'today') {
       const s = new Date(now); s.setHours(0,0,0,0)
@@ -287,17 +294,14 @@ export default function HistoryPage() {
       }
     }
 
-    // Status filter
     if (statusFilter !== 'all') q = q.eq('status', statusFilter)
-    // Type filter
-    if (typeFilter !== 'all') q = q.eq('order_type', typeFilter)
+    if (typeFilter   !== 'all') q = q.eq('order_type', typeFilter)
 
     const { data } = await q
     setOrders(data || [])
     setLoading(false)
   }
 
-  // Client-side search (order number, customer name/phone, item names)
   const filtered = useMemo(() => {
     if (!search.trim()) return orders
     const q = search.toLowerCase().trim()
@@ -305,9 +309,7 @@ export default function HistoryPage() {
       String(o.order_number).includes(q) ||
       (o.customer_name||'').toLowerCase().includes(q) ||
       (o.customer_phone||'').includes(q) ||
-      (o.order_items||[]).some(i =>
-        (i.product_name||'').toLowerCase().includes(q)
-      )
+      (o.order_items||[]).some(i => (i.product_name||'').toLowerCase().includes(q))
     )
   }, [orders, search])
 
@@ -319,7 +321,7 @@ export default function HistoryPage() {
       paid:     paid.length,
       revenue:  rev,
       avg:      paid.length ? rev / paid.length : 0,
-      refunded: filtered.filter(o=>o.status==='refunded').length,
+      refunded: filtered.filter(o => o.status==='refunded').length,
     }
   }, [filtered])
 
@@ -332,29 +334,21 @@ export default function HistoryPage() {
   }
 
   async function resendWhatsApp(order) {
-    if (!settings?.wa_webhook_url) {
+    const webhookUrl = settings?.wa_webhook_url
+    if (!webhookUrl) {
       showToast('Set Emovur webhook URL in Settings first', 'warning'); return
     }
     if (!order.customer_phone) {
       showToast('No phone number for this order', 'warning'); return
     }
-    try {
-      const invoiceUrl = `${window.location.origin}/invoice/${order.id}`
-      await sendInvoiceWhatsApp({
-        webhookUrl:  settings.wa_webhook_url,
-        receiver:    order.customer_phone,
-        bizName:     settings?.biz_name || settings?.name || 'Restaurant',
-        orderNumber: order.order_number,
-        date:        formatDate(order.created_at),
-        items:       formatItemsList(order.order_items||[]),
-        total:       Number(order.total).toFixed(2),
-        payMethod:   (order.payment_method||'').toUpperCase(),
-        invoiceUrl,
-      })
-      showToast('📱 Invoice sent on WhatsApp!', 'success')
-    } catch(e) {
-      showToast(e.message||'Failed to send', 'error')
-    }
+    setResending(true)
+    const bizName = settings?.biz_name || settings?.name || 'Restaurant'
+    const result  = await sendInvoiceWhatsApp(order, bizName, webhookUrl)
+    setResending(false)
+    showToast(
+      result.success ? '📱 Invoice resent on WhatsApp!' : '⚠️ ' + result.message,
+      result.success ? 'success' : 'error'
+    )
   }
 
   function openOrder(o) {
@@ -366,7 +360,6 @@ export default function HistoryPage() {
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
-        {/* Title row */}
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
           <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:16,
             flex:1, color:'var(--text)' }}>Order History</h2>
@@ -380,17 +373,15 @@ export default function HistoryPage() {
           </button>
         </div>
 
-        {/* Search bar */}
         <div style={{ position:'relative', marginBottom:10 }}>
           <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)',
             fontSize:14, color:'var(--text3)', pointerEvents:'none' }}>🔍</span>
-          <input
-            value={search} onChange={e=>setSearch(e.target.value)}
+          <input value={search} onChange={e=>setSearch(e.target.value)}
             placeholder="Search by order #, customer name, phone, or item…"
             style={{ width:'100%', padding:'8px 10px 8px 32px',
               background:'var(--card)', border:'1.5px solid var(--border)',
               borderRadius:8, color:'var(--text)', fontSize:13, outline:'none',
-              fontFamily:"'DM Sans'" }} />
+              fontFamily:"'DM Sans'" }}/>
           {search && (
             <button onClick={()=>setSearch('')}
               style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)',
@@ -399,7 +390,6 @@ export default function HistoryPage() {
           )}
         </div>
 
-        {/* Date range pills */}
         <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginBottom: showFilters ? 10 : 0 }}>
           {DATE_OPTS.map(d => (
             <button key={d.id} onClick={()=>setDateRange(d.id)}
@@ -412,23 +402,22 @@ export default function HistoryPage() {
           ))}
         </div>
 
-        {/* Custom date range */}
         {dateRange==='custom' && (
           <div style={{ display:'flex', gap:8, marginTop:8, alignItems:'center', flexWrap:'wrap' }}>
             <input type="date" value={customFrom} onChange={e=>setCustomFrom(e.target.value)}
-              style={{ padding:'6px 10px', background:'var(--card)', border:'1.5px solid var(--border)',
-                borderRadius:8, color:'var(--text)', fontSize:12, outline:'none' }}/>
+              style={{ padding:'6px 10px', background:'var(--card)',
+                border:'1.5px solid var(--border)', borderRadius:8,
+                color:'var(--text)', fontSize:12, outline:'none' }}/>
             <span style={{ fontSize:12, color:'var(--text3)' }}>to</span>
             <input type="date" value={customTo} onChange={e=>setCustomTo(e.target.value)}
-              style={{ padding:'6px 10px', background:'var(--card)', border:'1.5px solid var(--border)',
-                borderRadius:8, color:'var(--text)', fontSize:12, outline:'none' }}/>
+              style={{ padding:'6px 10px', background:'var(--card)',
+                border:'1.5px solid var(--border)', borderRadius:8,
+                color:'var(--text)', fontSize:12, outline:'none' }}/>
           </div>
         )}
 
-        {/* Extra filters */}
         {showFilters && (
           <div style={{ display:'flex', gap:10, marginTop:8, flexWrap:'wrap' }}>
-            {/* Status */}
             <div>
               <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)',
                 textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:5 }}>Status</div>
@@ -444,7 +433,6 @@ export default function HistoryPage() {
                 ))}
               </div>
             </div>
-            {/* Type */}
             <div>
               <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)',
                 textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:5 }}>Type</div>
@@ -463,13 +451,12 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* Stats strip */}
         <div style={{ display:'flex', gap:8, marginTop:10 }}>
           {[
-            { label:'Orders',   val:filtered.length },
-            { label:'Paid',     val:stats.paid },
-            { label:'Revenue',  val:`₹${stats.revenue.toFixed(0)}` },
-            { label:'Avg',      val:`₹${stats.avg.toFixed(0)}` },
+            { label:'Orders',  val: filtered.length },
+            { label:'Paid',    val: stats.paid },
+            { label:'Revenue', val: `₹${stats.revenue.toFixed(0)}` },
+            { label:'Avg',     val: `₹${stats.avg.toFixed(0)}` },
           ].map(s => (
             <div key={s.label} style={{ flex:1, background:'var(--card2)',
               borderRadius:8, padding:'7px 10px', border:'1px solid var(--border)',
@@ -497,22 +484,18 @@ export default function HistoryPage() {
             </div>
           </div>
         ) : filtered.map(o => {
-          const st  = STATUS[o.status] || STATUS.pending
+          const st        = STATUS[o.status] || STATUS.pending
           const typeLabel = TYPE_LABEL[o.order_type]?.(o) || o.order_type
-          const isSelected = selected?.id === o.id
-          const itemCount  = (o.order_items||[]).filter(i=>i.status!=='rejected').length
-
+          const isSel     = selected?.id === o.id
+          const itemCount = (o.order_items||[]).filter(i=>i.status!=='rejected').length
           return (
             <div key={o.id} onClick={() => openOrder(o)}
-              style={{
-                display:'flex', alignItems:'center', gap:10,
+              style={{ display:'flex', alignItems:'center', gap:10,
                 padding:'11px 14px', cursor:'pointer',
-                background: isSelected ? 'var(--brand-lt2)' : 'transparent',
+                background: isSel ? 'var(--brand-lt2)' : 'transparent',
                 borderBottom:'1px solid var(--border)',
-                borderLeft: isSelected ? '3px solid var(--brand)' : '3px solid transparent',
-                transition:'background 0.1s',
-              }}>
-              {/* Left: number + badges */}
+                borderLeft: isSel ? '3px solid var(--brand)' : '3px solid transparent',
+                transition:'background 0.1s' }}>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
                   <span style={{ fontWeight:700, fontSize:13, color:'var(--text)' }}>
@@ -526,12 +509,11 @@ export default function HistoryPage() {
                 <div style={{ fontSize:11, color:'var(--text3)', marginTop:3,
                   display:'flex', gap:8, flexWrap:'wrap' }}>
                   <span>{itemCount} item{itemCount!==1?'s':''}</span>
-                  {o.customer_name && <span>· {o.customer_name}</span>}
+                  {o.customer_name  && <span>· {o.customer_name}</span>}
                   {o.customer_phone && !o.customer_name && <span>· {o.customer_phone}</span>}
                   <span>· {fmt(o.created_at)}</span>
                 </div>
               </div>
-              {/* Right: amount */}
               <div style={{ textAlign:'right', flexShrink:0 }}>
                 <div style={{ fontWeight:700, color:'var(--brand)', fontSize:14 }}>
                   ₹{Number(o.total).toFixed(2)}
@@ -545,12 +527,12 @@ export default function HistoryPage() {
         })}
       </div>
 
-      {/* Order detail — bottom sheet on mobile, popup on desktop */}
       <OrderDetail
         order={selected}
         onClose={() => setSelected(null)}
         onRefund={refund}
         onResend={resendWhatsApp}
+        resending={resending}
         isMobile={isMobile}
       />
     </div>
