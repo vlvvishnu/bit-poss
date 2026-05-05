@@ -9,14 +9,12 @@ import CategoriesPage from '../components/manage/Categories'
 import HistoryPage from '../components/manage/History'
 import SettingsPage from '../components/manage/Settings'
 
-// Pages that live directly in the top nav
 const TOP_NAV = [
   { id: 'takeaway', label: '🛍 Takeaway', isOrder: true },
   { id: 'delivery', label: '🚚 Delivery', isOrder: true },
   { id: 'dine',     label: '🍽 Dine In',  isOrder: true },
 ]
 
-// Pages inside "More" dropdown
 const MORE_NAV = [
   { id: 'history',    icon: '📋', label: 'History'    },
   { id: 'kitchen',    icon: '🍳', label: 'Kitchen'    },
@@ -64,7 +62,7 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme }) {
             <button key={n.id} onClick={() => { setPage(n.id); setOpen(false) }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                width: '100%', padding: '10px 14px', background: 'none',
+                width: '100%', padding: '10px 14px',
                 border: 'none', textAlign: 'left', cursor: 'pointer',
                 borderBottom: '1px solid var(--border)',
                 background: page === n.id ? 'var(--brand-lt)' : 'none',
@@ -103,16 +101,33 @@ export default function POS() {
           settings, setSettings, setTenantId, setUser } = useStore()
   const { dark, toggle: toggleTheme } = useTheme()
   const [clock, setClock] = useState('')
+  const [dataLoaded, setDataLoaded] = useState(false)
 
-  // Default to 'takeaway' if page is not in order tabs
-  const orderSubType = TOP_NAV.find(n => n.isOrder && n.id === page)?.id || null
-
+  // ── Primary data load — fires when tenantId is set ─────────────
   useEffect(() => {
     if (!tenantId) return
-    loadData()
+    loadData().then(() => setDataLoaded(true))
     loadSettings()
   }, [tenantId])
 
+  // ── Safety net — if POS mounted with tenantId already in store
+  //    but products are still empty (e.g. after sign-in redirect),
+  //    re-fetch after a short delay ───────────────────────────────
+  useEffect(() => {
+    if (!tenantId) return
+    const t = setTimeout(() => {
+      const state = useStore.getState()
+      if (state.products.length === 0 && state.categories.length === 0) {
+        console.log('[BITE] safety re-fetch triggered')
+        loadData().then(() => setDataLoaded(true))
+        loadSettings()
+      }
+    }, 600)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Clock ─────────────────────────────────────────────────────
   useEffect(() => {
     const tick = () => {
       const now = new Date()
@@ -124,49 +139,62 @@ export default function POS() {
   }, [])
 
   async function loadData() {
+    if (!tenantId) return
     const [{ data:cats }, { data:prods }] = await Promise.all([
       supabase.from('categories').select('*').eq('tenant_id', tenantId).order('sort_order'),
-      supabase.from('products').select('*, categories(name,icon)').eq('tenant_id', tenantId).order('sort_order'),
+      supabase.from('products')
+        .select('*, categories(name,icon)')
+        .eq('tenant_id', tenantId)
+        .order('sort_order'),
     ])
     setCategories(cats || [])
-    setProducts((prods||[]).map(p => ({
-      ...p, catName:p.categories?.name||'', catIcon:p.categories?.icon||'',
+    setProducts((prods || []).map(p => ({
+      ...p,
+      catName: p.categories?.name || '',
+      catIcon: p.categories?.icon || '',
     })))
   }
 
   async function loadSettings() {
+    if (!tenantId) return
     const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).single()
     if (data) setSettings(data)
   }
 
   async function handleSignOut() {
     if (!confirm('Sign out?')) return
-    // Clear all local state first
     setCategories([]); setProducts([]); setSettings(null)
     setTenantId(null); setUser(null); setPage('takeaway')
-    // Sign out from Supabase — triggers onAuthStateChange(SIGNED_OUT) in App.jsx
-    // which sets status='guest' and shows Landing page
     try {
       await supabase.auth.signOut({ scope: 'local' })
     } catch(e) {
-      // Force it by clearing storage directly
-      localStorage.removeItem('bite-pos-auth')
       window.location.reload()
     }
   }
 
-  const bizName = settings?.biz_name || settings?.name || user?.user_metadata?.biz_name || 'BITE.'
+  const bizName    = settings?.biz_name || settings?.name || user?.user_metadata?.biz_name || 'BITE.'
   const isOrderPage = TOP_NAV.find(n => n.isOrder && n.id === page)
 
-  // Render page content
   function renderPage() {
     if (page === 'history')    return <HistoryPage />
     if (page === 'kitchen')    return <KDS />
-    if (page === 'products')   return <ProductsPage />
-    if (page === 'categories') return <CategoriesPage />
+    if (page === 'products')   return <ProductsPage onRefresh={loadData} />
+    if (page === 'categories') return <CategoriesPage onRefresh={loadData} />
     if (page === 'settings')   return <SettingsPage />
-    // Default: order page — pass the type (takeaway/delivery/dine)
     return <OrderPage defaultType={page} key={page} />
+  }
+
+  // Show a loading indicator while tenant is set but data hasn't loaded yet
+  if (tenantId && !dataLoaded) {
+    return (
+      <div style={{ height:'100vh', display:'flex', alignItems:'center',
+        justifyContent:'center', background:'var(--bg)', flexDirection:'column', gap:12 }}>
+        <span style={{ width:24, height:24, border:'3px solid rgba(255,255,255,0.1)',
+          borderTopColor:'var(--brand)', borderRadius:'50%',
+          display:'inline-block', animation:'spin 0.6s linear infinite' }}/>
+        <span style={{ fontSize:12, color:'var(--text3)' }}>Loading menu…</span>
+      </div>
+    )
   }
 
   return (
@@ -205,15 +233,7 @@ export default function POS() {
         <div style={{ display:'flex', alignItems:'center', gap:8,
           marginLeft:'auto', flexShrink:0 }}>
           <span style={{ fontSize:11, color:'var(--text3)',
-            fontVariantNumeric:'tabular-nums', display:'none',
-            '@media(min-width:600px)':{ display:'block' }
-          }}>{clock}</span>
-          <div style={{ fontSize:11, fontWeight:600, color:'var(--text2)',
-            background:'var(--card)', border:'1px solid var(--border)',
-            borderRadius:6, padding:'3px 8px', maxWidth:100,
-            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-            display:'none'
-          }}>{bizName}</div>
+            fontVariantNumeric:'tabular-nums' }}>{clock}</span>
           <MoreMenu
             page={page} setPage={setPage}
             onSignOut={handleSignOut}

@@ -19,32 +19,32 @@ export default function App() {
 
     setUser(session.user)
 
-    const { data, error } = await supabase
+    // tenants table links via owner_email (not a user_id FK)
+    const { data: tenantData, error } = await supabase
       .from('tenants')
       .select('*')
-      .eq('user_id', session.user.id)
-      .single()
+      .eq('owner_email', session.user.email)
+      .maybeSingle()
 
-    if (error) console.warn('[BITE] tenant fetch error:', error.message)
+    if (error) console.error('[BITE] tenant fetch error:', error.message)
 
-    if (data) {
-      setTenantId(data.id)
-      setSettings(data)
+    if (tenantData) {
+      setTenantId(tenantData.id)
+      setSettings(tenantData)
+    } else {
+      console.error('[BITE] No tenant found for email:', session.user.email)
     }
 
     setStatus('authed')
   }
 
   useEffect(() => {
-    // getSession handles the initial load — covers both fresh visits and refreshes
     supabase.auth.getSession().then(({ data: { session } }) => {
       bootstrap(session)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // INITIAL_SESSION fires on page load — already handled by getSession above, skip it
-        // Only react to actual sign-in / sign-out events
         if (event === 'INITIAL_SESSION') return
         bootstrap(session)
       }
