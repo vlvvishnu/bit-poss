@@ -10,9 +10,9 @@ import HistoryPage from '../components/manage/History'
 import SettingsPage from '../components/manage/Settings'
 
 const TOP_NAV = [
-  { id: 'takeaway', label: '🛍 Takeaway', isOrder: true },
-  { id: 'delivery', label: '🚚 Delivery', isOrder: true },
-  { id: 'dine',     label: '🍽 Dine In',  isOrder: true },
+  { id: 'takeaway', label: 'Takeaway', isOrder: true },
+  { id: 'delivery', label: 'Delivery', isOrder: true },
+  { id: 'dine',     label: 'Dine In',  isOrder: true },
 ]
 
 const MORE_NAV = [
@@ -102,6 +102,13 @@ export default function POS() {
   const { dark, toggle: toggleTheme } = useTheme()
   const [clock, setClock] = useState('')
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // ── Primary data load — fires when tenantId is set ─────────────
   useEffect(() => {
@@ -222,7 +229,7 @@ export default function POS() {
               border: 'none',
               borderRadius: 'var(--r-sm)',
               color: page===n.id ? 'var(--text)' : 'var(--text2)',
-              padding: '5px 10px', fontSize: 12,
+              padding: isMobile ? '5px 8px' : '5px 10px', fontSize: 12,
               fontWeight: page===n.id ? 700 : 400,
               cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
             }}>{n.label}</button>
@@ -232,8 +239,10 @@ export default function POS() {
         {/* Right side */}
         <div style={{ display:'flex', alignItems:'center', gap:8,
           marginLeft:'auto', flexShrink:0 }}>
-          <span style={{ fontSize:11, color:'var(--text3)',
-            fontVariantNumeric:'tabular-nums' }}>{clock}</span>
+          {!isMobile && (
+            <span style={{ fontSize:11, color:'var(--text3)',
+              fontVariantNumeric:'tabular-nums' }}>{clock}</span>
+          )}
           <MoreMenu
             page={page} setPage={setPage}
             onSignOut={handleSignOut}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 
 // Landing page is ALWAYS light mode — completely isolated from theme system
@@ -92,6 +92,43 @@ export default function Landing() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState('')
+  const [deferredPrompt, setDeferredPrompt] = useState(window.__biteDeferredPrompt || null)
+  const [installed, setInstalled] = useState(
+    window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true
+  )
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault()
+      window.__biteDeferredPrompt = event
+      setDeferredPrompt(event)
+    }
+    const handleInstalled = () => {
+      setInstalled(true)
+      window.__biteDeferredPrompt = null
+      setDeferredPrompt(null)
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
+  }, [])
+
+  async function handleInstallApp() {
+    if (installed) return
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'accepted') setInstalled(true)
+      window.__biteDeferredPrompt = null
+      setDeferredPrompt(null)
+      return
+    }
+    window.history.pushState({}, '', '/install')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }
 
   function openAuth(t='login') { setTab(t); setError(''); setSuccess(''); setAuthOpen(true) }
   function closeAuth()          { setAuthOpen(false); setError(''); setSuccess('') }
@@ -109,23 +146,21 @@ export default function Landing() {
     e.preventDefault()
     if (!name || !bizName) { setError('Name and restaurant name are required'); return }
     setLoading(true); setError('')
-    const slug = bizName.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name:name, biz_name:bizName } }
-    })
-    if (error) { setLoading(false); setError(error.message); return }
-    const { data:tenant } = await supabase.from('tenants')
-      .insert({ slug, name:bizName, biz_name:bizName, owner_email:email })
-      .select('id').single()
-    if (tenant?.id && data?.user) {
-      await supabase.from('profiles').upsert({
-        id:data.user.id, tenant_id:tenant.id, role:'owner', full_name:name
+    try {
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name, bizName }),
       })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(data.error || 'Could not create account'); return }
+      setSuccess('Account created! We sent a BITE. verification email with a secure button to confirm your account.')
+      setTab('login')
+    } catch (err) {
+      setError('Could not reach signup service. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-    setSuccess('Account created! Check your email to confirm, then sign in.')
-    setTab('login')
   }
 
   const Spinner = () => (
@@ -142,10 +177,12 @@ export default function Landing() {
       <nav style={L.nav}>
         <span style={L.logo}>BITE<span style={L.logoDot}>.</span></span>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <a href="/install" style={{ fontSize:12, color:'#7A6E65', textDecoration:'none',
-            fontWeight:500, display:'flex', alignItems:'center', gap:4 }}>
-            📲 Install app
-          </a>
+          <button onClick={handleInstallApp} style={{
+            fontSize:12, color:'#7A6E65', background:'transparent', border:'none',
+            fontWeight:500, display:'flex', alignItems:'center', gap:4, cursor:'pointer',
+          }}>
+            {installed ? '✅ Installed' : '📲 Install app'}
+          </button>
           <button style={L.btnSec} onClick={() => openAuth('login')}>Sign in</button>
           <button style={L.btnPri} onClick={() => openAuth('signup')}>Get started</button>
         </div>

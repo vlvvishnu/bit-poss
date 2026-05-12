@@ -3,10 +3,12 @@ import { supabase } from './supabase'
 import { useStore } from './store/useStore'
 import Landing from './pages/Landing'
 import POS from './pages/POS'
+import Install from './pages/Install'
 import Toast from './components/ui/Toast'
 
 export default function App() {
   const [status, setStatus] = useState('loading')
+  const [path, setPath] = useState(window.location.pathname)
   const { setUser, setTenantId, setSettings } = useStore()
 
   async function bootstrap(session) {
@@ -37,6 +39,12 @@ export default function App() {
 
     setStatus('authed')
   }
+
+  useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -73,7 +81,7 @@ export default function App() {
   return (
     <>
       <Toast />
-      {status === 'authed' ? <POS /> : <Landing />}
+      {path === '/install' ? <Install /> : status === 'authed' ? <POS /> : <Landing />}
     </>
   )
 }
