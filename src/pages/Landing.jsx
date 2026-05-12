@@ -146,23 +146,21 @@ export default function Landing() {
     e.preventDefault()
     if (!name || !bizName) { setError('Name and restaurant name are required'); return }
     setLoading(true); setError('')
-    const slug = bizName.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name:name, biz_name:bizName } }
-    })
-    if (error) { setLoading(false); setError(error.message); return }
-    const { data:tenant } = await supabase.from('tenants')
-      .insert({ slug, name:bizName, biz_name:bizName, owner_email:email })
-      .select('id').single()
-    if (tenant?.id && data?.user) {
-      await supabase.from('profiles').upsert({
-        id:data.user.id, tenant_id:tenant.id, role:'owner', full_name:name
+    try {
+      const res = await fetch('/api/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name, bizName }),
       })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) { setError(data.error || 'Could not create account'); return }
+      setSuccess('Account created! We sent a BITE. verification email with a secure button to confirm your account.')
+      setTab('login')
+    } catch (err) {
+      setError('Could not reach signup service. Please try again.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-    setSuccess('Account created! Check your email to confirm, then sign in.')
-    setTab('login')
   }
 
   const Spinner = () => (

@@ -10,9 +10,9 @@ import HistoryPage from '../components/manage/History'
 import SettingsPage from '../components/manage/Settings'
 
 const TOP_NAV = [
-  { id: 'takeaway', icon: '🛍️', label: 'Takeaway', isOrder: true },
-  { id: 'delivery', icon: '🚚', label: 'Delivery', isOrder: true },
-  { id: 'dine',     icon: '🍽️', label: 'Dine In',  isOrder: true },
+  { id: 'takeaway', label: 'Takeaway', isOrder: true },
+  { id: 'delivery', label: 'Delivery', isOrder: true },
+  { id: 'dine',     label: 'Dine In',  isOrder: true },
 ]
 
 const MORE_NAV = [
@@ -98,10 +98,11 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme }) {
 
 export default function POS() {
   const { page, setPage, setCategories, setProducts, tenantId, user,
-          settings, setSettings, setTenantId, setUser } = useStore()
+          settings, setSettings, setTenantId, setUser,
+          categories, products, showToast } = useStore()
   const { dark, toggle: toggleTheme } = useTheme()
   const [clock, setClock] = useState('')
-  const [dataLoaded, setDataLoaded] = useState(false)
+  const [dataLoaded, setDataLoaded] = useState(() => categories.length > 0 || products.length > 0)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
 
   useEffect(() => {
@@ -112,27 +113,33 @@ export default function POS() {
 
   // ── Primary data load — fires when tenantId is set ─────────────
   useEffect(() => {
-    if (!tenantId) return
-    loadData().then(() => setDataLoaded(true))
-    loadSettings()
-  }, [tenantId])
+    if (!tenantId) {
+      setDataLoaded(true)
+      return
+    }
 
-  // ── Safety net — if POS mounted with tenantId already in store
-  //    but products are still empty (e.g. after sign-in redirect),
-  //    re-fetch after a short delay ───────────────────────────────
-  useEffect(() => {
-    if (!tenantId) return
-    const t = setTimeout(() => {
-      const state = useStore.getState()
-      if (state.products.length === 0 && state.categories.length === 0) {
-        console.log('[BITE] safety re-fetch triggered')
-        loadData().then(() => setDataLoaded(true))
-        loadSettings()
+    let cancelled = false
+    async function hydrate() {
+      const hasCachedMenu = useStore.getState().products.length > 0 || useStore.getState().categories.length > 0
+      if (!hasCachedMenu) setDataLoaded(false)
+
+      const menuPromise = loadData()
+      const settingsPromise = loadSettings()
+      const timeout = new Promise(resolve => setTimeout(() => resolve('timeout'), 4500))
+      const result = await Promise.race([Promise.allSettled([menuPromise, settingsPromise]), timeout])
+
+      if (result === 'timeout') {
+        console.warn('[BITE] POS data load is slow; rendering app shell while requests continue')
+        menuPromise.catch(() => {})
+        settingsPromise.catch(() => {})
       }
-    }, 600)
-    return () => clearTimeout(t)
+      if (!cancelled) setDataLoaded(true)
+    }
+
+    hydrate()
+    return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [tenantId])
 
   // ── Clock ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -147,25 +154,39 @@ export default function POS() {
 
   async function loadData() {
     if (!tenantId) return
-    const [{ data:cats }, { data:prods }] = await Promise.all([
-      supabase.from('categories').select('*').eq('tenant_id', tenantId).order('sort_order'),
-      supabase.from('products')
-        .select('*, categories(name,icon)')
-        .eq('tenant_id', tenantId)
-        .order('sort_order'),
-    ])
-    setCategories(cats || [])
-    setProducts((prods || []).map(p => ({
-      ...p,
-      catName: p.categories?.name || '',
-      catIcon: p.categories?.icon || '',
-    })))
+    try {
+      const [{ data:cats, error:catError }, { data:prods, error:prodError }] = await Promise.all([
+        supabase.from('categories').select('*').eq('tenant_id', tenantId).order('sort_order'),
+        supabase.from('products')
+          .select('*, categories(name,icon)')
+          .eq('tenant_id', tenantId)
+          .order('sort_order'),
+      ])
+      if (catError) throw catError
+      if (prodError) throw prodError
+      setCategories(cats || [])
+      setProducts((prods || []).map(p => ({
+        ...p,
+        catName: p.categories?.name || '',
+        catIcon: p.categories?.icon || '',
+      })))
+    } catch (error) {
+      console.error('[BITE] menu load error:', error)
+      showToast?.('Menu is taking longer to load. You can still use the app.', 'warning')
+    } finally {
+      setDataLoaded(true)
+    }
   }
 
   async function loadSettings() {
     if (!tenantId) return
-    const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).single()
-    if (data) setSettings(data)
+    try {
+      const { data, error } = await supabase.from('tenants').select('*').eq('id', tenantId).single()
+      if (error) throw error
+      if (data) setSettings(data)
+    } catch (error) {
+      console.error('[BITE] settings load error:', error)
+    }
   }
 
   async function handleSignOut() {
@@ -189,19 +210,6 @@ export default function POS() {
     if (page === 'categories') return <CategoriesPage onRefresh={loadData} />
     if (page === 'settings')   return <SettingsPage />
     return <OrderPage defaultType={page} key={page} />
-  }
-
-  // Show a loading indicator while tenant is set but data hasn't loaded yet
-  if (tenantId && !dataLoaded) {
-    return (
-      <div style={{ height:'100vh', display:'flex', alignItems:'center',
-        justifyContent:'center', background:'var(--bg)', flexDirection:'column', gap:12 }}>
-        <span style={{ width:24, height:24, border:'3px solid rgba(255,255,255,0.1)',
-          borderTopColor:'var(--brand)', borderRadius:'50%',
-          display:'inline-block', animation:'spin 0.6s linear infinite' }}/>
-        <span style={{ fontSize:12, color:'var(--text3)' }}>Loading menu…</span>
-      </div>
-    )
   }
 
   return (
@@ -243,8 +251,10 @@ export default function POS() {
         {/* Right side */}
         <div style={{ display:'flex', alignItems:'center', gap:8,
           marginLeft:'auto', flexShrink:0 }}>
-          <span style={{ fontSize:11, color:'var(--text3)',
-            fontVariantNumeric:'tabular-nums' }}>{clock}</span>
+          {!isMobile && (
+            <span style={{ fontSize:11, color:'var(--text3)',
+              fontVariantNumeric:'tabular-nums' }}>{clock}</span>
+          )}
           <MoreMenu
             page={page} setPage={setPage}
             onSignOut={handleSignOut}
@@ -252,6 +262,12 @@ export default function POS() {
           />
         </div>
       </nav>
+
+      {tenantId && !dataLoaded && (
+        <div style={{ height:3, background:'var(--brand-lt)', flexShrink:0, overflow:'hidden' }}>
+          <div style={{ width:'42%', height:'100%', background:'var(--brand)', animation:'loadBar 1s ease-in-out infinite' }}/>
+        </div>
+      )}
 
       {/* ── Page content ───────────────────────────────────────── */}
       <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>

@@ -20,8 +20,11 @@ export default function App() {
     }
 
     setUser(session.user)
+    setStatus('authed')
 
-    // tenants table links via owner_email (not a user_id FK)
+    // tenants table links via owner_email (not a user_id FK). This runs
+    // after the shell is already visible, so a slow network cannot trap the
+    // user on a full-screen loader.
     const { data: tenantData, error } = await supabase
       .from('tenants')
       .select('*')
@@ -36,8 +39,6 @@ export default function App() {
     } else {
       console.error('[BITE] No tenant found for email:', session.user.email)
     }
-
-    setStatus('authed')
   }
 
   useEffect(() => {
@@ -47,17 +48,38 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    let sessionReturned = false
+    const fallback = setTimeout(() => {
+      if (!sessionReturned && !cancelled) {
+        console.warn('[BITE] auth session fetch is slow; showing guest shell for now')
+        setStatus('guest')
+      }
+    }, 3000)
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      bootstrap(session)
+      sessionReturned = true
+      clearTimeout(fallback)
+      if (!cancelled) bootstrap(session)
+    }).catch(error => {
+      sessionReturned = true
+      clearTimeout(fallback)
+      console.error('[BITE] auth session fetch error:', error)
+      if (!cancelled) setStatus('guest')
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'INITIAL_SESSION') return
-        bootstrap(session)
+      (_event, session) => {
+        sessionReturned = true
+        clearTimeout(fallback)
+        if (!cancelled) bootstrap(session)
       }
     )
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      clearTimeout(fallback)
+      subscription.unsubscribe()
+    }
   }, [])
 
   if (status === 'loading') {
