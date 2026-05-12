@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabase'
 
 // Landing page is ALWAYS light mode — completely isolated from theme system
@@ -92,6 +92,43 @@ export default function Landing() {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState('')
+  const [deferredPrompt, setDeferredPrompt] = useState(window.__biteDeferredPrompt || null)
+  const [installed, setInstalled] = useState(
+    window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true
+  )
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event) => {
+      event.preventDefault()
+      window.__biteDeferredPrompt = event
+      setDeferredPrompt(event)
+    }
+    const handleInstalled = () => {
+      setInstalled(true)
+      window.__biteDeferredPrompt = null
+      setDeferredPrompt(null)
+    }
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleInstalled)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleInstalled)
+    }
+  }, [])
+
+  async function handleInstallApp() {
+    if (installed) return
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'accepted') setInstalled(true)
+      window.__biteDeferredPrompt = null
+      setDeferredPrompt(null)
+      return
+    }
+    window.history.pushState({}, '', '/install')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }
 
   function openAuth(t='login') { setTab(t); setError(''); setSuccess(''); setAuthOpen(true) }
   function closeAuth()          { setAuthOpen(false); setError(''); setSuccess('') }
@@ -142,10 +179,12 @@ export default function Landing() {
       <nav style={L.nav}>
         <span style={L.logo}>BITE<span style={L.logoDot}>.</span></span>
         <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <a href="/install" style={{ fontSize:12, color:'#7A6E65', textDecoration:'none',
-            fontWeight:500, display:'flex', alignItems:'center', gap:4 }}>
-            📲 Install app
-          </a>
+          <button onClick={handleInstallApp} style={{
+            fontSize:12, color:'#7A6E65', background:'transparent', border:'none',
+            fontWeight:500, display:'flex', alignItems:'center', gap:4, cursor:'pointer',
+          }}>
+            {installed ? '✅ Installed' : '📲 Install app'}
+          </button>
           <button style={L.btnSec} onClick={() => openAuth('login')}>Sign in</button>
           <button style={L.btnPri} onClick={() => openAuth('signup')}>Get started</button>
         </div>
