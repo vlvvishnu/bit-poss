@@ -3,12 +3,11 @@
 html, body, #root { height: 100%; }
 body {
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-size: var(--app-font-size, 15px);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 @media (max-width: 640px) {
-  body { font-size: 15px; }
   input, textarea, select { font-size: 16px; }
 }
 button { cursor: pointer; font-family: inherit; }

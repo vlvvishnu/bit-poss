@@ -1,18 +1,44 @@
 import { create } from 'zustand'
 
+const FONT_STEPS = [13, 14, 15, 16, 17, 18]
+const DEFAULT_FONT_INDEX = 2
+
 export const useTheme = create((set, get) => ({
   dark: false,
+  fontIndex: DEFAULT_FONT_INDEX,
   toggle: () => {
     const dark = !get().dark
     set({ dark })
     localStorage.setItem('bite_theme', dark ? 'dark' : 'light')
     applyTheme(dark)
   },
+  increaseFont: () => {
+    const fontIndex = Math.min(get().fontIndex + 1, FONT_STEPS.length - 1)
+    set({ fontIndex })
+    localStorage.setItem('bite_font_index', String(fontIndex))
+    applyFontSize(fontIndex)
+  },
+  decreaseFont: () => {
+    const fontIndex = Math.max(get().fontIndex - 1, 0)
+    set({ fontIndex })
+    localStorage.setItem('bite_font_index', String(fontIndex))
+    applyFontSize(fontIndex)
+  },
+  resetFont: () => {
+    set({ fontIndex: DEFAULT_FONT_INDEX })
+    localStorage.setItem('bite_font_index', String(DEFAULT_FONT_INDEX))
+    applyFontSize(DEFAULT_FONT_INDEX)
+  },
   init: () => {
     const saved = localStorage.getItem('bite_theme')
     const dark = saved ? saved === 'dark' : false
-    set({ dark })
+    const savedFont = Number(localStorage.getItem('bite_font_index'))
+    const fontIndex = Number.isFinite(savedFont)
+      ? Math.min(Math.max(savedFont, 0), FONT_STEPS.length - 1)
+      : DEFAULT_FONT_INDEX
+    set({ dark, fontIndex })
     applyTheme(dark)
+    applyFontSize(fontIndex)
   },
 }))
 
@@ -49,4 +75,16 @@ function applyTheme(dark) {
     root.style.setProperty('--text3',  'rgba(26,18,8,0.3)')
     root.style.setProperty('--brand-lt2', 'rgba(232,68,10,0.06)')
   }
+}
+
+
+export function getFontSizeLabel(fontIndex) {
+  const size = FONT_STEPS[fontIndex] || FONT_STEPS[DEFAULT_FONT_INDEX]
+  if (fontIndex === DEFAULT_FONT_INDEX) return `Default (${size}px)`
+  return `${size}px`
+}
+
+function applyFontSize(fontIndex) {
+  const size = FONT_STEPS[fontIndex] || FONT_STEPS[DEFAULT_FONT_INDEX]
+  document.documentElement.style.setProperty('--app-font-size', `${size}px`)
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { supabase } from '../supabase'
 import { useStore } from '../store/useStore'
-import { useTheme } from '../store/useTheme'
+import { useTheme, getFontSizeLabel } from '../store/useTheme'
 import OrderPage from '../components/order/OrderPage'
 import KDS from '../components/kitchen/KDS'
 import ProductsPage from '../components/manage/Products'
@@ -24,7 +24,7 @@ const MORE_NAV = [
   { id: 'settings',   icon: '⚙️', label: 'Settings'   },
 ]
 
-function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme }) {
+function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, increaseFont, decreaseFont, resetFont }) {
   const [open, setOpen] = useState(false)
   const ref = useRef()
 
@@ -83,6 +83,18 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme }) {
             <span>{dark ? '☀️' : '🌙'}</span>
             <span>{dark ? 'Light mode' : 'Dark mode'}</span>
           </button>
+          <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+              <span>🔠</span>
+              <span style={{ flex:1, color:'var(--text)', fontSize:13, fontWeight:700 }}>Font size</span>
+              <span style={{ color:'var(--text3)', fontSize:11 }}>{getFontSizeLabel(fontIndex)}</span>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
+              <button onClick={decreaseFont} style={{ background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:7, padding:'7px 0', fontWeight:800 }}>A−</button>
+              <button onClick={resetFont} style={{ background:'var(--card2)', color:'var(--text2)', border:'1px solid var(--border)', borderRadius:7, padding:'7px 0', fontSize:11, fontWeight:700 }}>Reset</button>
+              <button onClick={increaseFont} style={{ background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:7, padding:'7px 0', fontWeight:800 }}>A+</button>
+            </div>
+          </div>
           <button onClick={() => { setOpen(false); onSignOut() }} style={{
             display: 'flex', alignItems: 'center', gap: 10,
             width: '100%', padding: '10px 14px', background: 'none',
@@ -101,7 +113,7 @@ export default function POS() {
   const { page, setPage, setCategories, setProducts, tenantId, user,
           settings, setSettings, setTenantId, setUser,
           categories, products, showToast } = useStore()
-  const { dark, toggle: toggleTheme } = useTheme()
+  const { dark, toggle: toggleTheme, fontIndex, increaseFont, decreaseFont, resetFont } = useTheme()
   const [clock, setClock] = useState('')
   const [dataLoaded, setDataLoaded] = useState(() => categories.length > 0 || products.length > 0)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
@@ -279,6 +291,10 @@ export default function POS() {
             page={page} setPage={setPage}
             onSignOut={handleSignOut}
             dark={dark} toggleTheme={toggleTheme}
+            fontIndex={fontIndex}
+            increaseFont={increaseFont}
+            decreaseFont={decreaseFont}
+            resetFont={resetFont}
           />
         </div>
       </nav>
