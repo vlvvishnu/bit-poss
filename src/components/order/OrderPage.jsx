@@ -477,11 +477,13 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   return (
     <div style={{ position:'fixed',inset:0,zIndex:300,
       display:'flex',flexDirection:'column',justifyContent:'flex-end',
-      background:'rgba(0,0,0,0.55)',backdropFilter:'blur(2px)' }}
+      background:'rgba(0,0,0,0.55)',backdropFilter:'blur(2px)',
+      animation:'sheetBackdropIn 180ms ease-out' }}
       onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
         height:'90vh',display:'flex',flexDirection:'column',
-        boxShadow:'0 -8px 40px rgba(0,0,0,0.45)' }}>
+        boxShadow:'0 -8px 40px rgba(0,0,0,0.45)',
+        animation:'sheetSlideUp 260ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
         <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
           <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
         </div>
@@ -773,7 +775,7 @@ function SuccessModal({ order, onClose }) {
 }
 
 // ── Main OrderPage ─────────────────────────────────────────────────
-export default function OrderPage({ defaultType='takeaway' }) {
+export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const { categories, products, addToCart, removeFromCart, cart, cartItems,
           cartSubtotal, clearCart, settings, tenantId, showToast } = useStore()
 
@@ -909,7 +911,14 @@ export default function OrderPage({ defaultType='takeaway' }) {
           {products.length===0&&(
             <div style={{ textAlign:'center',padding:40,color:'var(--text2)' }}>
               <div style={{ fontSize:32,marginBottom:8 }}>🍽</div>
-              <div>No products yet. Add them in Products.</div>
+              <div style={{ fontWeight:800,color:'var(--text)',marginBottom:4 }}>No products added yet</div>
+              <div style={{ fontSize:12,marginBottom:14 }}>Add products manually, or start faster with sample categories and products.</div>
+              {onAddSampleMenu && (
+                <button onClick={onAddSampleMenu} style={{
+                  background:'var(--brand)',color:'#fff',border:'none',borderRadius:10,
+                  padding:'10px 14px',fontWeight:800,fontSize:12,
+                }}>Add sample menu</button>
+              )}
             </div>
           )}
           {groups.map((group,gi)=>(
@@ -1036,11 +1045,13 @@ export default function OrderPage({ defaultType='takeaway' }) {
       {confirmKOT && isMobile && (
         <div style={{ position:'fixed',inset:0,zIndex:400,
           display:'flex',flexDirection:'column',justifyContent:'flex-end',
-          background:'rgba(0,0,0,0.6)',backdropFilter:'blur(3px)' }}
+          background:'rgba(0,0,0,0.6)',backdropFilter:'blur(3px)',
+          animation:'sheetBackdropIn 180ms ease-out' }}
           onClick={e=>e.target===e.currentTarget&&setConfirmKOT(false)}>
           <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
             display:'flex',flexDirection:'column',
-            boxShadow:'0 -8px 40px rgba(0,0,0,0.5)' }}>
+            boxShadow:'0 -8px 40px rgba(0,0,0,0.5)',
+            animation:'sheetSlideUp 260ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
             <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
               <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
             </div>
