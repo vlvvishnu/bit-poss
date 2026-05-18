@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
@@ -790,6 +790,9 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
   const [itemNotes, setItemNotes]       = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
+  const [quickQtyProductId, setQuickQtyProductId] = useState(null)
+  const longPressTimerRef = useRef(null)
+  const ignoreNextClickRef = useRef(false)
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 860)
@@ -798,8 +801,10 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }, [])
 
   useEffect(() => {
-    clearCart(); setItemNotes({}); setOptimisticRounds([])
+    clearCart(); setItemNotes({}); setOptimisticRounds([]); setQuickQtyProductId(null)
   }, [tableNum])
+
+  useEffect(() => () => clearLongPressTimer(), [])
 
   const isDine     = orderType === 'dine'
   const items      = cartItems()
@@ -855,6 +860,47 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
 
   function handleNoteChange(productId, val) {
     setItemNotes(prev => ({ ...prev, [productId]: val }))
+  }
+
+
+  function clearLongPressTimer() {
+    if (!longPressTimerRef.current) return
+    clearTimeout(longPressTimerRef.current)
+    longPressTimerRef.current = null
+  }
+
+  function openQuickQty(product) {
+    if (product.out_of_stock) return
+    setQuickQtyProductId(product.id)
+  }
+
+  function handleProductPointerDown(event, product) {
+    if (product.out_of_stock || event.pointerType !== 'touch') return
+    clearLongPressTimer()
+    longPressTimerRef.current = setTimeout(() => {
+      ignoreNextClickRef.current = true
+      openQuickQty(product)
+      if (navigator.vibrate) navigator.vibrate(12)
+    }, 420)
+  }
+
+  function handleProductClick(product) {
+    if (product.out_of_stock) return
+    if (ignoreNextClickRef.current) {
+      ignoreNextClickRef.current = false
+      return
+    }
+    addToCart(product)
+    openQuickQty(product)
+  }
+
+  function adjustQuickQty(event, product, direction) {
+    event.stopPropagation()
+    clearLongPressTimer()
+    if (product.out_of_stock) return
+    if (direction > 0) addToCart(product)
+    else if (cart[product.id]?.qty > 0) removeFromCart(product.id)
+    openQuickQty(product)
   }
 
   function openCheckout() {
@@ -935,16 +981,34 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                 {group.items.map(p=>{
                   const qty=cart[p.id]?.qty
                   return (
-                    <button key={p.id} onClick={()=>!p.out_of_stock&&addToCart(p)}
-                      disabled={p.out_of_stock}
+                    <div key={p.id}
+                      role="button"
+                      tabIndex={p.out_of_stock ? -1 : 0}
+                      aria-disabled={p.out_of_stock}
+                      onPointerDown={event => handleProductPointerDown(event, p)}
+                      onPointerUp={clearLongPressTimer}
+                      onPointerCancel={clearLongPressTimer}
+                      onPointerLeave={clearLongPressTimer}
+                      onContextMenu={event => { event.preventDefault(); openQuickQty(p) }}
+                      onClick={() => handleProductClick(p)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          handleProductClick(p)
+                        }
+                      }}
                       style={{
-                        background:qty?'var(--brand-lt2)':'var(--card)',
-                        border:`1.5px solid ${qty?'rgba(232,68,10,0.25)':'var(--border)'}`,
+                        background:quickQtyProductId===p.id?'linear-gradient(180deg,var(--brand-lt),var(--brand-lt2))':qty?'var(--brand-lt2)':'var(--card)',
+                        border:`1.5px solid ${quickQtyProductId===p.id?'var(--brand)':qty?'rgba(232,68,10,0.25)':'var(--border)'}`,
                         borderRadius:'var(--r)',padding:'10px 8px',
                         cursor:p.out_of_stock?'not-allowed':'pointer',
                         opacity:p.out_of_stock?0.45:1,
                         display:'flex',flexDirection:'column',gap:3,
-                        textAlign:'left',position:'relative' }}>
+                        textAlign:'left',position:'relative',overflow:'hidden',
+                        transform:quickQtyProductId===p.id?'translateY(-2px) scale(1.02)':'none',
+                        boxShadow:quickQtyProductId===p.id?'0 14px 28px rgba(232,68,10,0.2)':'none',
+                        transition:'transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease',
+                        touchAction:'manipulation' }}>
                       <span style={{ fontSize: 'var(--fs-22)' }}>{p.icon||'🍽'}</span>
                       <span style={{ fontSize: 'var(--fs-12)',fontWeight:500,color:'var(--text2)',lineHeight:1.3 }}>
                         {p.name}</span>
@@ -954,7 +1018,27 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         background:'var(--brand)',color:'#fff',fontSize: 'var(--fs-9)',fontWeight:800,
                         borderRadius:'50%',width:16,height:16,display:'flex',
                         alignItems:'center',justifyContent:'center' }}>{qty}</span>}
-                    </button>
+                      {quickQtyProductId===p.id&&!p.out_of_stock&&(
+                        <div style={{ position:'absolute',left:6,right:6,bottom:6,
+                          display:'flex',alignItems:'center',justifyContent:'space-between',gap:7,
+                          padding:'6px',borderRadius:12,
+                          background:'rgba(13,11,8,0.82)',border:'1px solid rgba(255,255,255,0.14)',
+                          boxShadow:'0 10px 24px rgba(0,0,0,0.24)',backdropFilter:'blur(10px)' }}>
+                          <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, -1)} disabled={!qty}
+                            style={{ width:30,height:30,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.18)',
+                              background:qty?'var(--card2)':'rgba(255,255,255,0.06)',color:qty?'var(--text)':'rgba(245,240,232,0.32)',
+                              display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
+                            −
+                          </button>
+                          <span style={{ minWidth:30,textAlign:'center',fontSize:'var(--fs-13)',fontWeight:900,color:'#fff' }}>{qty||0}</span>
+                          <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, 1)}
+                            style={{ width:30,height:30,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff',
+                              display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
+                            +
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )
                 })}
               </div>
