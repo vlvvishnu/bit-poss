@@ -113,7 +113,7 @@ export default function POS() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  const hasMenu = categories.length > 0 || products.length > 0
+  const hasMenu = products.length > 0
   const samplePromptKey = tenantId ? `bite_sample_prompt_seen_${tenantId}` : null
 
   useEffect(() => {
@@ -142,9 +142,7 @@ export default function POS() {
 
     let cancelled = false
     async function hydrate() {
-      const hasCachedMenu = useStore.getState().products.length > 0 || useStore.getState().categories.length > 0
-      if (!hasCachedMenu) setDataLoaded(false)
-
+      setDataLoaded(false)
       const menuPromise = loadData()
       const settingsPromise = loadSettings()
       const timeout = new Promise(resolve => setTimeout(() => resolve('timeout'), 4500))
