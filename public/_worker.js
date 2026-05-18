@@ -23,15 +23,51 @@ function slugify(value) {
     .replace(/^-|-$/g, '')
 }
 
+function firstConfiguredEnv(env, names) {
+  const name = names.find(key => Boolean(env[key]))
+  return name ? { name, value: env[name] } : { name: null, value: '' }
+}
+
 function serviceRoleKey(env) {
-  return env.SUPABASE_SERVICE_ROLE_KEY
-    || env.SUPABASE_SERVICE_KEY
-    || env.SUPABASE_SERVICE_ROLE
-    || env.SERVICE_ROLE_KEY
+  return firstConfiguredEnv(env, [
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SERVICE_KEY',
+    'SUPABASE_SERVICE_ROLE',
+    'SERVICE_ROLE_KEY',
+  ]).value
 }
 
 function brevoKey(env) {
-  return env.BREVO_API_KEY || env.BREVO_KEY || env.VITE_BREVO_KEY
+  return firstConfiguredEnv(env, [
+    'BREVO_API_KEY',
+    'BREVO_KEY',
+    'VITE_BREVO_KEY',
+  ]).value
+}
+
+function signupConfigStatus(env) {
+  const service = firstConfiguredEnv(env, [
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_SERVICE_KEY',
+    'SUPABASE_SERVICE_ROLE',
+    'SERVICE_ROLE_KEY',
+  ])
+  const brevo = firstConfiguredEnv(env, [
+    'BREVO_API_KEY',
+    'BREVO_KEY',
+    'VITE_BREVO_KEY',
+  ])
+
+  return {
+    supabaseUrlConfigured: Boolean(env.SUPABASE_URL),
+    supabaseAnonConfigured: Boolean(env.SUPABASE_ANON_KEY),
+    supabaseServiceConfigured: Boolean(service.value),
+    supabaseServiceEnvName: service.name,
+    brevoConfigured: Boolean(brevo.value),
+    brevoEnvName: brevo.name,
+    brevoSenderEmail: env.BREVO_FROM_EMAIL || env.BREVO_SENDER_EMAIL || env.FROM_EMAIL || 'noreply@pay4.space',
+    brevoSenderName: env.BREVO_FROM_NAME || env.BREVO_SENDER_NAME || 'Pay4 Team',
+  }
 }
 
 function supabaseConfig(env) {
@@ -154,8 +190,8 @@ async function sendConfirmationEmail(env, payload) {
   const apiKey = brevoKey(env)
   if (!apiKey) throw new Error('Signup email is not configured. Missing Brevo API key.')
 
-  const senderEmail = env.BREVO_FROM_EMAIL || env.BREVO_SENDER_EMAIL || env.FROM_EMAIL || 'hello@pay4.co.in'
-  const senderName = env.BREVO_FROM_NAME || env.BREVO_SENDER_NAME || 'BITE. POS'
+  const senderEmail = env.BREVO_FROM_EMAIL || env.BREVO_SENDER_EMAIL || env.FROM_EMAIL || 'noreply@pay4.space'
+  const senderName = env.BREVO_FROM_NAME || env.BREVO_SENDER_NAME || 'Pay4 Team'
   const response = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
@@ -173,9 +209,13 @@ async function sendConfirmationEmail(env, payload) {
   })
 
   if (!response.ok) {
-    const detail = await response.text().catch(() => '')
-    console.error('[BITE] Brevo send failed:', response.status, detail)
-    throw new Error('Could not send BITE. confirmation email. Check Brevo API key and sender email settings.')
+    const detailText = await response.text().catch(() => '')
+    let detail = null
+    try { detail = JSON.parse(detailText) } catch {}
+    console.error('[BITE] Brevo send failed:', response.status, detailText)
+    const brevoMessage = detail?.message || detailText || 'Check Brevo API key, sender email, and domain verification settings.'
+    const brevoCode = detail?.code ? ` ${detail.code}` : ''
+    throw new Error(`Brevo email failed (${response.status}${brevoCode}): ${brevoMessage}`)
   }
 }
 
@@ -337,6 +377,10 @@ export default {
         console.error('[BITE] Signup failed:', error)
         return json({ error: error.message || 'Signup failed. Please try again.' }, 500)
       }
+    }
+
+    if (url.pathname === '/api/signup-config') {
+      return json(signupConfigStatus(env))
     }
 
     if (url.pathname === '/api/confirm') {
