@@ -23,18 +23,22 @@ function slugify(value) {
     .replace(/^-|-$/g, '')
 }
 
-async function supabaseAdminFetch(env, path, init = {}) {
+function supabaseConfig(env) {
   const supabaseUrl = env.SUPABASE_URL?.replace(/\/$/, '')
-  const serviceRole = env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceRole) {
-    throw new Error('Signup is not configured. Missing Supabase admin credentials.')
+  const anonKey = env.SUPABASE_ANON_KEY
+  if (!supabaseUrl || !anonKey) {
+    throw new Error('Signup is not configured. Missing Supabase public credentials.')
   }
+  return { supabaseUrl, anonKey }
+}
 
+async function supabaseFetch(env, path, init = {}) {
+  const { supabaseUrl, anonKey } = supabaseConfig(env)
   return fetch(`${supabaseUrl}${path}`, {
     ...init,
     headers: {
-      apikey: serviceRole,
-      Authorization: `Bearer ${serviceRole}`,
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
       'Content-Type': 'application/json',
       ...(init.headers || {}),
     },
@@ -100,7 +104,8 @@ function verificationEmailHtml({ origin, verifyUrl, name, bizName }) {
 }
 
 async function sendVerificationEmail(env, payload) {
-  if (!env.BREVO_API_KEY) {
+  const brevoKey = env.BREVO_API_KEY || env.BREVO_KEY
+  if (!brevoKey) {
     throw new Error('Signup email is not configured. Missing Brevo API key.')
   }
 
@@ -110,7 +115,7 @@ async function sendVerificationEmail(env, payload) {
     method: 'POST',
     headers: {
       accept: 'application/json',
-      'api-key': env.BREVO_API_KEY,
+      'api-key': brevoKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -148,29 +153,28 @@ async function handleSignup(request, env) {
   if (password.length < 8) return json({ error: 'Password must be at least 8 characters.' }, 400)
 
   const origin = new URL(request.url).origin
-  const generateResponse = await supabaseAdminFetch(env, '/auth/v1/admin/generate_link', {
+
+  // Use the already-configured public Supabase key to create the auth user.
+  // The Brevo email below is our branded confirmation email; no Supabase
+  // service-role/admin credential is required for this flow.
+  const signupResponse = await supabaseFetch(env, '/auth/v1/signup', {
     method: 'POST',
     body: JSON.stringify({
-      type: 'signup',
       email,
       password,
       data: { full_name: name, biz_name: bizName },
-      redirect_to: origin,
     }),
   })
 
-  const linkData = await generateResponse.json().catch(() => ({}))
-  if (!generateResponse.ok) {
-    const message = linkData.msg || linkData.error_description || linkData.error || 'Could not create account.'
-    return json({ error: message }, generateResponse.status)
+  const signupData = await signupResponse.json().catch(() => ({}))
+  if (!signupResponse.ok) {
+    const message = signupData.msg || signupData.error_description || signupData.error || 'Could not create account.'
+    return json({ error: message }, signupResponse.status)
   }
 
-  const verifyUrl = linkData.action_link || linkData.properties?.action_link
-  const userId = linkData.user?.id || linkData.id
-  if (!verifyUrl || !userId) return json({ error: 'Could not create verification link.' }, 500)
-
+  const userId = signupData.user?.id || signupData.id
   const slug = slugify(bizName) || `restaurant-${Date.now()}`
-  const tenantResponse = await supabaseAdminFetch(env, '/rest/v1/tenants?select=id', {
+  const tenantResponse = await supabaseFetch(env, '/rest/v1/tenants?select=id', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
     body: JSON.stringify({ slug, name: bizName, biz_name: bizName, owner_email: email }),
@@ -182,8 +186,8 @@ async function handleSignup(request, env) {
   }
 
   const tenantId = tenantData?.[0]?.id
-  if (tenantId) {
-    const profileResponse = await supabaseAdminFetch(env, '/rest/v1/profiles?on_conflict=id', {
+  if (tenantId && userId) {
+    const profileResponse = await supabaseFetch(env, '/rest/v1/profiles?on_conflict=id', {
       method: 'POST',
       headers: { Prefer: 'resolution=merge-duplicates' },
       body: JSON.stringify({ id: userId, tenant_id: tenantId, role: 'owner', full_name: name }),
@@ -193,7 +197,13 @@ async function handleSignup(request, env) {
     }
   }
 
-  await sendVerificationEmail(env, { origin, verifyUrl, email, name, bizName })
+  await sendVerificationEmail(env, {
+    origin,
+    verifyUrl: `${origin}/?verified=1`,
+    email,
+    name,
+    bizName,
+  })
   return json({ ok: true })
 }
 
