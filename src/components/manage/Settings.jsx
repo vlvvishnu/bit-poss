@@ -7,8 +7,8 @@ function Field({ label, hint, children }) {
     <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between',
       gap:16, padding:'14px 0', borderBottom:'1px solid var(--border)' }}>
       <div style={{ flex:1 }}>
-        <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{label}</div>
-        {hint && <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>{hint}</div>}
+        <div style={{ fontSize: 'var(--fs-13)', fontWeight:600, color:'var(--text)' }}>{label}</div>
+        {hint && <div style={{ fontSize: 'var(--fs-11)', color:'var(--text3)', marginTop:2 }}>{hint}</div>}
       </div>
       <div style={{ flexShrink:0 }}>{children}</div>
     </div>
@@ -17,7 +17,7 @@ function Field({ label, hint, children }) {
 
 const inputStyle = {
   background:'var(--card2)', border:'1.5px solid var(--border2)',
-  borderRadius:8, color:'var(--text)', fontSize:13,
+  borderRadius:8, color:'var(--text)', fontSize: 'var(--fs-13)',
   padding:'7px 10px', outline:'none', fontFamily:"'DM Sans'",
   width:180, textAlign:'right',
 }
@@ -36,7 +36,7 @@ function SaveBtn({ saving, onClick, label = 'Save' }) {
       background: saving ? 'var(--card2)' : 'var(--brand)',
       color: saving ? 'var(--text2)' : '#fff',
       border: 'none', borderRadius:8, padding:'9px 20px',
-      fontWeight:700, fontSize:13, cursor: saving ? 'default' : 'pointer',
+      fontWeight:700, fontSize: 'var(--fs-13)', cursor: saving ? 'default' : 'pointer',
       display:'flex', alignItems:'center', gap:6, transition:'all 0.15s',
     }}>
       {saving && (
@@ -52,7 +52,7 @@ function SaveBtn({ saving, onClick, label = 'Save' }) {
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom:28 }}>
-      <div style={{ fontSize:13, fontWeight:700, color:'var(--text2)',
+      <div style={{ fontSize: 'var(--fs-13)', fontWeight:700, color:'var(--text2)',
         padding:'8px 0', borderBottom:'2px solid var(--border)', marginBottom:4 }}>
         {title}
       </div>
@@ -143,10 +143,10 @@ export default function SettingsPage() {
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
       <div style={{ maxWidth:640, margin:'0 auto', padding:'20px 16px' }}>
-        <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:18, marginBottom:4 }}>
+        <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize: 'var(--fs-18)', marginBottom:4 }}>
           Settings
         </h2>
-        <p style={{ fontSize:12, color:'var(--text2)', marginBottom:24 }}>{user?.email}</p>
+        <p style={{ fontSize: 'var(--fs-12)', color:'var(--text2)', marginBottom:24 }}>{user?.email}</p>
 
         {/* ── Business ─────────────────────────────────────────── */}
         <Section title="🏪 Business">
@@ -184,7 +184,7 @@ export default function SettingsPage() {
 
         {/* ── WhatsApp Invoice ─────────────────────────────────── */}
         <Section title="📲 WhatsApp Invoice">
-          <div style={{ fontSize:12, color:'var(--text3)', marginBottom:10, lineHeight:1.65 }}>
+          <div style={{ fontSize: 'var(--fs-12)', color:'var(--text3)', marginBottom:10, lineHeight:1.65 }}>
             After getting your template <strong>order_invoice1</strong> approved in Emovur, go to<br/>
             <strong>Dashboard → Templates → View/Edit Webhook</strong> and paste the URL below.<br/>
             <span style={{ color:'var(--text2)' }}>
@@ -200,7 +200,7 @@ export default function SettingsPage() {
                 value={waWebhook}
                 onChange={e => setWaWebhook(e.target.value)}
                 placeholder="https://adminapis.backendprod.com/…"
-                style={{ ...inputStyle, width:'100%', fontSize:11, textAlign:'left' }}
+                style={{ ...inputStyle, width:'100%', fontSize: 'var(--fs-11)', textAlign:'left' }}
               />
             </div>
           </Field>
