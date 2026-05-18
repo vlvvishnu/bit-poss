@@ -1019,11 +1019,11 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         borderRadius:'50%',width:16,height:16,display:'flex',
                         alignItems:'center',justifyContent:'center' }}>{qty}</span>}
                       {quickQtyProductId===p.id&&!p.out_of_stock&&(
-                        <div style={{ position:'absolute',left:6,right:6,bottom:6,
+                        <div style={{
                           display:'flex',alignItems:'center',justifyContent:'space-between',gap:7,
-                          padding:'6px',borderRadius:12,
+                          marginTop:7,padding:'6px',borderRadius:12,
                           background:'rgba(13,11,8,0.82)',border:'1px solid rgba(255,255,255,0.14)',
-                          boxShadow:'0 10px 24px rgba(0,0,0,0.24)',backdropFilter:'blur(10px)' }}>
+                          boxShadow:'0 10px 24px rgba(0,0,0,0.2)',backdropFilter:'blur(10px)' }}>
                           <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, -1)} disabled={!qty}
                             style={{ width:30,height:30,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.18)',
                               background:qty?'var(--card2)':'rgba(255,255,255,0.06)',color:qty?'var(--text)':'rgba(245,240,232,0.32)',
