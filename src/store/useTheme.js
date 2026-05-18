@@ -18,6 +18,14 @@ export const useTheme = create((set, get) => ({
 
 function applyTheme(dark) {
   const root = document.documentElement
+  const themeColor = dark ? '#0D0B08' : '#F9F7F4'
+  let themeMeta = document.querySelector('meta[name="theme-color"]')
+  if (!themeMeta) {
+    themeMeta = document.createElement('meta')
+    themeMeta.setAttribute('name', 'theme-color')
+    document.head.appendChild(themeMeta)
+  }
+  themeMeta.setAttribute('content', themeColor)
   if (dark) {
     root.style.setProperty('--bg',     '#0D0B08')
     root.style.setProperty('--bg2',    '#131109')
