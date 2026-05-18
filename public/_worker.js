@@ -45,9 +45,16 @@ async function supabaseFetch(env, path, init = {}) {
   })
 }
 
+function serviceRoleKey(env) {
+  return env.SUPABASE_SERVICE_ROLE_KEY
+    || env.SUPABASE_SERVICE_KEY
+    || env.SUPABASE_SERVICE_ROLE
+    || env.SERVICE_ROLE_KEY
+}
+
 async function supabaseAdminFetch(env, path, init = {}) {
   const { supabaseUrl } = supabaseConfig(env)
-  const serviceRole = env.SUPABASE_SERVICE_ROLE_KEY
+  const serviceRole = serviceRoleKey(env)
   if (!serviceRole) return null
 
   return fetch(`${supabaseUrl}${path}`, {
@@ -192,9 +199,16 @@ async function handleSignup(request, env) {
 
   const origin = new URL(request.url).origin
 
-  // Best path: if a service-role key exists, generate Supabase's confirmation
-  // action link without sending Supabase's default email, then send only our
-  // branded Brevo email.
+  // Generate Supabase's confirmation action link with the service-role API.
+  // This does NOT send Supabase's default auth email; we send only the branded
+  // Brevo email below. Do not fall back to /auth/v1/signup because that endpoint
+  // triggers Supabase's built-in confirmation email and can hit Supabase rate limits.
+  if (!serviceRoleKey(env)) {
+    return json({
+      error: 'Signup email is not configured. Add SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY) in Cloudflare so BITE. can send only the Brevo confirmation email.',
+    }, 500)
+  }
+
   const generateResponse = await supabaseAdminFetch(env, '/auth/v1/admin/generate_link', {
     method: 'POST',
     body: JSON.stringify({
@@ -222,33 +236,7 @@ async function handleSignup(request, env) {
     return json({ ok: true })
   }
 
-  // Fallback: create the user with the public Supabase signup endpoint so the
-  // form never fails due to missing admin credentials. Tenant setup is finished
-  // after the user signs in, when the browser has the user's authenticated
-  // session and normal RLS policies can apply.
-  const signupResponse = await supabaseFetch(env, '/auth/v1/signup', {
-    method: 'POST',
-    body: JSON.stringify({
-      email,
-      password,
-      data: { full_name: name, biz_name: bizName },
-    }),
-  })
-
-  const signupData = await signupResponse.json().catch(() => ({}))
-  if (!signupResponse.ok) {
-    const message = signupData.msg || signupData.error_description || signupData.error || 'Could not create account.'
-    return json({ error: message }, signupResponse.status)
-  }
-
-  await sendVerificationEmail(env, {
-    origin,
-    verifyUrl: `${origin}/?verified=1`,
-    email,
-    name,
-    bizName,
-  })
-  return json({ ok: true })
+  return json({ error: 'Could not initialize signup. Please try again.' }, 500)
 }
 
 export default {
