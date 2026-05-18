@@ -36,9 +36,35 @@ export default function App() {
     if (tenantData) {
       setTenantId(tenantData.id)
       setSettings(tenantData)
-    } else {
-      console.error('[BITE] No tenant found for email:', session.user.email)
+      return
     }
+
+    const bizName = session.user.user_metadata?.biz_name
+    if (!bizName) {
+      console.error('[BITE] No tenant found for email:', session.user.email)
+      return
+    }
+
+    const slug = bizName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const { data: createdTenant, error: createError } = await supabase
+      .from('tenants')
+      .insert({ slug, name: bizName, biz_name: bizName, owner_email: session.user.email })
+      .select('*')
+      .single()
+
+    if (createError) {
+      console.error('[BITE] tenant create error:', createError.message)
+      return
+    }
+
+    setTenantId(createdTenant.id)
+    setSettings(createdTenant)
+    await supabase.from('profiles').upsert({
+      id: session.user.id,
+      tenant_id: createdTenant.id,
+      role: 'owner',
+      full_name: session.user.user_metadata?.full_name || '',
+    })
   }
 
   useEffect(() => {

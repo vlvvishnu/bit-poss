@@ -45,6 +45,22 @@ async function supabaseFetch(env, path, init = {}) {
   })
 }
 
+async function supabaseAdminFetch(env, path, init = {}) {
+  const { supabaseUrl } = supabaseConfig(env)
+  const serviceRole = env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceRole) return null
+
+  return fetch(`${supabaseUrl}${path}`, {
+    ...init,
+    headers: {
+      apikey: serviceRole,
+      Authorization: `Bearer ${serviceRole}`,
+      'Content-Type': 'application/json',
+      ...(init.headers || {}),
+    },
+  })
+}
+
 function verificationEmailHtml({ origin, verifyUrl, name, bizName }) {
   const safeName = escapeHtml(name || 'there')
   const safeBizName = escapeHtml(bizName || 'your restaurant')
@@ -71,23 +87,15 @@ function verificationEmailHtml({ origin, verifyUrl, name, bizName }) {
               </td>
             </tr>
             <tr>
-              <td style="padding:34px 30px 12px;text-align:left;">
+              <td style="padding:34px 30px 12px;text-align:center;">
                 <div style="display:inline-block;background:rgba(232,68,10,0.10);color:#E8440A;border:1px solid rgba(232,68,10,0.18);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;letter-spacing:0.2px;">Verify your account</div>
                 <h1 style="font-family:'Plus Jakarta Sans',Arial,sans-serif;margin:18px 0 10px;font-size:28px;line-height:1.16;letter-spacing:-0.7px;color:#1A1208;">Welcome to BITE., ${safeName}</h1>
-                <p style="margin:0;color:#7A6E65;font-size:15px;line-height:1.65;">Confirm your email to activate <strong style="color:#1A1208;">${safeBizName}</strong> and start taking orders, managing tables, and accepting payments.</p>
+                <p style="margin:0 auto;color:#7A6E65;font-size:15px;line-height:1.65;max-width:420px;">Confirm your email to activate <strong style="color:#1A1208;">${safeBizName}</strong> and start taking orders, managing tables, and accepting payments.</p>
               </td>
             </tr>
             <tr>
-              <td align="center" style="padding:22px 30px 30px;">
-                <a href="${safeVerifyUrl}" style="display:inline-block;background:#E8440A;color:#ffffff;text-decoration:none;border-radius:14px;padding:15px 30px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:15px;font-weight:800;box-shadow:0 10px 22px rgba(232,68,10,0.24);">Verify email address</a>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:0 30px 30px;">
-                <div style="background:#F9F7F4;border:1px solid #E8E4DF;border-radius:14px;padding:14px 16px;color:#7A6E65;font-size:12px;line-height:1.55;">
-                  If the button does not work, copy and paste this link into your browser:<br>
-                  <a href="${safeVerifyUrl}" style="color:#E8440A;word-break:break-all;">${safeVerifyUrl}</a>
-                </div>
+              <td align="center" style="padding:24px 30px 34px;">
+                <a href="${safeVerifyUrl}" style="display:inline-block;background:#E8440A;color:#ffffff;text-decoration:none;border-radius:14px;padding:15px 34px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:15px;font-weight:800;box-shadow:0 10px 22px rgba(232,68,10,0.24);">Confirm my email</a>
               </td>
             </tr>
             <tr>
@@ -134,6 +142,36 @@ async function sendVerificationEmail(env, payload) {
   }
 }
 
+async function createTenantAndProfile(env, { email, name, bizName, userId }) {
+  const slug = slugify(bizName) || `restaurant-${Date.now()}`
+  const tenantResponse = await supabaseAdminFetch(env, '/rest/v1/tenants?select=id', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ slug, name: bizName, biz_name: bizName, owner_email: email }),
+  })
+  if (!tenantResponse) return null
+
+  const tenantData = await tenantResponse.json().catch(() => [])
+  if (!tenantResponse.ok) {
+    console.error('[BITE] Tenant create failed:', tenantResponse.status, tenantData)
+    return null
+  }
+
+  const tenantId = tenantData?.[0]?.id
+  if (tenantId && userId) {
+    const profileResponse = await supabaseAdminFetch(env, '/rest/v1/profiles?on_conflict=id', {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ id: userId, tenant_id: tenantId, role: 'owner', full_name: name }),
+    })
+    if (profileResponse && !profileResponse.ok) {
+      console.error('[BITE] Profile upsert failed:', profileResponse.status, await profileResponse.text().catch(() => ''))
+    }
+  }
+
+  return tenantId
+}
+
 async function handleSignup(request, env) {
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: JSON_HEADERS })
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
@@ -154,9 +192,40 @@ async function handleSignup(request, env) {
 
   const origin = new URL(request.url).origin
 
-  // Use the already-configured public Supabase key to create the auth user.
-  // The Brevo email below is our branded confirmation email; no Supabase
-  // service-role/admin credential is required for this flow.
+  // Best path: if a service-role key exists, generate Supabase's confirmation
+  // action link without sending Supabase's default email, then send only our
+  // branded Brevo email.
+  const generateResponse = await supabaseAdminFetch(env, '/auth/v1/admin/generate_link', {
+    method: 'POST',
+    body: JSON.stringify({
+      type: 'signup',
+      email,
+      password,
+      data: { full_name: name, biz_name: bizName },
+      redirect_to: origin,
+    }),
+  })
+
+  if (generateResponse) {
+    const linkData = await generateResponse.json().catch(() => ({}))
+    if (!generateResponse.ok) {
+      const message = linkData.msg || linkData.error_description || linkData.error || 'Could not create account.'
+      return json({ error: message }, generateResponse.status)
+    }
+
+    const verifyUrl = linkData.action_link || linkData.properties?.action_link
+    const userId = linkData.user?.id || linkData.id
+    if (!verifyUrl || !userId) return json({ error: 'Could not create verification link.' }, 500)
+
+    await createTenantAndProfile(env, { email, name, bizName, userId })
+    await sendVerificationEmail(env, { origin, verifyUrl, email, name, bizName })
+    return json({ ok: true })
+  }
+
+  // Fallback: create the user with the public Supabase signup endpoint so the
+  // form never fails due to missing admin credentials. Tenant setup is finished
+  // after the user signs in, when the browser has the user's authenticated
+  // session and normal RLS policies can apply.
   const signupResponse = await supabaseFetch(env, '/auth/v1/signup', {
     method: 'POST',
     body: JSON.stringify({
@@ -170,31 +239,6 @@ async function handleSignup(request, env) {
   if (!signupResponse.ok) {
     const message = signupData.msg || signupData.error_description || signupData.error || 'Could not create account.'
     return json({ error: message }, signupResponse.status)
-  }
-
-  const userId = signupData.user?.id || signupData.id
-  const slug = slugify(bizName) || `restaurant-${Date.now()}`
-  const tenantResponse = await supabaseFetch(env, '/rest/v1/tenants?select=id', {
-    method: 'POST',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({ slug, name: bizName, biz_name: bizName, owner_email: email }),
-  })
-  const tenantData = await tenantResponse.json().catch(() => [])
-  if (!tenantResponse.ok) {
-    console.error('[BITE] Tenant create failed:', tenantResponse.status, tenantData)
-    return json({ error: 'Account created, but restaurant setup failed. Please contact support.' }, 500)
-  }
-
-  const tenantId = tenantData?.[0]?.id
-  if (tenantId && userId) {
-    const profileResponse = await supabaseFetch(env, '/rest/v1/profiles?on_conflict=id', {
-      method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates' },
-      body: JSON.stringify({ id: userId, tenant_id: tenantId, role: 'owner', full_name: name }),
-    })
-    if (!profileResponse.ok) {
-      console.error('[BITE] Profile upsert failed:', profileResponse.status, await profileResponse.text().catch(() => ''))
-    }
   }
 
   await sendVerificationEmail(env, {
