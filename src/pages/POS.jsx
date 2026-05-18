@@ -8,6 +8,7 @@ import ProductsPage from '../components/manage/Products'
 import CategoriesPage from '../components/manage/Categories'
 import HistoryPage from '../components/manage/History'
 import SettingsPage from '../components/manage/Settings'
+import SampleMenuSeeder from '../components/manage/SampleMenuSeeder'
 
 const TOP_NAV = [
   { id: 'takeaway', label: 'Takeaway', isOrder: true },
@@ -104,12 +105,33 @@ export default function POS() {
   const [clock, setClock] = useState('')
   const [dataLoaded, setDataLoaded] = useState(() => categories.length > 0 || products.length > 0)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
+  const [sampleOpen, setSampleOpen] = useState(false)
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640)
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  const hasMenu = categories.length > 0 || products.length > 0
+  const samplePromptKey = tenantId ? `bite_sample_prompt_seen_${tenantId}` : null
+
+  useEffect(() => {
+    if (!tenantId || !dataLoaded || hasMenu || !samplePromptKey) return
+    if (localStorage.getItem(samplePromptKey)) return
+    setSampleOpen(true)
+    localStorage.setItem(samplePromptKey, '1')
+  }, [tenantId, dataLoaded, hasMenu, samplePromptKey])
+
+  function dismissSamplePrompt() {
+    if (samplePromptKey) localStorage.setItem(samplePromptKey, '1')
+    setSampleOpen(false)
+  }
+
+  function openSamplePrompt() {
+    setSampleOpen(true)
+  }
+
 
   // ── Primary data load — fires when tenantId is set ─────────────
   useEffect(() => {
@@ -209,7 +231,7 @@ export default function POS() {
     if (page === 'products')   return <ProductsPage onRefresh={loadData} />
     if (page === 'categories') return <CategoriesPage onRefresh={loadData} />
     if (page === 'settings')   return <SettingsPage />
-    return <OrderPage defaultType={page} key={page} />
+    return <OrderPage defaultType={page} key={page} onAddSampleMenu={openSamplePrompt} />
   }
 
   return (
@@ -263,6 +285,26 @@ export default function POS() {
         </div>
       </nav>
 
+      {tenantId && dataLoaded && !hasMenu && (
+        <div style={{
+          margin: isMobile ? '8px 10px 0' : '10px 14px 0',
+          padding: '10px 12px', borderRadius: 12,
+          background: 'var(--brand-lt2)', border: '1px solid rgba(232,68,10,0.18)',
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flexShrink: 0,
+        }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>No products added yet</div>
+            <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+              Add sample categories and products now, then edit them anytime.
+            </div>
+          </div>
+          <button onClick={openSamplePrompt} style={{
+            background: 'var(--brand)', color: '#fff', border: 'none',
+            borderRadius: 10, padding: '9px 13px', fontSize: 12, fontWeight: 800,
+          }}>Add sample menu</button>
+        </div>
+      )}
+
       {tenantId && !dataLoaded && (
         <div style={{ height:3, background:'var(--brand-lt)', flexShrink:0, overflow:'hidden' }}>
           <div style={{ width:'42%', height:'100%', background:'var(--brand)', animation:'loadBar 1s ease-in-out infinite' }}/>
@@ -273,6 +315,14 @@ export default function POS() {
       <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
         {renderPage()}
       </div>
+
+      <SampleMenuSeeder
+        open={sampleOpen}
+        onClose={dismissSamplePrompt}
+        onSeeded={() => {
+          if (samplePromptKey) localStorage.setItem(samplePromptKey, '1')
+        }}
+      />
     </div>
   )
 }

@@ -775,7 +775,7 @@ function SuccessModal({ order, onClose }) {
 }
 
 // ── Main OrderPage ─────────────────────────────────────────────────
-export default function OrderPage({ defaultType='takeaway' }) {
+export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const { categories, products, addToCart, removeFromCart, cart, cartItems,
           cartSubtotal, clearCart, settings, tenantId, showToast } = useStore()
 
@@ -911,7 +911,14 @@ export default function OrderPage({ defaultType='takeaway' }) {
           {products.length===0&&(
             <div style={{ textAlign:'center',padding:40,color:'var(--text2)' }}>
               <div style={{ fontSize:32,marginBottom:8 }}>🍽</div>
-              <div>No products yet. Add them in Products.</div>
+              <div style={{ fontWeight:800,color:'var(--text)',marginBottom:4 }}>No products added yet</div>
+              <div style={{ fontSize:12,marginBottom:14 }}>Add products manually, or start faster with sample categories and products.</div>
+              {onAddSampleMenu && (
+                <button onClick={onAddSampleMenu} style={{
+                  background:'var(--brand)',color:'#fff',border:'none',borderRadius:10,
+                  padding:'10px 14px',fontWeight:800,fontSize:12,
+                }}>Add sample menu</button>
+              )}
             </div>
           )}
           {groups.map((group,gi)=>(
