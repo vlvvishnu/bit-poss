@@ -477,11 +477,13 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   return (
     <div style={{ position:'fixed',inset:0,zIndex:300,
       display:'flex',flexDirection:'column',justifyContent:'flex-end',
-      background:'rgba(0,0,0,0.55)',backdropFilter:'blur(2px)' }}
+      background:'rgba(0,0,0,0.55)',backdropFilter:'blur(2px)',
+      animation:'sheetBackdropIn 180ms ease-out' }}
       onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
         height:'90vh',display:'flex',flexDirection:'column',
-        boxShadow:'0 -8px 40px rgba(0,0,0,0.45)' }}>
+        boxShadow:'0 -8px 40px rgba(0,0,0,0.45)',
+        animation:'sheetSlideUp 260ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
         <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
           <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
         </div>
@@ -1036,11 +1038,13 @@ export default function OrderPage({ defaultType='takeaway' }) {
       {confirmKOT && isMobile && (
         <div style={{ position:'fixed',inset:0,zIndex:400,
           display:'flex',flexDirection:'column',justifyContent:'flex-end',
-          background:'rgba(0,0,0,0.6)',backdropFilter:'blur(3px)' }}
+          background:'rgba(0,0,0,0.6)',backdropFilter:'blur(3px)',
+          animation:'sheetBackdropIn 180ms ease-out' }}
           onClick={e=>e.target===e.currentTarget&&setConfirmKOT(false)}>
           <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
             display:'flex',flexDirection:'column',
-            boxShadow:'0 -8px 40px rgba(0,0,0,0.5)' }}>
+            boxShadow:'0 -8px 40px rgba(0,0,0,0.5)',
+            animation:'sheetSlideUp 260ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
             <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
               <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
             </div>

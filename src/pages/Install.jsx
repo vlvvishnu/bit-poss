@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react'
 export default function Install() {
   const [platform, setPlatform] = useState('unknown')
   const [installed, setInstalled] = useState(false)
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [deferredPrompt, setDeferredPrompt] = useState(window.__biteDeferredPrompt || null)
 
   useEffect(() => {
     // Detect platform
@@ -27,6 +27,7 @@ export default function Install() {
     // Capture install prompt (Android/Chrome)
     const handler = (e) => {
       e.preventDefault()
+      window.__biteDeferredPrompt = e
       setDeferredPrompt(e)
     }
     window.addEventListener('beforeinstallprompt', handler)
@@ -38,6 +39,7 @@ export default function Install() {
     deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
     if (outcome === 'accepted') setInstalled(true)
+    window.__biteDeferredPrompt = null
     setDeferredPrompt(null)
   }
 
