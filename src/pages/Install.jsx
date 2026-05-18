@@ -97,13 +97,13 @@ export default function Install() {
       {/* Title */}
       <h1 style={{
         fontFamily: "'Plus Jakarta Sans', sans-serif",
-        fontWeight: 800, fontSize: 28, color: '#1A1208',
+        fontWeight: 800, fontSize: 'var(--fs-28)', color: '#1A1208',
         letterSpacing: '-0.5px', marginBottom: 6, textAlign: 'center',
       }}>
         BITE<span style={{ color: '#E8440A' }}>.</span> POS
       </h1>
       <p style={{
-        fontSize: 15, color: '#7A6E65', marginBottom: 32,
+        fontSize: 'var(--fs-15)', color: '#7A6E65', marginBottom: 32,
         textAlign: 'center', lineHeight: 1.5, maxWidth: 280,
       }}>
         Install the app for the best experience — works offline, feels native.
@@ -117,11 +117,11 @@ export default function Install() {
           borderRadius: 12, padding: '16px 24px',
           textAlign: 'center', marginBottom: 24,
         }}>
-          <div style={{ fontSize: 28, marginBottom: 6 }}>✅</div>
-          <div style={{ fontWeight: 700, color: '#166534', fontSize: 15 }}>
+          <div style={{ fontSize: 'var(--fs-28)', marginBottom: 6 }}>✅</div>
+          <div style={{ fontWeight: 700, color: '#166534', fontSize: 'var(--fs-15)' }}>
             Already installed!
           </div>
-          <div style={{ fontSize: 13, color: '#166534', marginTop: 4 }}>
+          <div style={{ fontSize: 'var(--fs-13)', color: '#166534', marginTop: 4 }}>
             Look for BITE. on your home screen.
           </div>
         </div>
@@ -133,12 +133,12 @@ export default function Install() {
               background: '#E8440A', color: '#fff', border: 'none',
               borderRadius: 14, padding: '16px 40px',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontWeight: 800, fontSize: 17, cursor: 'pointer',
+              fontWeight: 800, fontSize: 'var(--fs-17)', cursor: 'pointer',
               marginBottom: 32,
               boxShadow: '0 4px 16px rgba(232,68,10,0.35)',
               display: 'flex', alignItems: 'center', gap: 10,
             }}>
-              <span style={{ fontSize: 22 }}>📲</span>
+              <span style={{ fontSize: 'var(--fs-22)' }}>📲</span>
               Install App
             </button>
           )}
@@ -151,12 +151,12 @@ export default function Install() {
             marginBottom: 24,
           }}>
             <div style={{
-              fontSize: 12, fontWeight: 700, color: '#9A9290',
+              fontSize: 'var(--fs-12)', fontWeight: 700, color: '#9A9290',
               textTransform: 'uppercase', letterSpacing: '0.5px',
               marginBottom: 16,
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
-              <span style={{ fontSize: 16 }}>
+              <span style={{ fontSize: 'var(--fs-16)' }}>
                 {platform === 'ios' ? '🍎' : platform === 'android' ? '🤖' : '💻'}
               </span>
               {platform === 'ios' ? 'iOS / iPhone / iPad'
@@ -173,11 +173,11 @@ export default function Install() {
                   width: 26, height: 26, borderRadius: '50%',
                   background: '#E8440A', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 800, flexShrink: 0,
+                  fontSize: 'var(--fs-12)', fontWeight: 800, flexShrink: 0,
                 }}>
                   {s.icon}
                 </div>
-                <div style={{ fontSize: 14, color: '#1A1208', lineHeight: 1.5, paddingTop: 2 }}>
+                <div style={{ fontSize: 'var(--fs-14)', color: '#1A1208', lineHeight: 1.5, paddingTop: 2 }}>
                   {s.text}
                 </div>
               </div>
@@ -189,7 +189,7 @@ export default function Install() {
             <div style={{
               background: '#fff3cd', border: '1px solid #ffc107',
               borderRadius: 10, padding: '10px 14px',
-              fontSize: 13, color: '#856404', maxWidth: 360,
+              fontSize: 'var(--fs-13)', color: '#856404', maxWidth: 360,
               textAlign: 'center', marginBottom: 16,
             }}>
               📌 Look for the share icon: <strong>⬆</strong> at the bottom of Safari
@@ -200,7 +200,7 @@ export default function Install() {
 
       {/* Back to app */}
       <a href="/" style={{
-        color: '#E8440A', fontSize: 14, fontWeight: 600,
+        color: '#E8440A', fontSize: 'var(--fs-14)', fontWeight: 600,
         textDecoration: 'none', marginTop: 8,
       }}>
         ← Back to BITE.
@@ -210,7 +210,7 @@ export default function Install() {
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         padding: '12px', textAlign: 'center',
-        fontSize: 11, color: '#b0a89e',
+        fontSize: 'var(--fs-11)', color: '#b0a89e',
         background: '#F9F7F4',
       }}>
         BITE. POS by Pay4 · Free forever

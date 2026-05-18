@@ -140,7 +140,7 @@ export default function SampleMenuSeeder({ open, onClose, onSeeded }) {
       maxWidth={680}
       footer={(
         <div style={{ display:'flex', gap:10, alignItems:'center', justifyContent:'space-between', flexWrap:'wrap' }}>
-          <span style={{ fontSize:12, color:'var(--text2)' }}>
+          <span style={{ fontSize: 'var(--fs-12)', color:'var(--text2)' }}>
             {summary.categories} categories · {summary.products} products selected
           </span>
           <div style={{ display:'flex', gap:8 }}>
@@ -160,12 +160,12 @@ export default function SampleMenuSeeder({ open, onClose, onSeeded }) {
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <div style={{ background:'var(--brand-lt2)', border:'1px solid rgba(232,68,10,0.18)', borderRadius:12, padding:12 }}>
           <div style={{ fontWeight:800, color:'var(--text)', marginBottom:4 }}>Start with a ready-made restaurant menu</div>
-          <div style={{ fontSize:13, color:'var(--text2)' }}>
+          <div style={{ fontSize: 'var(--fs-13)', color:'var(--text2)' }}>
             We will add categories and products to your database. You can uncheck anything you do not want and edit prices later.
           </div>
         </div>
 
-        {error && <div style={{ color:'var(--red)', background:'var(--red-bg)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:10, fontSize:12 }}>{error}</div>}
+        {error && <div style={{ color:'var(--red)', background:'var(--red-bg)', border:'1px solid rgba(239,68,68,0.2)', borderRadius:8, padding:10, fontSize: 'var(--fs-12)' }}>{error}</div>}
 
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {SAMPLE_MENU.map(category => {
@@ -175,9 +175,9 @@ export default function SampleMenuSeeder({ open, onClose, onSeeded }) {
               <div key={category.name} style={{ border:'1px solid var(--border)', borderRadius:12, background:'var(--card2)', overflow:'hidden' }}>
                 <label style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 14px', cursor:'pointer', borderBottom:'1px solid var(--border)' }}>
                   <input type="checkbox" checked={!!catSelection?.category} onChange={() => toggleCategory(category.name)} />
-                  <span style={{ fontSize:20 }}>{category.icon}</span>
+                  <span style={{ fontSize: 'var(--fs-20)' }}>{category.icon}</span>
                   <span style={{ flex:1, fontWeight:800, color:'var(--text)' }}>{category.name}</span>
-                  <span style={{ fontSize:11, color:'var(--text3)' }}>{checkedCount}/{category.items.length}</span>
+                  <span style={{ fontSize: 'var(--fs-11)', color:'var(--text3)' }}>{checkedCount}/{category.items.length}</span>
                 </label>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))', gap:0 }}>
                   {category.items.map(item => (
@@ -185,8 +185,8 @@ export default function SampleMenuSeeder({ open, onClose, onSeeded }) {
                       <input type="checkbox" checked={!!catSelection?.items?.[item.name]} onChange={() => toggleItem(category.name, item.name)} />
                       <span>{item.icon}</span>
                       <span style={{ flex:1, minWidth:0 }}>
-                        <span style={{ display:'block', fontSize:13, fontWeight:700, color:'var(--text)' }}>{item.name}</span>
-                        <span style={{ display:'block', fontSize:12, color:'var(--brand)', fontWeight:800 }}>₹{Number(item.price).toFixed(2)}</span>
+                        <span style={{ display:'block', fontSize: 'var(--fs-13)', fontWeight:700, color:'var(--text)' }}>{item.name}</span>
+                        <span style={{ display:'block', fontSize: 'var(--fs-12)', color:'var(--brand)', fontWeight:800 }}>₹{Number(item.price).toFixed(2)}</span>
                       </span>
                     </label>
                   ))}
@@ -196,7 +196,7 @@ export default function SampleMenuSeeder({ open, onClose, onSeeded }) {
           })}
         </div>
 
-        <div style={{ fontSize:11, color:'var(--text3)' }}>
+        <div style={{ fontSize: 'var(--fs-11)', color:'var(--text3)' }}>
           Default sample includes {SAMPLE_MENU.length} categories and {sampleMenuItemCount()} products.
         </div>
       </div>

@@ -46,7 +46,7 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, incr
         border: '1px solid var(--border)',
         borderRadius: 'var(--r-sm)', padding: '5px 10px',
         color: isMoreActive ? 'var(--text)' : 'var(--text2)',
-        fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        fontSize: 'var(--fs-12)', fontWeight: 600, cursor: 'pointer',
       }}>
         More ···
       </button>
@@ -68,7 +68,7 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, incr
                 borderBottom: '1px solid var(--border)',
                 background: page === n.id ? 'var(--brand-lt)' : 'none',
                 color: page === n.id ? 'var(--brand)' : 'var(--text)',
-                fontSize: 13, fontWeight: page === n.id ? 600 : 400,
+                fontSize: 'var(--fs-13)', fontWeight: page === n.id ? 600 : 400,
               }}>
               <span>{n.icon}</span><span>{n.label}</span>
             </button>
@@ -78,7 +78,7 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, incr
             width: '100%', padding: '10px 14px', background: 'none',
             border: 'none', textAlign: 'left', cursor: 'pointer',
             borderBottom: '1px solid var(--border)',
-            color: 'var(--text)', fontSize: 13,
+            color: 'var(--text)', fontSize: 'var(--fs-13)',
           }}>
             <span>{dark ? '☀️' : '🌙'}</span>
             <span>{dark ? 'Light mode' : 'Dark mode'}</span>
@@ -86,12 +86,12 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, incr
           <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--border)' }}>
             <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
               <span>🔠</span>
-              <span style={{ flex:1, color:'var(--text)', fontSize:13, fontWeight:700 }}>Font size</span>
-              <span style={{ color:'var(--text3)', fontSize:11 }}>{getFontSizeLabel(fontIndex)}</span>
+              <span style={{ flex:1, color:'var(--text)', fontSize: 'var(--fs-13)', fontWeight:700 }}>Font size</span>
+              <span style={{ color:'var(--text3)', fontSize: 'var(--fs-11)' }}>{getFontSizeLabel(fontIndex)}</span>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6 }}>
               <button onClick={decreaseFont} style={{ background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:7, padding:'7px 0', fontWeight:800 }}>A−</button>
-              <button onClick={resetFont} style={{ background:'var(--card2)', color:'var(--text2)', border:'1px solid var(--border)', borderRadius:7, padding:'7px 0', fontSize:11, fontWeight:700 }}>Reset</button>
+              <button onClick={resetFont} style={{ background:'var(--card2)', color:'var(--text2)', border:'1px solid var(--border)', borderRadius:7, padding:'7px 0', fontSize: 'var(--fs-11)', fontWeight:700 }}>Reset</button>
               <button onClick={increaseFont} style={{ background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:7, padding:'7px 0', fontWeight:800 }}>A+</button>
             </div>
           </div>
@@ -99,7 +99,7 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, incr
             display: 'flex', alignItems: 'center', gap: 10,
             width: '100%', padding: '10px 14px', background: 'none',
             border: 'none', textAlign: 'left', cursor: 'pointer',
-            color: 'var(--red)', fontSize: 13,
+            color: 'var(--red)', fontSize: 'var(--fs-13)',
           }}>
             <span>↩</span><span>Sign out</span>
           </button>
@@ -116,6 +116,8 @@ export default function POS() {
   const { dark, toggle: toggleTheme, fontIndex, increaseFont, decreaseFont, resetFont } = useTheme()
   const [clock, setClock] = useState('')
   const [dataLoaded, setDataLoaded] = useState(() => categories.length > 0 || products.length > 0)
+  const [menuLoadedTenantId, setMenuLoadedTenantId] = useState(null)
+  const [tenantHasProducts, setTenantHasProducts] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
   const [sampleOpen, setSampleOpen] = useState(false)
 
@@ -125,15 +127,16 @@ export default function POS() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  const hasMenu = products.length > 0
+  const menuCheckedForTenant = menuLoadedTenantId === tenantId
+  const shouldOfferSampleMenu = menuCheckedForTenant && tenantHasProducts === false
   const samplePromptKey = tenantId ? `bite_sample_prompt_seen_${tenantId}` : null
 
   useEffect(() => {
-    if (!tenantId || !dataLoaded || hasMenu || !samplePromptKey) return
+    if (!tenantId || !dataLoaded || !shouldOfferSampleMenu || !samplePromptKey) return
     if (localStorage.getItem(samplePromptKey)) return
     setSampleOpen(true)
     localStorage.setItem(samplePromptKey, '1')
-  }, [tenantId, dataLoaded, hasMenu, samplePromptKey])
+  }, [tenantId, dataLoaded, shouldOfferSampleMenu, samplePromptKey])
 
   function dismissSamplePrompt() {
     if (samplePromptKey) localStorage.setItem(samplePromptKey, '1')
@@ -155,7 +158,11 @@ export default function POS() {
     let cancelled = false
     async function hydrate() {
       setDataLoaded(false)
-      const menuPromise = loadData()
+      setMenuLoadedTenantId(null)
+      setTenantHasProducts(null)
+      setCategories([])
+      setProducts([])
+      const menuPromise = loadData(tenantId)
       const settingsPromise = loadSettings()
       const timeout = new Promise(resolve => setTimeout(() => resolve('timeout'), 4500))
       const result = await Promise.race([Promise.allSettled([menuPromise, settingsPromise]), timeout])
@@ -184,26 +191,32 @@ export default function POS() {
     return () => clearInterval(id)
   }, [])
 
-  async function loadData() {
-    if (!tenantId) return
+  async function loadData(activeTenantId = tenantId) {
+    if (!activeTenantId) return
     try {
       const [{ data:cats, error:catError }, { data:prods, error:prodError }] = await Promise.all([
-        supabase.from('categories').select('*').eq('tenant_id', tenantId).order('sort_order'),
+        supabase.from('categories').select('*').eq('tenant_id', activeTenantId).order('sort_order'),
         supabase.from('products')
           .select('*, categories(name,icon)')
-          .eq('tenant_id', tenantId)
+          .eq('tenant_id', activeTenantId)
           .order('sort_order'),
       ])
       if (catError) throw catError
       if (prodError) throw prodError
+      if (useStore.getState().tenantId !== activeTenantId) return
       setCategories(cats || [])
-      setProducts((prods || []).map(p => ({
+      const productRows = (prods || []).map(p => ({
         ...p,
         catName: p.categories?.name || '',
         catIcon: p.categories?.icon || '',
-      })))
+      }))
+      setProducts(productRows)
+      setTenantHasProducts(productRows.length > 0)
+      setMenuLoadedTenantId(activeTenantId)
     } catch (error) {
       console.error('[BITE] menu load error:', error)
+      setTenantHasProducts(null)
+      setMenuLoadedTenantId(null)
       showToast?.('Menu is taking longer to load. You can still use the app.', 'warning')
     } finally {
       setDataLoaded(true)
@@ -257,7 +270,7 @@ export default function POS() {
       }}>
         {/* Logo */}
         <div style={{
-          fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:16,
+          fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize: 'var(--fs-16)',
           letterSpacing:'-0.5px', marginRight:8, flexShrink:0, color:'var(--text)',
         }}>BITE<span style={{ color:'var(--brand)' }}>.</span></div>
 
@@ -269,7 +282,7 @@ export default function POS() {
               border: 'none',
               borderRadius: 'var(--r-sm)',
               color: page===n.id ? 'var(--text)' : 'var(--text2)',
-              padding: isMobile ? '5px 8px' : '5px 10px', fontSize: 12,
+              padding: isMobile ? '5px 8px' : '5px 10px', fontSize: 'var(--fs-12)',
               fontWeight: page===n.id ? 700 : 400,
               cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
               display:'flex', alignItems:'center', gap:isMobile ? 4 : 6,
@@ -284,7 +297,7 @@ export default function POS() {
         <div style={{ display:'flex', alignItems:'center', gap:8,
           marginLeft:'auto', flexShrink:0 }}>
           {!isMobile && (
-            <span style={{ fontSize:11, color:'var(--text3)',
+            <span style={{ fontSize: 'var(--fs-11)', color:'var(--text3)',
               fontVariantNumeric:'tabular-nums' }}>{clock}</span>
           )}
           <MoreMenu
@@ -299,7 +312,7 @@ export default function POS() {
         </div>
       </nav>
 
-      {tenantId && dataLoaded && !hasMenu && (
+      {tenantId && dataLoaded && shouldOfferSampleMenu && (
         <div style={{
           margin: isMobile ? '8px 10px 0' : '10px 14px 0',
           padding: '10px 12px', borderRadius: 12,
@@ -307,14 +320,14 @@ export default function POS() {
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flexShrink: 0,
         }}>
           <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ fontWeight: 800, fontSize: 13, color: 'var(--text)' }}>No products added yet</div>
-            <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+            <div style={{ fontWeight: 800, fontSize: 'var(--fs-13)', color: 'var(--text)' }}>No products added yet</div>
+            <div style={{ fontSize: 'var(--fs-12)', color: 'var(--text2)' }}>
               Add sample categories and products now, then edit them anytime.
             </div>
           </div>
           <button onClick={openSamplePrompt} style={{
             background: 'var(--brand)', color: '#fff', border: 'none',
-            borderRadius: 10, padding: '9px 13px', fontSize: 12, fontWeight: 800,
+            borderRadius: 10, padding: '9px 13px', fontSize: 'var(--fs-12)', fontWeight: 800,
           }}>Add sample menu</button>
         </div>
       )}
@@ -334,6 +347,8 @@ export default function POS() {
         open={sampleOpen}
         onClose={dismissSamplePrompt}
         onSeeded={() => {
+          setTenantHasProducts(true)
+          setMenuLoadedTenantId(tenantId)
           if (samplePromptKey) localStorage.setItem(samplePromptKey, '1')
         }}
       />

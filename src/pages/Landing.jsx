@@ -170,7 +170,7 @@ export default function Landing() {
         <div style={{ background:'radial-gradient(circle at top right,rgba(232,68,10,0.28),transparent 45%),linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))', border:'1px solid rgba(255,255,255,0.12)', borderRadius:28, padding:'clamp(18px,5vw,28px)', boxShadow:'0 28px 80px rgba(0,0,0,0.35)' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
             <div style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:'clamp(17px,4.2vw,24px)' }}>Live counter</div>
-            <span style={{ background:'rgba(34,197,94,0.14)', color:'#86EFAC', border:'1px solid rgba(34,197,94,0.24)', borderRadius:999, padding:'5px 10px', fontSize:12, fontWeight:800 }}>Open</span>
+            <span style={{ background:'rgba(34,197,94,0.14)', color:'#86EFAC', border:'1px solid rgba(34,197,94,0.24)', borderRadius:999, padding:'5px 10px', fontSize: 'var(--fs-12)', fontWeight:800 }}>Open</span>
           </div>
           {['Dine-in table T4 · ₹1,246', 'Takeaway order · ₹498', 'Kitchen: 3 items preparing'].map((row, idx) => (
             <div key={row} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 0', borderTop: idx ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
@@ -195,7 +195,7 @@ export default function Landing() {
           <span style={L.tag}>Start in minutes</span>
           <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontSize:'clamp(24px,5.8vw,42px)', letterSpacing:'-1px', marginTop:12 }}>From signup to first order.</h2>
         </div>
-        <div style={{ ...L.grid, gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,280px),1fr))' }}>{STEPS.map(s => <div key={s.n} style={L.card}><span style={{ color:'#E8440A', fontWeight:900, fontSize:13 }}>{s.n}</span><span style={L.cTitle}>{s.title}</span><span style={L.cSub}>{s.sub}</span></div>)}</div>
+        <div style={{ ...L.grid, gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,280px),1fr))' }}>{STEPS.map(s => <div key={s.n} style={L.card}><span style={{ color:'#E8440A', fontWeight:900, fontSize: 'var(--fs-13)' }}>{s.n}</span><span style={L.cTitle}>{s.title}</span><span style={L.cSub}>{s.sub}</span></div>)}</div>
       </section>
 
       <section style={L.section}>
@@ -209,7 +209,7 @@ export default function Landing() {
         <div style={L.overlay}>
           <div style={L.card2}>
             <div style={L.aHead}>
-              <button aria-label="Close" onClick={closeAuth} style={{ position:'absolute', top:16, right:16, width:32, height:32, borderRadius:10, border:'1px solid rgba(255,255,255,0.14)', background:'rgba(255,255,255,0.06)', color:'#F5F0E8', fontSize:18, cursor:'pointer' }}>×</button>
+              <button aria-label="Close" onClick={closeAuth} style={{ position:'absolute', top:16, right:16, width:32, height:32, borderRadius:10, border:'1px solid rgba(255,255,255,0.14)', background:'rgba(255,255,255,0.06)', color:'#F5F0E8', fontSize: 'var(--fs-18)', cursor:'pointer' }}>×</button>
               <div style={L.aTitle}>{tab==='login' ? 'Sign in to BITE.' : 'Create your account'}</div>
               <div style={L.aSub}>{tab==='login' ? 'Enter your credentials to continue.' : 'Set up your restaurant POS in minutes.'}</div>
             </div>
