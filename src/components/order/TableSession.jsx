@@ -107,7 +107,7 @@ function AddItemsPanel({ tableNum, orderId, tenantId, onAdded, onClose }) {
             background: activeCat === String(cat.id) ? 'var(--brand-lt)' : 'none',
             border: `1.5px solid ${activeCat === String(cat.id) ? 'rgba(232,68,10,0.3)' : 'var(--border)'}`,
             color: activeCat === String(cat.id) ? 'var(--brand)' : 'var(--text2)',
-            fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            fontSize: 'var(--fs-12)', fontWeight: 600, cursor: 'pointer',
           }}>{cat.icon} {cat.name}</button>
         ))}
       </div>
@@ -123,17 +123,17 @@ function AddItemsPanel({ tableNum, orderId, tenantId, onAdded, onClose }) {
               border: `1.5px solid ${sel ? 'rgba(232,68,10,0.25)' : 'var(--border)'}`,
               borderRadius: 8, padding: '8px 10px',
             }}>
-              <span style={{ fontSize: 18 }}>{p.icon || '🍽'}</span>
+              <span style={{ fontSize: 'var(--fs-18)' }}>{p.icon || '🍽'}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--brand)', fontWeight: 600 }}>₹{Number(p.price).toFixed(2)}</div>
+                <div style={{ fontSize: 'var(--fs-13)', fontWeight: 500, color: 'var(--text)' }}>{p.name}</div>
+                <div style={{ fontSize: 'var(--fs-11)', color: 'var(--brand)', fontWeight: 600 }}>₹{Number(p.price).toFixed(2)}</div>
               </div>
               {sel && (
                 <input
                   value={sel.note || ''}
                   onChange={e => setSelected(prev => ({ ...prev, [p.id]: { ...prev[p.id], note: e.target.value } }))}
                   placeholder="Note for kitchen..."
-                  style={{ fontSize: 11, padding: '4px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', width: 130 }}
+                  style={{ fontSize: 'var(--fs-11)', padding: '4px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text)', width: 130 }}
                   onClick={e => e.stopPropagation()}
                 />
               )}
@@ -141,7 +141,7 @@ function AddItemsPanel({ tableNum, orderId, tenantId, onAdded, onClose }) {
                 {sel && (
                   <>
                     <button onClick={() => toggle(p)} style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                    <span style={{ fontSize: 13, fontWeight: 700, minWidth: 18, textAlign: 'center' }}>{sel.qty}</span>
+                    <span style={{ fontSize: 'var(--fs-13)', fontWeight: 700, minWidth: 18, textAlign: 'center' }}>{sel.qty}</span>
                   </>
                 )}
                 <button onClick={() => inc(p)} disabled={p.out_of_stock} style={{
@@ -149,7 +149,7 @@ function AddItemsPanel({ tableNum, orderId, tenantId, onAdded, onClose }) {
                   background: sel ? 'var(--brand)' : 'var(--card)',
                   border: sel ? 'none' : '1px solid var(--border)',
                   color: sel ? '#fff' : 'var(--text)', cursor: p.out_of_stock ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--fs-14)',
                 }}>+</button>
               </div>
             </div>
@@ -161,14 +161,14 @@ function AddItemsPanel({ tableNum, orderId, tenantId, onAdded, onClose }) {
       <div style={{ paddingTop: 10, flexShrink: 0 }}>
         <input value={note} onChange={e => setNote(e.target.value)}
           placeholder="Note for entire round (e.g. no onions)..."
-          style={{ width: '100%', padding: '8px 12px', background: 'var(--bg)', border: '1.5px solid var(--border2)', borderRadius: 8, color: 'var(--text)', fontSize: 13, outline: 'none' }} />
+          style={{ width: '100%', padding: '8px 12px', background: 'var(--bg)', border: '1.5px solid var(--border2)', borderRadius: 8, color: 'var(--text)', fontSize: 'var(--fs-13)', outline: 'none' }} />
       </div>
 
       {/* Send button */}
       <button onClick={sendToKitchen} disabled={saving || !totalSelected} style={{
         marginTop: 10, background: totalSelected ? 'var(--brand)' : 'var(--card2)',
         color: totalSelected ? '#fff' : 'var(--text3)',
-        border: 'none', borderRadius: 8, padding: '12px', fontWeight: 700, fontSize: 14,
+        border: 'none', borderRadius: 8, padding: '12px', fontWeight: 700, fontSize: 'var(--fs-14)',
         cursor: totalSelected ? 'pointer' : 'default',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
       }}>
@@ -252,18 +252,18 @@ export default function TableSession({ table, onClose, onCheckout }) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <div>
-          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 18 }}>{tableLabel}</div>
-          <div style={{ fontSize: 12, color: 'var(--text2)' }}>{activeItems.length} active items · ₹{total.toFixed(2)}</div>
+          <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 'var(--fs-18)' }}>{tableLabel}</div>
+          <div style={{ fontSize: 'var(--fs-12)', color: 'var(--text2)' }}>{activeItems.length} active items · ₹{total.toFixed(2)}</div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setAddOpen(true)} style={{
             background: 'var(--brand)', color: '#fff', border: 'none',
-            borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 'var(--fs-13)', cursor: 'pointer',
           }}>+ Add Items</button>
           {activeItems.length > 0 && (
             <button onClick={handleCheckout} style={{
               background: 'var(--green)', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              borderRadius: 8, padding: '8px 16px', fontWeight: 700, fontSize: 'var(--fs-13)', cursor: 'pointer',
             }}>Checkout →</button>
           )}
           <button onClick={onClose} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text2)', padding: '8px 12px', cursor: 'pointer' }}>✕</button>
@@ -276,7 +276,7 @@ export default function TableSession({ table, onClose, onCheckout }) {
           <div style={{ textAlign: 'center', padding: 32 }}><span className="spinner" /></div>
         ) : allItems.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 32, color: 'var(--text2)' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>🍽</div>
+            <div style={{ fontSize: 'var(--fs-32)', marginBottom: 8 }}>🍽</div>
             <div>No items yet. Tap + Add Items to start.</div>
           </div>
         ) : (
@@ -284,7 +284,7 @@ export default function TableSession({ table, onClose, onCheckout }) {
             {/* Active items */}
             {activeItems.length > 0 && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                <div style={{ fontSize: 'var(--fs-11)', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
                   Active Items
                 </div>
                 {activeItems.map(item => {
@@ -296,21 +296,21 @@ export default function TableSession({ table, onClose, onCheckout }) {
                       background: 'var(--card)', border: '1px solid var(--border)',
                       borderRadius: 8, borderLeft: `3px solid ${statusColor}`,
                     }}>
-                      <span style={{ fontSize: 18 }}>{item.product_icon || '🍽'}</span>
+                      <span style={{ fontSize: 'var(--fs-18)' }}>{item.product_icon || '🍽'}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500 }}>
+                        <div style={{ fontSize: 'var(--fs-13)', fontWeight: 500 }}>
                           {item.product_name}
-                          <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--text3)' }}>×{item.qty}</span>
+                          <span style={{ marginLeft: 6, fontSize: 'var(--fs-12)', color: 'var(--text3)' }}>×{item.qty}</span>
                         </div>
-                        {item.notes && <div style={{ fontSize: 11, color: 'var(--amber)', marginTop: 2 }}>📝 {item.notes}</div>}
-                        <div style={{ fontSize: 10, color: statusColor, fontWeight: 600, marginTop: 2 }}>{item.orderStatus}</div>
+                        {item.notes && <div style={{ fontSize: 'var(--fs-11)', color: 'var(--amber)', marginTop: 2 }}>📝 {item.notes}</div>}
+                        <div style={{ fontSize: 'var(--fs-10)', color: statusColor, fontWeight: 600, marginTop: 2 }}>{item.orderStatus}</div>
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--brand)', flexShrink: 0 }}>
+                      <div style={{ fontSize: 'var(--fs-13)', fontWeight: 600, color: 'var(--brand)', flexShrink: 0 }}>
                         ₹{(Number(item.unit_price) * item.qty).toFixed(2)}
                       </div>
                       <button onClick={() => setRejecting({ item, orderId: item.order_id })}
                         title="Remove item"
-                        style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--red)', padding: '3px 7px', fontSize: 11, cursor: 'pointer' }}>
+                        style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--red)', padding: '3px 7px', fontSize: 'var(--fs-11)', cursor: 'pointer' }}>
                         ✕
                       </button>
                     </div>
@@ -322,7 +322,7 @@ export default function TableSession({ table, onClose, onCheckout }) {
             {/* Rejected items */}
             {rejectedItems.length > 0 && (
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                <div style={{ fontSize: 'var(--fs-11)', fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
                   Removed / Unavailable
                 </div>
                 {rejectedItems.map(item => (
@@ -332,11 +332,11 @@ export default function TableSession({ table, onClose, onCheckout }) {
                     background: 'var(--card)', border: '1px solid var(--border)',
                     borderRadius: 8, textDecoration: 'line-through',
                   }}>
-                    <span style={{ fontSize: 16 }}>{item.product_icon || '🍽'}</span>
+                    <span style={{ fontSize: 'var(--fs-16)' }}>{item.product_icon || '🍽'}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12 }}>{item.product_name} ×{item.qty}</div>
+                      <div style={{ fontSize: 'var(--fs-12)' }}>{item.product_name} ×{item.qty}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--red)' }}>removed</div>
+                    <div style={{ fontSize: 'var(--fs-11)', color: 'var(--red)' }}>removed</div>
                   </div>
                 ))}
               </div>
@@ -345,19 +345,19 @@ export default function TableSession({ table, onClose, onCheckout }) {
             {/* Bill summary */}
             {activeItems.length > 0 && (
               <div style={{ marginTop: 12, background: 'var(--card2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 3 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-12)', color: 'var(--text2)', marginBottom: 3 }}>
                   <span>Subtotal</span><span>₹{sub.toFixed(2)}</span>
                 </div>
                 {taxRate > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text2)', marginBottom: 3 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-12)', color: 'var(--text2)', marginBottom: 3 }}>
                     <span>Tax ({settings?.tax_rate}%)</span><span>₹{(sub * taxRate).toFixed(2)}</span>
                   </div>
                 )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 800, borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 3 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--fs-15)', fontWeight: 800, borderTop: '1px solid var(--border)', paddingTop: 6, marginTop: 3 }}>
                   <span>Total</span><span style={{ color: 'var(--brand)' }}>₹{total.toFixed(2)}</span>
                 </div>
                 {rejectedItems.length > 0 && (
-                  <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                  <div style={{ fontSize: 'var(--fs-11)', color: 'var(--text3)', marginTop: 4 }}>
                     * Excludes {rejectedItems.length} removed item{rejectedItems.length !== 1 ? 's' : ''}
                   </div>
                 )}
@@ -376,9 +376,9 @@ export default function TableSession({ table, onClose, onCheckout }) {
           </div>
         }>
         <div style={{ textAlign: 'center', padding: '8px 0' }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>⚠️</div>
+          <div style={{ fontSize: 'var(--fs-32)', marginBottom: 8 }}>⚠️</div>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>Remove "{rejecting?.item?.product_name}"?</div>
-          <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 'var(--fs-12)', color: 'var(--text2)', lineHeight: 1.6 }}>
             This will mark the item as unavailable and remove it from the final bill. The kitchen will be notified.
           </div>
         </div>
