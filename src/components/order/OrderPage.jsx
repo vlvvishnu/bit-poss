@@ -1021,6 +1021,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         opacity:p.out_of_stock?0.45:1,
                         display:'flex',flexDirection:'column',gap:3,
                         textAlign:'left',position:'relative',overflow:'hidden',
+                        minHeight:160,
                         transform:quickQtyProductId===p.id?'translateY(-2px) scale(1.02)':'none',
                         boxShadow:quickQtyProductId===p.id?'0 14px 28px rgba(232,68,10,0.2)':'none',
                         transition:'transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease',
@@ -1034,26 +1035,36 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         background:'var(--brand)',color:'#fff',fontSize: 'var(--fs-9)',fontWeight:800,
                         borderRadius:'50%',width:16,height:16,display:'flex',
                         alignItems:'center',justifyContent:'center' }}>{qty}</span>}
-                      {quickQtyProductId===p.id&&!p.out_of_stock&&(
-                        <div style={{
-                          display:'flex',alignItems:'center',justifyContent:'space-between',gap:7,
-                          marginTop:7,padding:'6px',borderRadius:12,
-                          background:'rgba(13,11,8,0.82)',border:'1px solid rgba(255,255,255,0.14)',
-                          boxShadow:'0 10px 24px rgba(0,0,0,0.2)',backdropFilter:'blur(10px)' }}>
-                          <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, -1)} disabled={!qty}
-                            style={{ width:30,height:30,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.18)',
-                              background:qty?'var(--card2)':'rgba(255,255,255,0.06)',color:qty?'var(--text)':'rgba(245,240,232,0.32)',
-                              display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
-                            −
-                          </button>
-                          <span style={{ minWidth:30,textAlign:'center',fontSize:'var(--fs-13)',fontWeight:900,color:'#fff' }}>{qty||0}</span>
-                          <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, 1)}
-                            style={{ width:30,height:30,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff',
-                              display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
-                            +
-                          </button>
-                        </div>
-                      )}
+                      <div style={{
+                        marginTop:'auto',
+                        borderTop:'1px solid #602E17',
+                        paddingTop:8,
+                        minHeight:38,
+                        display:'flex',alignItems:'center',justifyContent:'center'
+                      }}>
+                        {quickQtyProductId===p.id&&!p.out_of_stock ? (
+                          <div style={{
+                            width:'100%',
+                            display:'flex',alignItems:'center',justifyContent:'space-between',gap:7,
+                            padding:'2px 0'
+                          }}>
+                            <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, -1)} disabled={!qty}
+                              style={{ width:30,height:30,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.18)',
+                                background:qty?'var(--card2)':'rgba(255,255,255,0.06)',color:qty?'var(--text)':'rgba(245,240,232,0.32)',
+                                display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
+                              −
+                            </button>
+                            <span style={{ minWidth:30,textAlign:'center',fontSize:'var(--fs-13)',fontWeight:900,color:'#fff' }}>{qty||0}</span>
+                            <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, 1)}
+                              style={{ width:30,height:30,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff',
+                                display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize:'var(--fs-12)', fontWeight:800, color:'#D7581A' }}>+ Add</span>
+                        )}
+                      </div>
                     </div>
                   )
                 })}
