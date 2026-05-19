@@ -878,46 +878,6 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }
 
 
-  function clearLongPressTimer() {
-    if (!longPressTimerRef.current) return
-    clearTimeout(longPressTimerRef.current)
-    longPressTimerRef.current = null
-  }
-
-  function openQuickQty(product) {
-    if (product.out_of_stock) return
-    setQuickQtyProductId(product.id)
-  }
-
-  function handleProductPointerDown(event, product) {
-    if (product.out_of_stock || event.pointerType !== 'touch') return
-    clearLongPressTimer()
-    longPressTimerRef.current = setTimeout(() => {
-      ignoreNextClickRef.current = true
-      openQuickQty(product)
-      if (navigator.vibrate) navigator.vibrate(12)
-    }, 420)
-  }
-
-  function handleProductClick(product) {
-    if (product.out_of_stock) return
-    if (ignoreNextClickRef.current) {
-      ignoreNextClickRef.current = false
-      return
-    }
-    addToCart(product)
-    openQuickQty(product)
-  }
-
-  function adjustQuickQty(event, product, direction) {
-    event.stopPropagation()
-    clearLongPressTimer()
-    if (product.out_of_stock) return
-    if (direction > 0) addToCart(product)
-    else if (cart[product.id]?.qty > 0) removeFromCart(product.id)
-    openQuickQty(product)
-  }
-
   function openCheckout() {
     if (!items.length){ showToast('Cart is empty','warning'); return }
     setCheckoutData({ items, orderType, tableNum, tableName, total, sub, tax:sub*taxRate, existingOrderId:null })
@@ -997,20 +957,14 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                   const qty=cart[p.id]?.qty
                   return (
                     <div key={p.id}
-                      data-product-card="true"
                       role="button"
                       tabIndex={p.out_of_stock ? -1 : 0}
                       aria-disabled={p.out_of_stock}
-                      onPointerDown={event => handleProductPointerDown(event, p)}
-                      onPointerUp={clearLongPressTimer}
-                      onPointerCancel={clearLongPressTimer}
-                      onPointerLeave={clearLongPressTimer}
-                      onContextMenu={event => { event.preventDefault(); openQuickQty(p) }}
-                      onClick={() => handleProductClick(p)}
+                      onClick={() => !p.out_of_stock && addToCart(p)}
                       onKeyDown={event => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault()
-                          handleProductClick(p)
+!p.out_of_stock && addToCart(p)
                         }
                       }}
                       style={{
@@ -1021,9 +975,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         opacity:p.out_of_stock?0.45:1,
                         display:'flex',flexDirection:'column',gap:3,
                         textAlign:'left',position:'relative',overflow:'hidden',
-                        minHeight:160,
-                        transform:quickQtyProductId===p.id?'translateY(-2px) scale(1.02)':'none',
-                        boxShadow:quickQtyProductId===p.id?'0 14px 28px rgba(232,68,10,0.2)':'none',
+                        minHeight:146,
                         transition:'transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease',
                         touchAction:'manipulation' }}>
                       <span style={{ fontSize: 'var(--fs-22)' }}>{p.icon||'🍽'}</span>
@@ -1037,12 +989,12 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         alignItems:'center',justifyContent:'center' }}>{qty}</span>}
                       <div style={{
                         marginTop:'auto',
-                        borderTop:'1px solid #602E17',
+                        borderTop:'1px solid var(--product-cta-divider)',
                         paddingTop:8,
                         minHeight:38,
                         display:'flex',alignItems:'center',justifyContent:'center'
                       }}>
-                        {quickQtyProductId===p.id&&!p.out_of_stock ? (
+                        {qty>0&&!p.out_of_stock ? (
                           <div style={{
                             width:'100%',
                             display:'flex',alignItems:'center',justifyContent:'space-between',gap:7,
@@ -1062,7 +1014,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                             </button>
                           </div>
                         ) : (
-                          <span style={{ fontSize:'var(--fs-12)', fontWeight:800, color:'#D7581A' }}>+ Add</span>
+                          <span style={{ fontSize:'var(--fs-12)', fontWeight:800, color:'var(--product-cta-text)' }}>+ Add</span>
                         )}
                       </div>
                     </div>

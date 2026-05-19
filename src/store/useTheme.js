@@ -63,6 +63,8 @@ function applyTheme(dark) {
     root.style.setProperty('--text2',  'rgba(245,240,232,0.55)')
     root.style.setProperty('--text3',  'rgba(245,240,232,0.3)')
     root.style.setProperty('--brand-lt2', 'rgba(232,68,10,0.08)')
+    root.style.setProperty('--product-cta-divider', '#602E17')
+    root.style.setProperty('--product-cta-text', '#D7581A')
   } else {
     root.style.setProperty('--bg',     '#F9F7F4')
     root.style.setProperty('--bg2',    '#F0EDE8')
@@ -74,6 +76,8 @@ function applyTheme(dark) {
     root.style.setProperty('--text2',  'rgba(26,18,8,0.55)')
     root.style.setProperty('--text3',  'rgba(26,18,8,0.3)')
     root.style.setProperty('--brand-lt2', 'rgba(232,68,10,0.06)')
+    root.style.setProperty('--product-cta-divider', 'rgba(215,88,26,0.28)')
+    root.style.setProperty('--product-cta-text', '#B44917')
   }
 }
 

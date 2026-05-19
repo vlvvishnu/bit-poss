@@ -37,6 +37,8 @@ input, textarea, select { font-family: inherit; }
   --amber-bg: rgba(245,158,11,0.1);
   --blue:     #3B82F6;
   --blue-bg:  rgba(59,130,246,0.1);
+  --product-cta-divider: #602E17;
+  --product-cta-text: #D7581A;
   --r:        10px;
   --r-lg:     16px;
   --r-sm:     6px;
