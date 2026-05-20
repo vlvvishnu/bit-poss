@@ -17,7 +17,7 @@ const L = {
     justifyContent:'space-between', position:'sticky', top:0, zIndex:10,
   },
   logo: { fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:800,
-    fontSize:20, color:'#1A1208', letterSpacing:'-0.5px' },
+    fontSize: 'var(--fs-20)', color:'#1A1208', letterSpacing:'-0.5px' },
   card: {
     background:'#fff', border:'1px solid #e8e4df', borderRadius:16,
     width:'100%', maxWidth:480, margin:'24px auto 0',
@@ -29,15 +29,15 @@ const L = {
     display:'flex', flexDirection:'column', gap:4,
   },
   row: { display:'flex', justifyContent:'space-between',
-    padding:'9px 0', borderBottom:'1px solid #f0ebe6', fontSize:14 },
+    padding:'9px 0', borderBottom:'1px solid #f0ebe6', fontSize: 'var(--fs-14)' },
   totalRow: { display:'flex', justifyContent:'space-between',
-    padding:'12px 0 0', fontSize:16, fontWeight:800 },
+    padding:'12px 0 0', fontSize: 'var(--fs-16)', fontWeight:800 },
   metaRow: { display:'flex', justifyContent:'space-between',
-    padding:'5px 0', fontSize:13, color:'#7A6E65' },
+    padding:'5px 0', fontSize: 'var(--fs-13)', color:'#7A6E65' },
   dlBtn: {
     background:'#E8440A', color:'#fff', border:'none',
     borderRadius:12, padding:'14px', fontWeight:700,
-    fontSize:15, cursor:'pointer', width:'100%',
+    fontSize: 'var(--fs-15)', cursor:'pointer', width:'100%',
     display:'flex', alignItems:'center', justifyContent:'center', gap:8,
   },
 }
@@ -99,11 +99,11 @@ export default function Invoice() {
   if (error) return (
     <div style={{ ...L.page, alignItems:'center', justifyContent:'center' }}>
       <div style={{ textAlign:'center', padding:32 }}>
-        <div style={{ fontSize:40, marginBottom:12 }}>🧾</div>
-        <div style={{ fontSize:16, fontWeight:700, color:'#1A1208', marginBottom:6 }}>
+        <div style={{ fontSize: 'var(--fs-40)', marginBottom:12 }}>🧾</div>
+        <div style={{ fontSize: 'var(--fs-16)', fontWeight:700, color:'#1A1208', marginBottom:6 }}>
           {error}
         </div>
-        <div style={{ fontSize:13, color:'#7A6E65' }}>
+        <div style={{ fontSize: 'var(--fs-13)', color:'#7A6E65' }}>
           This link may have expired or the order doesn't exist.
         </div>
       </div>
@@ -129,7 +129,7 @@ export default function Invoice() {
       {/* Nav */}
       <div style={L.header} className="no-print">
         <span style={L.logo}>BITE<span style={{ color:'#E8440A' }}>.</span></span>
-        <span style={{ fontSize:12, color:'#7A6E65' }}>Invoice</span>
+        <span style={{ fontSize: 'var(--fs-12)', color:'#7A6E65' }}>Invoice</span>
       </div>
 
       {/* Invoice card */}
@@ -139,27 +139,27 @@ export default function Invoice() {
           {/* Dark header */}
           <div style={L.cardHead}>
             <div style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:800,
-              fontSize:22, color:'#F5F0E8', letterSpacing:'-0.5px' }}>
+              fontSize: 'var(--fs-22)', color:'#F5F0E8', letterSpacing:'-0.5px' }}>
               {bizName}
             </div>
             {biz?.address && (
-              <div style={{ fontSize:12, color:'rgba(245,240,232,0.5)' }}>{biz.address}</div>
+              <div style={{ fontSize: 'var(--fs-12)', color:'rgba(245,240,232,0.5)' }}>{biz.address}</div>
             )}
             <div style={{ marginTop:10, display:'flex', justifyContent:'space-between',
               alignItems:'flex-end' }}>
               <div>
-                <div style={{ fontSize:11, color:'rgba(245,240,232,0.4)',
+                <div style={{ fontSize: 'var(--fs-11)', color:'rgba(245,240,232,0.4)',
                   textTransform:'uppercase', letterSpacing:'0.5px' }}>Invoice</div>
-                <div style={{ fontSize:24, fontWeight:800, color:'#E8440A',
+                <div style={{ fontSize: 'var(--fs-24)', fontWeight:800, color:'#E8440A',
                   fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
                   #{order.order_number}
                 </div>
               </div>
               <div style={{ textAlign:'right' }}>
-                <div style={{ fontSize:11, color:'rgba(245,240,232,0.4)' }}>
+                <div style={{ fontSize: 'var(--fs-11)', color:'rgba(245,240,232,0.4)' }}>
                   {fmtFull(order.created_at)}
                 </div>
-                <div style={{ fontSize:11, color:'rgba(245,240,232,0.5)', marginTop:2 }}>
+                <div style={{ fontSize: 'var(--fs-11)', color:'rgba(245,240,232,0.5)', marginTop:2 }}>
                   {typeLabel}
                 </div>
               </div>
@@ -173,8 +173,8 @@ export default function Invoice() {
             {(order.customer_name || order.customer_phone) && (
               <div style={{ marginBottom:12, padding:'10px 12px',
                 background:'#f9f7f5', borderRadius:8,
-                fontSize:13, color:'#1A1208' }}>
-                <div style={{ fontSize:10, fontWeight:700, color:'#9A9290',
+                fontSize: 'var(--fs-13)', color:'#1A1208' }}>
+                <div style={{ fontSize: 'var(--fs-10)', fontWeight:700, color:'#9A9290',
                   textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:3 }}>
                   Bill To
                 </div>
@@ -184,7 +184,7 @@ export default function Invoice() {
             )}
 
             {/* Items */}
-            <div style={{ fontSize:10, fontWeight:700, color:'#9A9290',
+            <div style={{ fontSize: 'var(--fs-10)', fontWeight:700, color:'#9A9290',
               textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:4 }}>
               Items
             </div>
@@ -196,11 +196,11 @@ export default function Invoice() {
                     {item.product_icon||'🍽'} {item.product_name}
                   </div>
                   {item.notes && (
-                    <div style={{ fontSize:11, color:'#E8440A', marginTop:2 }}>
+                    <div style={{ fontSize: 'var(--fs-11)', color:'#E8440A', marginTop:2 }}>
                       📝 {item.notes}
                     </div>
                   )}
-                  <div style={{ fontSize:12, color:'#7A6E65' }}>
+                  <div style={{ fontSize: 'var(--fs-12)', color:'#7A6E65' }}>
                     ₹{Number(item.unit_price).toFixed(2)} × {item.qty}
                   </div>
                 </div>
@@ -231,11 +231,11 @@ export default function Invoice() {
             {/* Payment */}
             <div style={{ marginTop:14, padding:'10px 12px',
               background:'#f9f7f5', borderRadius:8 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:'#9A9290',
+              <div style={{ fontSize: 'var(--fs-10)', fontWeight:700, color:'#9A9290',
                 textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:4 }}>
                 Payment
               </div>
-              <div style={{ fontSize:13, color:'#1A1208', fontWeight:600 }}>
+              <div style={{ fontSize: 'var(--fs-13)', color:'#1A1208', fontWeight:600 }}>
                 {order.payment_method==='cash' ? '💵 Cash'
                   : order.payment_method==='upi'  ? '📱 UPI'
                   : order.payment_method==='card' ? '💳 Card'
@@ -248,11 +248,11 @@ export default function Invoice() {
             {/* Thank you */}
             <div style={{ textAlign:'center', marginTop:16, padding:'12px 0 4px',
               borderTop:'1px solid #f0ebe6' }}>
-              <div style={{ fontSize:18, marginBottom:4 }}>🙏</div>
-              <div style={{ fontSize:13, fontWeight:600, color:'#1A1208' }}>
+              <div style={{ fontSize: 'var(--fs-18)', marginBottom:4 }}>🙏</div>
+              <div style={{ fontSize: 'var(--fs-13)', fontWeight:600, color:'#1A1208' }}>
                 Thank you for visiting us!
               </div>
-              <div style={{ fontSize:11, color:'#9A9290', marginTop:2 }}>
+              <div style={{ fontSize: 'var(--fs-11)', color:'#9A9290', marginTop:2 }}>
                 Powered by BITE. POS
               </div>
             </div>
