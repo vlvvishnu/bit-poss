@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
+import { loadAddons, loadProductAddonTags } from '../../utils/addons'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
@@ -790,9 +791,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
   const [itemNotes, setItemNotes]       = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
-  const [quickQtyProductId, setQuickQtyProductId] = useState(null)
-  const longPressTimerRef = useRef(null)
-  const ignoreNextClickRef = useRef(false)
+  const [addonProductId, setAddonProductId] = useState(null)
+  const [addonCounts, setAddonCounts] = useState({})
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 860)
@@ -829,6 +829,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const cartCount  = items.reduce((s,i) => s+i.qty, 0)
   const tableCount = settings?.table_count || 10
   const tableName  = tableNum ? `T${tableNum}` : null
+  const addons = useMemo(() => loadAddons(tenantId), [tenantId])
+  const addonTags = useMemo(() => loadProductAddonTags(tenantId), [tenantId, products.length])
 
   async function handleSendToKitchen() {
     if (!tableNum)    { showToast('Select a table first','warning'); return }
@@ -877,6 +879,24 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
     setItemNotes(prev => ({ ...prev, [productId]: val }))
   }
 
+
+
+
+  function taggedAddons(productId) {
+    const ids = addonTags[productId] || []
+    return addons.filter(a => ids.includes(a.id))
+  }
+
+  function changeAddonQty(productId, addonId, delta) {
+    const key = `${productId}:${addonId}`
+    setAddonCounts(prev => {
+      const next = { ...prev }
+      const qty = Math.max(0, (next[key] || 0) + delta)
+      if (qty === 0) delete next[key]
+      else next[key] = qty
+      return next
+    })
+  }
 
   function openCheckout() {
     if (!items.length){ showToast('Cart is empty','warning'); return }
@@ -960,11 +980,14 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                       role="button"
                       tabIndex={p.out_of_stock ? -1 : 0}
                       aria-disabled={p.out_of_stock}
-                      onClick={() => !p.out_of_stock && addToCart(p)}
+                      onClick={event => {
+                        if (event.target.closest('button')) return
+                        if (!p.out_of_stock) addToCart(p)
+                      }}
                       onKeyDown={event => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault()
-!p.out_of_stock && addToCart(p)
+                        if (!p.out_of_stock) addToCart(p)
                         }
                       }}
                       style={{
@@ -995,6 +1018,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         display:'flex',alignItems:'center',justifyContent:'center'
                       }}>
                         {qty>0&&!p.out_of_stock ? (
+                          <>
                           <div style={{
                             width:'100%',
                             display:'flex',alignItems:'center',justifyContent:'space-between',gap:7,
@@ -1012,7 +1036,32 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                                 display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
                               +
                             </button>
+                            {taggedAddons(p.id).length > 0 && (
+                              <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setAddonProductId(addonProductId === p.id ? null : p.id) }}
+                                style={{ marginLeft:6, border:'1px solid var(--border2)', background:'var(--card2)', color:'var(--text)', borderRadius:8, padding:'4px 6px', fontSize:'var(--fs-11)' }}>
+                                ➕ Add-ons
+                              </button>
+                            )}
                           </div>
+                          {addonProductId === p.id && taggedAddons(p.id).length > 0 && (
+                            <div style={{ marginTop:8, border:'1px solid var(--border)', borderRadius:8, padding:8, background:'var(--bg2)' }}>
+                              {taggedAddons(p.id).map(addon => {
+                                const key = `${p.id}:${addon.id}`
+                                const c = addonCounts[key] || 0
+                                return (
+                                  <div key={addon.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:6 }}>
+                                    <span style={{ fontSize:'var(--fs-11)', color:'var(--text)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span>
+                                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                                      <button type="button" onClick={() => changeAddonQty(p.id, addon.id, -1)} style={{ width:20,height:20,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)' }}>−</button>
+                                      <span style={{ minWidth:14, textAlign:'center', fontSize:'var(--fs-11)' }}>{c}</span>
+                                      <button type="button" onClick={() => changeAddonQty(p.id, addon.id, 1)} style={{ width:20,height:20,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                          </>
                         ) : (
                           <span style={{ fontSize:'var(--fs-12)', fontWeight:800, color:'var(--product-cta-text)' }}>+ Add</span>
                         )}

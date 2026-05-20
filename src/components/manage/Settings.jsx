@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
+import { loadAddons, saveAddons } from '../../utils/addons'
 
 function Field({ label, hint, children }) {
   return (
@@ -77,8 +78,15 @@ export default function SettingsPage() {
   const [savingUpi, setSavingUpi] = useState(false)
   const [savingWa,  setSavingWa]  = useState(false)
   const [savingPw,  setSavingPw]  = useState(false)
+  const [addons, setAddons] = useState([])
+  const [addonName, setAddonName] = useState('')
+  const [addonPrice, setAddonPrice] = useState('')
 
   // Populate fields when settings load
+  useEffect(() => {
+    setAddons(loadAddons(tenantId))
+  }, [tenantId])
+
   useEffect(() => {
     if (settings) {
       setBizName(settings.biz_name || settings.name || '')
@@ -127,6 +135,27 @@ export default function SettingsPage() {
     const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).single()
     if (data) setSettings(data)
     showToast('WhatsApp settings saved ✓', 'success')
+  }
+
+
+  function addAddon() {
+    const name = addonName.trim()
+    const price = Number(addonPrice)
+    if (!name || Number.isNaN(price) || price < 0) {
+      showToast('Enter valid add-on name and price', 'warning')
+      return
+    }
+    const next = [...addons, { id: `addon-${Date.now()}`, name, price }]
+    setAddons(next)
+    saveAddons(tenantId, next)
+    setAddonName(''); setAddonPrice('')
+    showToast('Add-on saved', 'success')
+  }
+
+  function removeAddon(id) {
+    const next = addons.filter(a => a.id !== id)
+    setAddons(next)
+    saveAddons(tenantId, next)
   }
 
   async function changePassword() {
@@ -206,6 +235,23 @@ export default function SettingsPage() {
           </Field>
           <div style={{ paddingTop:14 }}>
             <SaveBtn saving={savingWa} onClick={saveWhatsApp} label="Save WhatsApp"/>
+          </div>
+        </Section>
+
+
+        <Section title="➕ Product Add-ons">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 120px auto', gap:8, marginBottom:12 }}>
+            <input value={addonName} onChange={e=>setAddonName(e.target.value)} placeholder="Cheese slice" style={wideInputStyle}/>
+            <input value={addonPrice} onChange={e=>setAddonPrice(e.target.value)} type="number" min="0" step="0.01" placeholder="20" style={{...inputStyle, width:120, textAlign:'left'}}/>
+            <SaveBtn saving={false} onClick={addAddon} label="Add"/>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {addons.length===0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons created yet.</div> : addons.map(a => (
+              <div key={a.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px' }}>
+                <span style={{ color:'var(--text)' }}>{a.name} · ₹{Number(a.price).toFixed(2)}</span>
+                <button onClick={()=>removeAddon(a.id)} style={{ border:'none', background:'none', color:'var(--red)', cursor:'pointer' }}>Remove</button>
+              </div>
+            ))}
           </div>
         </Section>
 

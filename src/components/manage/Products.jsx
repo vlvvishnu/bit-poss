@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
+import { loadAddons, loadProductAddonTags, saveProductAddonTags } from '../../utils/addons'
 
 const ICONS = ['🍔','🍗','🌯','🍟','🥗','🍕','🌮','🥩','🌭','🥪','🍜','🍝','🍛','🥘','🍲',
                '🧆','🥙','🫔','🧅','🧀','🍳','🥚','🥓','🥞','🧇','🥐','🍞','🥖','🥨',
@@ -10,6 +11,8 @@ const ICONS = ['🍔','🍗','🌯','🍟','🥗','🍕','🌮','🥩','🌭','�
 
 function ProductEditor({ product, onSave, onClose }) {
   const { categories, tenantId } = useStore()
+  const [addonIds, setAddonIds] = useState([])
+  const addons = useMemo(() => loadAddons(tenantId), [tenantId])
   const [name, setName]         = useState(product?.name || '')
   const [price, setPrice]       = useState(product?.price || '')
   const [catId, setCatId]       = useState(product?.category_id || '')
@@ -18,6 +21,11 @@ function ProductEditor({ product, onSave, onClose }) {
   const [ingredients, setIngr]  = useState((product?.ingredients || []).join(', '))
   const [loading, setLoading]   = useState(false)
   const [err, setErr]           = useState('')
+
+  useEffect(() => {
+    const tags = loadProductAddonTags(tenantId)
+    setAddonIds(Array.isArray(tags[product?.id]) ? tags[product.id] : [])
+  }, [tenantId, product?.id])
 
   async function save(e) {
     e.preventDefault()
@@ -35,6 +43,11 @@ function ProductEditor({ product, onSave, onClose }) {
       : await supabase.from('products').insert(row)
     setLoading(false)
     if (error) { setErr(error.message); return }
+    if (product?.id) {
+      const tags = loadProductAddonTags(tenantId)
+      tags[product.id] = addonIds
+      saveProductAddonTags(tenantId, tags)
+    }
     onSave()
   }
 
@@ -68,6 +81,18 @@ function ProductEditor({ product, onSave, onClose }) {
           {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
       </Field>
+
+      <Field label="Tagged add-ons (optional)">
+        <div style={{ display:'flex', flexDirection:'column', gap:6, maxHeight:110, overflowY:'auto', border:'1px solid var(--border)', borderRadius:8, padding:8 }}>
+          {addons.length===0 ? <span style={{ fontSize:'var(--fs-11)', color:'var(--text3)' }}>Create add-ons in Settings first.</span> : addons.map(addon => (
+            <label key={addon.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:'var(--fs-12)' }}>
+              <input type="checkbox" checked={addonIds.includes(addon.id)} onChange={() => setAddonIds(prev => prev.includes(addon.id) ? prev.filter(id => id !== addon.id) : [...prev, addon.id])} />
+              <span>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span>
+            </label>
+          ))}
+        </div>
+      </Field>
+
       <Field label="Ingredients (comma separated, optional)">
         <input value={ingredients} onChange={e => setIngr(e.target.value)} placeholder="Beef patty, Cheese, Lettuce" style={iS} />
       </Field>
