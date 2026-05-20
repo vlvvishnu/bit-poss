@@ -1,5 +1,5 @@
 // BITE. POS Service Worker
-const CACHE = 'bite-pos-v1'
+const CACHE = 'bite-pos-v3'
 const STATIC = ['/']
 
 self.addEventListener('install', e => {
@@ -22,16 +22,24 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return
   if (e.request.url.includes('supabase.co')) return
   if (e.request.url.includes('fonts.googleapis')) return
+  if (e.request.url.includes('/assets/')) return
 
   e.respondWith(
     fetch(e.request)
       .then(res => {
         if (res.ok) {
-          const clone = res.clone()
-          caches.open(CACHE).then(c => c.put(e.request, clone))
+          const reqUrl = new URL(e.request.url)
+          if (reqUrl.protocol === 'http:' || reqUrl.protocol === 'https:') {
+            const clone = res.clone()
+            caches.open(CACHE).then(c => c.put(e.request, clone).catch(() => {}))
+          }
         }
         return res
       })
       .catch(() => caches.match(e.request))
   )
+})
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting()
 })

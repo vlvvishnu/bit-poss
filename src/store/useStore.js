@@ -60,6 +60,6 @@ export const useStore = create((set, get) => ({
   },
 
   // ── Active page ───────────────────────────────────────────────
-  page: 'order',
+  page: 'takeaway',
   setPage: (p) => set({ page: p }),
 }))
