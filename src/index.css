@@ -3,15 +3,19 @@
 html, body, #root { height: 100%; }
 body {
   font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-size: var(--app-font-size, 15px);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+@media (max-width: 640px) {
+  input, textarea, select { font-size: 16px; }
 }
 button { cursor: pointer; font-family: inherit; }
 input, textarea, select { font-family: inherit; }
 
 /* ── TOKENS ─────────────────────────────────────────────────── */
 :root {
+  --app-font-size: 15px;
   --bg:       #0D0B08;
   --bg2:      #131109;
   --card:     #1C1916;
@@ -33,9 +37,31 @@ input, textarea, select { font-family: inherit; }
   --amber-bg: rgba(245,158,11,0.1);
   --blue:     #3B82F6;
   --blue-bg:  rgba(59,130,246,0.1);
+  --product-cta-divider: #602E17;
+  --product-cta-text: #D7581A;
   --r:        10px;
   --r-lg:     16px;
   --r-sm:     6px;
+
+  /* Font scale tokens derive from --app-font-size so app controls affect inline styles. */
+  --fs-9: calc(var(--app-font-size) - 6px);
+  --fs-10: calc(var(--app-font-size) - 5px);
+  --fs-11: calc(var(--app-font-size) - 4px);
+  --fs-12: calc(var(--app-font-size) - 3px);
+  --fs-13: calc(var(--app-font-size) - 2px);
+  --fs-14: calc(var(--app-font-size) - 1px);
+  --fs-15: var(--app-font-size);
+  --fs-16: calc(var(--app-font-size) + 1px);
+  --fs-17: calc(var(--app-font-size) + 2px);
+  --fs-18: calc(var(--app-font-size) + 3px);
+  --fs-20: calc(var(--app-font-size) + 5px);
+  --fs-22: calc(var(--app-font-size) + 7px);
+  --fs-24: calc(var(--app-font-size) + 9px);
+  --fs-28: calc(var(--app-font-size) + 13px);
+  --fs-32: calc(var(--app-font-size) + 17px);
+  --fs-36: calc(var(--app-font-size) + 21px);
+  --fs-40: calc(var(--app-font-size) + 25px);
+  --fs-48: calc(var(--app-font-size) + 33px);
 }
 
 /* ── SCROLLBAR ───────────────────────────────────────────────── */
@@ -52,6 +78,9 @@ input, textarea, select { font-family: inherit; }
 @keyframes popIn    { from { opacity:0; transform:scale(0.94) } to { opacity:1; transform:scale(1) } }
 @keyframes spin     { to { transform:rotate(360deg) } }
 @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.4} }
+@keyframes sheetBackdropIn { from { opacity:0 } to { opacity:1 } }
+@keyframes sheetSlideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
+@keyframes loadBar { from { transform:translateX(-110%) } to { transform:translateX(240%) } }
 
 /* ── COMMON COMPONENTS ───────────────────────────────────────── */
 .spinner {
