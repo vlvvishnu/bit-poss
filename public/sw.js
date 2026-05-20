@@ -1,43 +1,53 @@
 // BITE. POS Service Worker
-const CACHE = 'bite-pos-v3'
-const STATIC = ['/']
+const CACHE = 'bite-pos-v4'
 
-self.addEventListener('install', e => {
+self.addEventListener('install', () => {
   self.skipWaiting()
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(STATIC).catch(() => {}))
-  )
 })
 
-self.addEventListener('activate', e => {
-  e.waitUntil(
+self.addEventListener('activate', event => {
+  event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   )
 })
 
-self.addEventListener('fetch', e => {
-  // Only cache GET requests, skip Supabase API calls
-  if (e.request.method !== 'GET') return
-  if (e.request.url.includes('supabase.co')) return
-  if (e.request.url.includes('fonts.googleapis')) return
-  if (e.request.url.includes('/assets/')) return
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return
 
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        if (res.ok) {
-          const reqUrl = new URL(e.request.url)
-          if (reqUrl.protocol === 'http:' || reqUrl.protocol === 'https:') {
-            const clone = res.clone()
-            caches.open(CACHE).then(c => c.put(e.request, clone).catch(() => {}))
-          }
-        }
-        return res
-      })
-      .catch(() => caches.match(e.request))
-  )
+  const url = new URL(event.request.url)
+  const isHttp = url.protocol === 'http:' || url.protocol === 'https:'
+  if (!isHttp) return
+
+  if (url.hostname.includes('supabase.co')) return
+  if (url.hostname.includes('googleapis.com')) return
+  if (url.hostname.includes('gstatic.com')) return
+  if (url.hostname.includes('static.cloudflareinsights.com')) return
+
+  // Never cache Vite build assets or HTML navigations to avoid stale bundle mismatches.
+  if (url.pathname.startsWith('/assets/')) return
+  if (event.request.mode === 'navigate') return
+
+  event.respondWith((async () => {
+    try {
+      const res = await fetch(event.request)
+      if (res && res.ok) {
+        const clone = res.clone()
+        const cache = await caches.open(CACHE)
+        cache.put(event.request, clone).catch(() => {})
+      }
+      return res
+    } catch {
+      const cached = await caches.match(event.request)
+      if (cached) return cached
+      return new Response('Offline', { status: 503, statusText: 'Offline' })
+    }
+  })())
+})
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting()
 })
 
 self.addEventListener('message', e => {
