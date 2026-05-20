@@ -27,8 +27,11 @@ self.addEventListener('fetch', e => {
     fetch(e.request)
       .then(res => {
         if (res.ok) {
-          const clone = res.clone()
-          caches.open(CACHE).then(c => c.put(e.request, clone))
+          const reqUrl = new URL(e.request.url)
+          if (reqUrl.protocol === 'http:' || reqUrl.protocol === 'https:') {
+            const clone = res.clone()
+            caches.open(CACHE).then(c => c.put(e.request, clone).catch(() => {}))
+          }
         }
         return res
       })
