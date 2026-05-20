@@ -38,14 +38,15 @@ function ProductEditor({ product, onSave, onClose }) {
       icon, out_of_stock: oos,
       ingredients:  ingredients.split(',').map(s => s.trim()).filter(Boolean),
     }
-    const { error } = product?.id
-      ? await supabase.from('products').update(row).eq('id', product.id)
-      : await supabase.from('products').insert(row)
+    const { data, error } = product?.id
+      ? await supabase.from('products').update(row).eq('id', product.id).select('id').single()
+      : await supabase.from('products').insert(row).select('id').single()
     setLoading(false)
     if (error) { setErr(error.message); return }
-    if (product?.id) {
+    const targetId = product?.id || data?.id
+    if (targetId) {
       const tags = loadProductAddonTags(tenantId)
-      tags[product.id] = addonIds
+      tags[targetId] = addonIds
       saveProductAddonTags(tenantId, tags)
     }
     onSave()

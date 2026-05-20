@@ -987,7 +987,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                       onKeyDown={event => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault()
-                        if (!p.out_of_stock) addToCart(p)
+                          if (!p.out_of_stock) addToCart(p)
                         }
                       }}
                       style={{
