@@ -1,5 +1,5 @@
 // BITE. POS Service Worker
-const CACHE = 'bite-pos-v1'
+const CACHE = 'bite-pos-v2'
 const STATIC = ['/']
 
 self.addEventListener('install', e => {
@@ -22,6 +22,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return
   if (e.request.url.includes('supabase.co')) return
   if (e.request.url.includes('fonts.googleapis')) return
+  if (e.request.url.includes('/assets/')) return
 
   e.respondWith(
     fetch(e.request)
