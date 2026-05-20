@@ -13,8 +13,6 @@ function getEnv(key, viteKey) {
 const SUPABASE_URL  = getEnv('SUPABASE_URL',       'VITE_SUPABASE_URL')
 const SUPABASE_ANON = getEnv('SUPABASE_ANON_KEY',  'VITE_SUPABASE_ANON_KEY')
 
-export const BREVO_KEY = getEnv('BREVO_KEY', 'VITE_BREVO_KEY')
-
 if (!SUPABASE_URL || !SUPABASE_ANON) {
   console.error('[BITE] Supabase keys missing. Check Cloudflare env vars or .env.local')
 }
