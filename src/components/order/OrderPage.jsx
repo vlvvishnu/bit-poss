@@ -793,6 +793,9 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [optimisticRounds, setOptimisticRounds] = useState([])
   const [addonProductId, setAddonProductId] = useState(null)
   const [addonCounts, setAddonCounts] = useState({})
+  // Legacy compatibility shim: older compiled snippets may still reference these symbols.
+  const quickQtyProductId = null
+  const setQuickQtyProductId = () => {}
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 860)
