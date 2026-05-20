@@ -1,5 +1,5 @@
 // BITE. POS Service Worker
-const CACHE = 'bite-pos-v2'
+const CACHE = 'bite-pos-v3'
 const STATIC = ['/']
 
 self.addEventListener('install', e => {
@@ -38,4 +38,8 @@ self.addEventListener('fetch', e => {
       })
       .catch(() => caches.match(e.request))
   )
+})
+
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'SKIP_WAITING') self.skipWaiting()
 })

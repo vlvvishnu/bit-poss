@@ -32,8 +32,31 @@
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
+        let refreshing = false
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return
+          refreshing = true
+          window.location.reload()
+        })
+
         navigator.serviceWorker.register('/sw.js')
-          .then(r => console.log('[BITE] SW registered'))
+          .then((registration) => {
+            console.log('[BITE] SW registered')
+
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+            }
+
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing
+              if (!newWorker) return
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' })
+                }
+              })
+            })
+          })
           .catch(e => console.log('[BITE] SW failed:', e))
       })
     }
