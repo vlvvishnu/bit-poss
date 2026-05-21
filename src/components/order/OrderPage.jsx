@@ -1030,7 +1030,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                 </div>
               )}
               <div style={{ display:'grid',
-                gridTemplateColumns:'repeat(auto-fill,minmax(142px,1fr))',
+                gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',
                 gap:7,marginBottom:10 }}>
                 {group.items.map(p=>{
                   const qty=cart[p.id]?.qty
@@ -1043,7 +1043,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                       opacity:p.out_of_stock?0.45:1,
                       display:'flex',flexDirection:'column',
                       textAlign:'left',position:'relative',overflow:'hidden',
-                      minHeight:188,
+                      minHeight:208,
                     }}>
                       <div
                         role="button"
@@ -1060,7 +1060,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                           cursor:p.out_of_stock?'not-allowed':'pointer',
                           display:'flex',flexDirection:'column',gap:6,
                           padding:'10px 8px',
-                          minHeight:138,
+                          minHeight:146,
                           touchAction:'manipulation'
                         }}
                       >
@@ -1077,23 +1077,22 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                       </div>
                       <div
                         onClick={qty === 0 ? (e) => { e.stopPropagation(); if (!p.out_of_stock) addProductWithConfiguredMeta(p) } : undefined}
-                        style={{ marginTop:'auto', borderTop: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #E5E7EB', background: dark ? '#2A2A2A' : '#F5F7F9', minHeight:50, padding:'9px 9px', display:'flex', alignItems:'center', justifyContent: qty > 0 ? 'space-between' : 'center', gap:8 }}>
-                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          {qty > 0 && (
-                            <>
-                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('addons') }} style={{ width:28,height:28,borderRadius:7,border: dark ? '1px solid rgba(0,210,106,0.15)' : '1px solid #D1FAE5',background: dark ? '#2F4F3E' : '#ECFDF5', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}><img src="/icons/addon-icon.svg" alt="Add-ons" style={{ width:19, height:19, display:'block' }}/></button>
-                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('note') }} style={{ width:28,height:28,borderRadius:7,border: dark ? '1px solid rgba(0,210,106,0.15)' : '1px solid #D1FAE5',background: dark ? '#2F4F3E' : '#ECFDF5', display:'flex', alignItems:'center', justifyContent:'center', padding:0 }}><img src="/icons/note-icon.svg" alt="Notes" style={{ width:19, height:19, display:'block' }}/></button>
-                            </>
-                          )}
-                        </div>
+                        style={{ marginTop:'auto', borderTop: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #E5E7EB', background: dark ? '#2A2A2A' : '#F5F7F9', minHeight:62, display:'flex', flexDirection:'column', justifyContent:'center' }}>
                         {qty > 0 ? (
-                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                            <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:24,height:24,borderRadius:'50%',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>−</button>
-                            <span style={{ minWidth:16, textAlign:'center', color: dark ? '#FFFFFF' : '#111827', fontWeight:700, fontSize:'var(--fs-13)' }}>{qty}</span>
-                            <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, 1) }} style={{ width:24,height:24,borderRadius:'50%',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>+</button>
-                          </div>
+                          <>
+                            <div style={{ height:26, display:'grid', gridTemplateColumns:'1fr 1px 1fr', alignItems:'center', borderBottom: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E5E7EB' }}>
+                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('addons') }} style={{ border:'none', background:'none', color: dark ? '#CFCFCF' : '#6B7280', fontSize:'13px', fontWeight:500 }}>+Addons</button>
+                              <div style={{ width:1, height:'60%', background: dark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' }} />
+                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('note') }} style={{ border:'none', background:'none', color: dark ? '#CFCFCF' : '#6B7280', fontSize:'13px', fontWeight:500 }}>+Notes</button>
+                            </div>
+                            <div style={{ height:36, display:'flex', alignItems:'center', justifyContent:'center', gap:16 }}>
+                              <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>−</button>
+                              <span style={{ minWidth:18, textAlign:'center', color: dark ? '#FFFFFF' : '#111827', fontWeight:700, fontSize:'20px', lineHeight:1 }}>{qty}</span>
+                              <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, 1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>+</button>
+                            </div>
+                          </>
                         ) : (
-                          <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ border:'none', background:'none', color: dark ? '#00D26A' : '#10B981', fontWeight:700, fontSize:'14px', lineHeight:1 }}>+ Add</button>
+                          <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ height:62, border:'none', background:'none', color: dark ? '#00D26A' : '#10B981', fontWeight:700, fontSize:'14px', lineHeight:1 }}>+ Add</button>
                         )}
                       </div>
                     </div>
