@@ -805,8 +805,25 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }, [])
 
   useEffect(() => {
-    clearCart(); setItemNotes({}); setOptimisticRounds([])
+    clearCart(); setItemNotes({}); setOptimisticRounds([]); setQuickQtyProductId(null)
   }, [tableNum])
+
+  useEffect(() => () => clearLongPressTimer(), [])
+
+  useEffect(() => {
+    function clearQuickQtyOnOutsidePress(event) {
+      if (!quickQtyProductId) return
+      if (event.target.closest('[data-product-card="true"]')) return
+      setQuickQtyProductId(null)
+    }
+
+    document.addEventListener('pointerdown', clearQuickQtyOnOutsidePress)
+    return () => document.removeEventListener('pointerdown', clearQuickQtyOnOutsidePress)
+  }, [quickQtyProductId])
+
+  useEffect(() => {
+    setQuickQtyProductId(null)
+  }, [activeCat])
 
   const isDine     = orderType === 'dine'
   const items      = cartItems()
@@ -978,8 +995,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         }
                       }}
                       style={{
-                        background:qty?'var(--brand-lt2)':'var(--card)',
-                        border:`1.5px solid ${qty?'rgba(232,68,10,0.25)':'var(--border)'}`,
+                        background:quickQtyProductId===p.id?'linear-gradient(180deg,var(--brand-lt),var(--brand-lt2))':qty?'var(--brand-lt2)':'var(--card)',
+                        border:`1.5px solid ${quickQtyProductId===p.id?'var(--brand)':qty?'rgba(232,68,10,0.25)':'var(--border)'}`,
                         borderRadius:'var(--r)',padding:'10px 8px',
                         cursor:p.out_of_stock?'not-allowed':'pointer',
                         opacity:p.out_of_stock?0.45:1,
