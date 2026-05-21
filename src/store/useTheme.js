@@ -44,7 +44,7 @@ export const useTheme = create((set, get) => ({
 
 function applyTheme(dark) {
   const root = document.documentElement
-  const themeColor = dark ? '#0D0B08' : '#F9F7F4'
+  const themeColor = dark ? '#050505' : '#F9F7F4'
   let themeMeta = document.querySelector('meta[name="theme-color"]')
   if (!themeMeta) {
     themeMeta = document.createElement('meta')
@@ -53,7 +53,7 @@ function applyTheme(dark) {
   }
   themeMeta.setAttribute('content', themeColor)
   if (dark) {
-    root.style.setProperty('--bg',     '#0D0B08')
+    root.style.setProperty('--bg',     '#050505')
     root.style.setProperty('--bg2',    '#131109')
     root.style.setProperty('--card',   '#1C1916')
     root.style.setProperty('--card2',  '#232019')
