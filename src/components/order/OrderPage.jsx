@@ -825,8 +825,25 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }, [])
 
   useEffect(() => {
-    clearCart(); setItemNotes({}); setOptimisticRounds([])
+    clearCart(); setItemNotes({}); setOptimisticRounds([]); setQuickQtyProductId(null)
   }, [tableNum])
+
+  useEffect(() => () => clearLongPressTimer(), [])
+
+  useEffect(() => {
+    function clearQuickQtyOnOutsidePress(event) {
+      if (!quickQtyProductId) return
+      if (event.target.closest('[data-product-card="true"]')) return
+      setQuickQtyProductId(null)
+    }
+
+    document.addEventListener('pointerdown', clearQuickQtyOnOutsidePress)
+    return () => document.removeEventListener('pointerdown', clearQuickQtyOnOutsidePress)
+  }, [quickQtyProductId])
+
+  useEffect(() => {
+    setQuickQtyProductId(null)
+  }, [activeCat])
 
   const isDine     = orderType === 'dine'
   const items      = cartItems()
