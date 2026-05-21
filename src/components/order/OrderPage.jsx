@@ -425,7 +425,7 @@ function TableOrderPanel({
 }
 
 // ── Non-dine cart panel ────────────────────────────────────────────
-function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) {
+function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, notes, getSelectedAddons }) {
   const sub    = items.reduce((s,i)=>s+i.price*i.qty,0)
   const taxRate= (settings?.tax_rate||0)/100
   const total  = sub+sub*taxRate
@@ -455,6 +455,19 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) 
                 {item.name}</div>
               <div style={{ fontSize: 'var(--fs-11)',color:'var(--brand)',fontWeight:600 }}>
                 ₹{(item.price*item.qty).toFixed(2)}</div>
+              {(notes?.[item.id] || '').trim() && (
+                <div style={{ marginTop:2, fontSize:'var(--fs-10)', color:'#B6FFD4' }}>📝 {notes[item.id]}</div>
+              )}
+              {(getSelectedAddons?.(item.id)?.length || 0) > 0 && (
+                <div style={{ marginTop:4, paddingLeft:20, borderLeft:'1px solid rgba(255,255,255,0.08)' }}>
+                  {getSelectedAddons(item.id).map(a => (
+                    <div key={a.id} style={{ display:'flex', justifyContent:'space-between', fontSize:'var(--fs-11)', color:'var(--text2)' }}>
+                      <span>└ {a.name} ×{a.qty}</span>
+                      <span>+₹{(Number(a.price) * a.qty).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <div style={{ display:'flex',alignItems:'center',gap:4,flexShrink:0 }}>
               <button onClick={()=>onRemove(item.id)}
@@ -491,7 +504,7 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) 
 // ── Mobile bottom sheet ────────────────────────────────────────────
 function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   cartItems, onAdd, onRemove, onSendToKitchen, onCheckout, onTableCheckout,
-  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded }) {
+  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded, getSelectedAddons }) {
 
   if (!open) return null
   return (
@@ -529,7 +542,7 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
             <CartPanel items={cartItems} orderType="takeaway"
               onAdd={onAdd} onRemove={onRemove}
               onCheckout={() => { onCheckout(); onClose() }}
-              settings={settings}/>
+              settings={settings} notes={notes} getSelectedAddons={getSelectedAddons}/>
           )}
         </div>
       </div>
@@ -914,6 +927,9 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
       .map(addon => ({ ...addon, qty: addonCounts[`${productId}:${addon.id}`] || 0 }))
       .filter(addon => addon.qty > 0)
   }
+  function noteActionLabel(productId) {
+    return (productCardNotes[productId] || '').trim() ? 'View Notes' : '+Notes'
+  }
 
   function composeItemNote(productId) {
     const base = (productCardNotes[productId] || '').trim()
@@ -1058,8 +1074,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         }}
                         style={{
                           cursor:p.out_of_stock?'not-allowed':'pointer',
-                          display:'flex',flexDirection:'column',gap:6,
-                          padding:'10px 8px',
+                          display:'flex',flexDirection:'column',gap:5,
+                          padding:'10px 8px 6px',
                           minHeight:146,
                           touchAction:'manipulation'
                         }}
@@ -1069,9 +1085,10 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         {p.name}</span>
                       <span style={{ fontSize: 'var(--fs-12)',color: dark ? '#00D26A' : '#16A34A',fontWeight:700 }}>
                         ₹{Number(p.price).toFixed(2)}</span>
-                      {qty&&<span style={{ position:'absolute',top:5,right:5,
-                        background:'var(--brand)',color:'#fff',fontSize: 'var(--fs-9)',fontWeight:800,
-                        borderRadius:'50%',width:16,height:16,display:'flex',
+                      {qty&&<span style={{ position:'absolute',top:10,right:10,
+                        background:'#00D26A',color:'#fff',fontSize: 'var(--fs-10)',fontWeight:800,
+                        boxShadow:'0 2px 6px rgba(0,0,0,0.25)',
+                        borderRadius:'50%',width:20,height:20,display:'flex',
                         alignItems:'center',justifyContent:'center' }}>{qty}</span>}
                       <div style={{ fontSize:'var(--fs-11)', color: dark ? '#9CA3AF' : '#6B7280' }}>{qty > 0 ? `${qty} in cart` : 'Not in cart'}</div>
                       </div>
@@ -1083,7 +1100,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                             <div style={{ height:26, display:'grid', gridTemplateColumns:'1fr 1px 1fr', alignItems:'center', borderBottom: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E5E7EB' }}>
                               <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('addons') }} style={{ border:'none', background:'none', color: dark ? '#CFCFCF' : '#6B7280', fontSize:'13px', fontWeight:500 }}>+Addons</button>
                               <div style={{ width:1, height:'60%', background: dark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' }} />
-                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('note') }} style={{ border:'none', background:'none', color: dark ? '#CFCFCF' : '#6B7280', fontSize:'13px', fontWeight:500 }}>+Notes</button>
+                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('note') }} style={{ border:'none', background:'none', color: (productCardNotes[p.id]||'').trim() ? '#B6FFD4' : (dark ? '#CFCFCF' : '#6B7280'), fontSize:'13px', fontWeight:500 }}>{noteActionLabel(p.id)}</button>
                             </div>
                             <div style={{ height:36, display:'flex', alignItems:'center', justifyContent:'center', gap:16 }}>
                               <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>−</button>
@@ -1133,7 +1150,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
             ) : (
               <CartPanel items={items} orderType={orderType}
                 onAdd={addToCart} onRemove={removeFromCart}
-                onCheckout={openCheckout} settings={settings}/>
+                onCheckout={openCheckout} settings={settings}
+                notes={itemNotes} getSelectedAddons={selectedAddonsForProduct}/>
             )}
           </div>
         )}
@@ -1274,7 +1292,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         sendingKOT={sendingKOT} settings={settings}
         notes={itemNotes} onChangeNote={handleNoteChange}
         optimisticRounds={optimisticRounds}
-        onRealDataLoaded={() => setOptimisticRounds([])}/>
+        onRealDataLoaded={() => setOptimisticRounds([])}
+        getSelectedAddons={selectedAddonsForProduct}/>
 
       <CheckoutModal open={!!checkoutData} onClose={()=>setCheckoutData(null)}
         checkoutData={checkoutData}
