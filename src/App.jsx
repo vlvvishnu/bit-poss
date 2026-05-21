@@ -3,10 +3,12 @@ import { supabase } from './supabase'
 import { useStore } from './store/useStore'
 import Landing from './pages/Landing'
 import POS from './pages/POS'
+import Install from './pages/Install'
 import Toast from './components/ui/Toast'
 
 export default function App() {
   const [status, setStatus] = useState('loading')
+  const [path, setPath] = useState(window.location.pathname)
   const { setUser, setTenantId, setSettings } = useStore()
 
   async function bootstrap(session) {
@@ -18,8 +20,11 @@ export default function App() {
     }
 
     setUser(session.user)
+    setStatus('authed')
 
-    // tenants table links via owner_email (not a user_id FK)
+    // tenants table links via owner_email (not a user_id FK). This runs
+    // after the shell is already visible, so a slow network cannot trap the
+    // user on a full-screen loader.
     const { data: tenantData, error } = await supabase
       .from('tenants')
       .select('*')
@@ -31,25 +36,76 @@ export default function App() {
     if (tenantData) {
       setTenantId(tenantData.id)
       setSettings(tenantData)
-    } else {
-      console.error('[BITE] No tenant found for email:', session.user.email)
+      return
     }
 
-    setStatus('authed')
+    const bizName = session.user.user_metadata?.biz_name
+    if (!bizName) {
+      console.error('[BITE] No tenant found for email:', session.user.email)
+      return
+    }
+
+    const slug = bizName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    const { data: createdTenant, error: createError } = await supabase
+      .from('tenants')
+      .insert({ slug, name: bizName, biz_name: bizName, owner_email: session.user.email })
+      .select('*')
+      .single()
+
+    if (createError) {
+      console.error('[BITE] tenant create error:', createError.message)
+      return
+    }
+
+    setTenantId(createdTenant.id)
+    setSettings(createdTenant)
+    await supabase.from('profiles').upsert({
+      id: session.user.id,
+      tenant_id: createdTenant.id,
+      role: 'owner',
+      full_name: session.user.user_metadata?.full_name || '',
+    })
   }
 
   useEffect(() => {
+    const onPopState = () => setPath(window.location.pathname)
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    let sessionReturned = false
+    const fallback = setTimeout(() => {
+      if (!sessionReturned && !cancelled) {
+        console.warn('[BITE] auth session fetch is slow; showing guest shell for now')
+        setStatus('guest')
+      }
+    }, 3000)
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      bootstrap(session)
+      sessionReturned = true
+      clearTimeout(fallback)
+      if (!cancelled) bootstrap(session)
+    }).catch(error => {
+      sessionReturned = true
+      clearTimeout(fallback)
+      console.error('[BITE] auth session fetch error:', error)
+      if (!cancelled) setStatus('guest')
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'INITIAL_SESSION') return
-        bootstrap(session)
+      (_event, session) => {
+        sessionReturned = true
+        clearTimeout(fallback)
+        if (!cancelled) bootstrap(session)
       }
     )
-    return () => subscription.unsubscribe()
+    return () => {
+      cancelled = true
+      clearTimeout(fallback)
+      subscription.unsubscribe()
+    }
   }, [])
 
   if (status === 'loading') {
@@ -73,7 +129,7 @@ export default function App() {
   return (
     <>
       <Toast />
-      {status === 'authed' ? <POS /> : <Landing />}
+      {path === '/install' ? <Install /> : status === 'authed' ? <POS /> : <Landing />}
     </>
   )
 }

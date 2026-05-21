@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
+import { loadAddons, loadProductAddonTags, saveProductAddonTags } from '../../utils/addons'
 
 const ICONS = ['🍔','🍗','🌯','🍟','🥗','🍕','🌮','🥩','🌭','🥪','🍜','🍝','🍛','🥘','🍲',
                '🧆','🥙','🫔','🧅','🧀','🍳','🥚','🥓','🥞','🧇','🥐','🍞','🥖','🥨',
@@ -10,6 +11,8 @@ const ICONS = ['🍔','🍗','🌯','🍟','🥗','🍕','🌮','🥩','🌭','�
 
 function ProductEditor({ product, onSave, onClose }) {
   const { categories, tenantId } = useStore()
+  const [addonIds, setAddonIds] = useState([])
+  const addons = useMemo(() => loadAddons(tenantId), [tenantId])
   const [name, setName]         = useState(product?.name || '')
   const [price, setPrice]       = useState(product?.price || '')
   const [catId, setCatId]       = useState(product?.category_id || '')
@@ -18,6 +21,11 @@ function ProductEditor({ product, onSave, onClose }) {
   const [ingredients, setIngr]  = useState((product?.ingredients || []).join(', '))
   const [loading, setLoading]   = useState(false)
   const [err, setErr]           = useState('')
+
+  useEffect(() => {
+    const tags = loadProductAddonTags(tenantId)
+    setAddonIds(Array.isArray(tags[product?.id]) ? tags[product.id] : [])
+  }, [tenantId, product?.id])
 
   async function save(e) {
     e.preventDefault()
@@ -30,11 +38,17 @@ function ProductEditor({ product, onSave, onClose }) {
       icon, out_of_stock: oos,
       ingredients:  ingredients.split(',').map(s => s.trim()).filter(Boolean),
     }
-    const { error } = product?.id
-      ? await supabase.from('products').update(row).eq('id', product.id)
-      : await supabase.from('products').insert(row)
+    const { data, error } = product?.id
+      ? await supabase.from('products').update(row).eq('id', product.id).select('id').single()
+      : await supabase.from('products').insert(row).select('id').single()
     setLoading(false)
     if (error) { setErr(error.message); return }
+    const targetId = product?.id || data?.id
+    if (targetId) {
+      const tags = loadProductAddonTags(tenantId)
+      tags[targetId] = addonIds
+      saveProductAddonTags(tenantId, tags)
+    }
     onSave()
   }
 
@@ -42,14 +56,14 @@ function ProductEditor({ product, onSave, onClose }) {
     <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Icon picker */}
       <div>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 8 }}>
-          Icon — selected: <span style={{ fontSize: 20 }}>{icon}</span>
+        <div style={{ fontSize: 'var(--fs-11)', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 8 }}>
+          Icon — selected: <span style={{ fontSize: 'var(--fs-20)' }}>{icon}</span>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxHeight: 100, overflowY: 'auto' }}>
           {ICONS.map(ic => (
             <button key={ic} type="button" onClick={() => setIcon(ic)}
               style={{
-                fontSize: 18, padding: '4px 6px', border: `2px solid ${icon === ic ? 'var(--brand)' : 'var(--border)'}`,
+                fontSize: 'var(--fs-18)', padding: '4px 6px', border: `2px solid ${icon === ic ? 'var(--brand)' : 'var(--border)'}`,
                 borderRadius: 6, background: icon === ic ? 'var(--brand-lt)' : 'transparent', cursor: 'pointer',
               }}>{ic}</button>
           ))}
@@ -68,19 +82,31 @@ function ProductEditor({ product, onSave, onClose }) {
           {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
       </Field>
+
+      <Field label="Tagged add-ons (optional)">
+        <div style={{ display:'flex', flexDirection:'column', gap:6, maxHeight:110, overflowY:'auto', border:'1px solid var(--border)', borderRadius:8, padding:8 }}>
+          {addons.length===0 ? <span style={{ fontSize:'var(--fs-11)', color:'var(--text3)' }}>Create add-ons in Settings first.</span> : addons.map(addon => (
+            <label key={addon.id} style={{ display:'flex', alignItems:'center', gap:8, fontSize:'var(--fs-12)' }}>
+              <input type="checkbox" checked={addonIds.includes(addon.id)} onChange={() => setAddonIds(prev => prev.includes(addon.id) ? prev.filter(id => id !== addon.id) : [...prev, addon.id])} />
+              <span>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span>
+            </label>
+          ))}
+        </div>
+      </Field>
+
       <Field label="Ingredients (comma separated, optional)">
         <input value={ingredients} onChange={e => setIngr(e.target.value)} placeholder="Beef patty, Cheese, Lettuce" style={iS} />
       </Field>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--fs-13)', cursor: 'pointer' }}>
         <input type="checkbox" checked={oos} onChange={e => setOos(e.target.checked)} />
         Mark as out of stock
       </label>
 
-      {err && <div style={{ color: 'var(--red)', fontSize: 12 }}>{err}</div>}
+      {err && <div style={{ color: 'var(--red)', fontSize: 'var(--fs-12)' }}>{err}</div>}
 
       <button type="submit" disabled={loading} style={{
         background: 'var(--brand)', color: '#fff', border: 'none',
-        borderRadius: 8, padding: '11px', fontWeight: 700, fontSize: 14,
+        borderRadius: 8, padding: '11px', fontWeight: 700, fontSize: 'var(--fs-14)',
         cursor: 'pointer',
       }}>
         {loading ? 'Saving…' : product?.id ? 'Save Changes' : 'Add Product'}
@@ -92,7 +118,7 @@ function ProductEditor({ product, onSave, onClose }) {
 function Field({ label, children }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{label}</span>
+      <span style={{ fontSize: 'var(--fs-11)', fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{label}</span>
       {children}
     </label>
   )
@@ -101,7 +127,7 @@ function Field({ label, children }) {
 const iS = {
   width: '100%', padding: '9px 12px',
   background: 'var(--bg)', border: '1.5px solid var(--border2)',
-  borderRadius: 8, color: 'var(--text)', fontSize: 13,
+  borderRadius: 8, color: 'var(--text)', fontSize: 'var(--fs-13)',
   outline: 'none', fontFamily: "'DM Sans'",
 }
 
@@ -161,18 +187,18 @@ export default function ProductsPage() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flexShrink: 0 }}>
-        <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 16, flex: 1 }}>Products</h2>
+        <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 'var(--fs-16)', flex: 1 }}>Products</h2>
         {selected.size > 0 && (
           <button onClick={deleteSelected} disabled={loading} style={{
             background: 'var(--red-bg)', color: 'var(--red)', border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 8, padding: '6px 14px', fontWeight: 600, fontSize: 12,
+            borderRadius: 8, padding: '6px 14px', fontWeight: 600, fontSize: 'var(--fs-12)',
           }}>
             🗑 Delete {selected.size} selected
           </button>
         )}
         <button onClick={() => setEditing('new')} style={{
           background: 'var(--brand)', color: '#fff', border: 'none',
-          borderRadius: 8, padding: '7px 16px', fontWeight: 700, fontSize: 13,
+          borderRadius: 8, padding: '7px 16px', fontWeight: 700, fontSize: 'var(--fs-13)',
         }}>+ Add Product</button>
       </div>
 
@@ -185,7 +211,7 @@ export default function ProductsPage() {
               background: catFilter === String(cat.id) ? 'var(--brand-lt)' : 'none',
               border: `1.5px solid ${catFilter === String(cat.id) ? 'rgba(232,68,10,0.3)' : 'var(--border)'}`,
               color: catFilter === String(cat.id) ? 'var(--brand)' : 'var(--text2)',
-              fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+              fontSize: 'var(--fs-12)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
             }}>
             {cat.icon} {cat.name}
           </button>
@@ -196,7 +222,7 @@ export default function ProductsPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--text2)' }}>
-            <div style={{ fontSize: 36, marginBottom: 8 }}>🍽</div>
+            <div style={{ fontSize: 'var(--fs-36)', marginBottom: 8 }}>🍽</div>
             <div>No products yet.</div>
           </div>
         ) : (
@@ -211,17 +237,17 @@ export default function ProductsPage() {
               }}>
                 <input type="checkbox" checked={selected.has(p.id)} onChange={() => toggleSelect(p.id)}
                   style={{ accentColor: 'var(--brand)', flexShrink: 0 }} />
-                <span style={{ fontSize: 22, flexShrink: 0 }}>{p.icon || '🍽'}</span>
+                <span style={{ fontSize: 'var(--fs-22)', flexShrink: 0 }}>{p.icon || '🍽'}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>
+                  <div style={{ fontWeight: 600, fontSize: 'var(--fs-13)' }}>
                     {p.name}
-                    {p.out_of_stock && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--red)', fontWeight: 700, background: 'var(--red-bg)', padding: '1px 6px', borderRadius: 4 }}>OOS</span>}
+                    {p.out_of_stock && <span style={{ marginLeft: 6, fontSize: 'var(--fs-10)', color: 'var(--red)', fontWeight: 700, background: 'var(--red-bg)', padding: '1px 6px', borderRadius: 4 }}>OOS</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                  <div style={{ fontSize: 'var(--fs-11)', color: 'var(--text3)' }}>
                     {p.catIcon} {p.catName || 'Uncategorised'}
                   </div>
                 </div>
-                <div style={{ fontWeight: 700, color: 'var(--brand)', fontSize: 14, flexShrink: 0 }}>
+                <div style={{ fontWeight: 700, color: 'var(--brand)', fontSize: 'var(--fs-14)', flexShrink: 0 }}>
                   ₹{Number(p.price).toFixed(2)}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -257,5 +283,5 @@ export default function ProductsPage() {
 const iconBtn = {
   background: 'none', border: '1px solid var(--border)',
   borderRadius: 6, padding: '4px 8px', color: 'var(--text2)',
-  fontSize: 13, cursor: 'pointer',
+  fontSize: 'var(--fs-13)', cursor: 'pointer',
 }
