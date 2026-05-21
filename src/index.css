@@ -25,10 +25,10 @@ input, textarea, select { font-family: inherit; }
   --text:     #F5F0E8;
   --text2:    rgba(245,240,232,0.55);
   --text3:    rgba(245,240,232,0.3);
-  --brand:    #E8440A;
-  --brand-dk: #C53A08;
-  --brand-lt: rgba(232,68,10,0.12);
-  --brand-lt2:rgba(232,68,10,0.06);
+  --brand:    #06C167;
+  --brand-dk: #059c54;
+  --brand-lt: rgba(6,193,103,0.14);
+  --brand-lt2:rgba(6,193,103,0.08);
   --green:    #22C55E;
   --green-bg: rgba(34,197,94,0.1);
   --red:      #EF4444;
@@ -37,8 +37,8 @@ input, textarea, select { font-family: inherit; }
   --amber-bg: rgba(245,158,11,0.1);
   --blue:     #3B82F6;
   --blue-bg:  rgba(59,130,246,0.1);
-  --product-cta-divider: #602E17;
-  --product-cta-text: #D7581A;
+  --product-cta-divider: rgba(6,193,103,0.32);
+  --product-cta-text: #06C167;
   --r:        10px;
   --r-lg:     16px;
   --r-sm:     6px;
