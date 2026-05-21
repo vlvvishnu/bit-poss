@@ -77,6 +77,8 @@ export default function SettingsPage() {
   const [savingBiz, setSavingBiz] = useState(false)
   const [savingUpi, setSavingUpi] = useState(false)
   const [savingWa,  setSavingWa]  = useState(false)
+  const [checkingWa, setCheckingWa] = useState(false)
+  const [waStatus, setWaStatus] = useState(null)
   const [savingPw,  setSavingPw]  = useState(false)
   const [addons, setAddons] = useState([])
   const [addonName, setAddonName] = useState('')
@@ -135,6 +137,34 @@ export default function SettingsPage() {
     const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).single()
     if (data) setSettings(data)
     showToast('WhatsApp settings saved ✓', 'success')
+  }
+
+  async function checkWhatsAppConnection() {
+    if (!waWebhook.trim()) {
+      showToast('Enter webhook URL first', 'warning')
+      return
+    }
+    setCheckingWa(true)
+    setWaStatus(null)
+    try {
+      const res = await fetch(waWebhook.trim(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiver: '919999999999', values: { '1': 'Test', '2': 'https://example.com' } }),
+      })
+      if (res.ok) {
+        setWaStatus('connected')
+        showToast('WhatsApp webhook reachable ✓', 'success')
+      } else {
+        setWaStatus('failed')
+        showToast(`Webhook returned ${res.status}`, 'warning')
+      }
+    } catch (e) {
+      setWaStatus('failed')
+      showToast('Webhook is not reachable', 'error')
+    } finally {
+      setCheckingWa(false)
+    }
   }
 
 
@@ -234,7 +264,35 @@ export default function SettingsPage() {
             </div>
           </Field>
           <div style={{ paddingTop:14 }}>
-            <SaveBtn saving={savingWa} onClick={saveWhatsApp} label="Save WhatsApp"/>
+            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              <SaveBtn saving={savingWa} onClick={saveWhatsApp} label="Save WhatsApp"/>
+              <button onClick={checkWhatsAppConnection} disabled={checkingWa} style={{
+                background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)',
+                borderRadius:8, padding:'9px 12px', fontWeight:700, cursor:checkingWa?'default':'pointer',
+              }}>{checkingWa ? 'Checking…' : 'Check Connection'}</button>
+            </div>
+            {waStatus && (
+              <div style={{ marginTop:8, fontSize:'var(--fs-11)', color:waStatus==='connected'?'var(--green)':'var(--red)' }}>
+                {waStatus === 'connected' ? 'Connected: WhatsApp webhook is reachable.' : 'Not connected: verify webhook or provider settings.'}
+              </div>
+            )}
+          </div>
+        </Section>
+
+
+        <Section title="➕ Product Add-ons">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 120px auto', gap:8, marginBottom:12 }}>
+            <input value={addonName} onChange={e=>setAddonName(e.target.value)} placeholder="Cheese slice" style={wideInputStyle}/>
+            <input value={addonPrice} onChange={e=>setAddonPrice(e.target.value)} type="number" min="0" step="0.01" placeholder="20" style={{...inputStyle, width:120, textAlign:'left'}}/>
+            <SaveBtn saving={false} onClick={addAddon} label="Add"/>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {addons.length===0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons created yet.</div> : addons.map(a => (
+              <div key={a.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px' }}>
+                <span style={{ color:'var(--text)' }}>{a.name} · ₹{Number(a.price).toFixed(2)}</span>
+                <button onClick={()=>removeAddon(a.id)} style={{ border:'none', background:'none', color:'var(--red)', cursor:'pointer' }}>Remove</button>
+              </div>
+            ))}
           </div>
         </Section>
 

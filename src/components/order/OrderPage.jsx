@@ -791,8 +791,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
   const [itemNotes, setItemNotes]       = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
-  const [addonProductId, setAddonProductId] = useState(null)
   const [addonCounts, setAddonCounts] = useState({})
+  const [productCardNotes, setProductCardNotes] = useState({})
   // Legacy compatibility shim: older compiled snippets may still reference these symbols.
   const quickQtyProductId = null
   const setQuickQtyProductId = () => {}
@@ -883,6 +883,33 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
     setItemNotes(prev => ({ ...prev, [productId]: val }))
   }
 
+  function setProductNote(productId, val) {
+    setProductCardNotes(prev => ({ ...prev, [productId]: val }))
+  }
+
+  function selectedAddonsForProduct(productId) {
+    return taggedAddons(productId)
+      .map(addon => ({ ...addon, qty: addonCounts[`${productId}:${addon.id}`] || 0 }))
+      .filter(addon => addon.qty > 0)
+  }
+
+  function composeItemNote(productId) {
+    const base = (productCardNotes[productId] || '').trim()
+    const selected = selectedAddonsForProduct(productId)
+    const addonLine = selected.length
+      ? `Add-ons: ${selected.map(a => `${a.name} x${a.qty}`).join(', ')}`
+      : ''
+    return [base, addonLine].filter(Boolean).join(' | ')
+  }
+
+  function addProductWithConfiguredMeta(product) {
+    const existingQty = cart[product.id]?.qty || 0
+    addToCart(product)
+    if (existingQty === 0) {
+      const mergedNote = composeItemNote(product.id)
+      if (mergedNote) handleNoteChange(product.id, mergedNote)
+    }
+  }
 
 
 
@@ -986,12 +1013,12 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                       aria-disabled={p.out_of_stock}
                       onClick={event => {
                         if (event.target.closest('button')) return
-                        if (!p.out_of_stock) addToCart(p)
+                        if (!p.out_of_stock) addProductWithConfiguredMeta(p)
                       }}
                       onKeyDown={event => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault()
-                          if (!p.out_of_stock) addToCart(p)
+                          if (!p.out_of_stock) addProductWithConfiguredMeta(p)
                         }
                       }}
                       style={{
@@ -1000,7 +1027,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         borderRadius:'var(--r)',padding:'10px 8px',
                         cursor:p.out_of_stock?'not-allowed':'pointer',
                         opacity:p.out_of_stock?0.45:1,
-                        display:'flex',flexDirection:'column',gap:3,
+                        display:'flex',flexDirection:'column',gap:6,
                         textAlign:'left',position:'relative',overflow:'hidden',
                         minHeight:146,
                         transition:'transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease',
@@ -1014,6 +1041,53 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         background:'var(--brand)',color:'#fff',fontSize: 'var(--fs-9)',fontWeight:800,
                         borderRadius:'50%',width:16,height:16,display:'flex',
                         alignItems:'center',justifyContent:'center' }}>{qty}</span>}
+                      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
+                        {qty > 0 ? (
+                          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                            <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, -1)} disabled={!qty}
+                              style={{ width:30,height:30,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.18)',
+                                background:qty?'var(--card2)':'rgba(255,255,255,0.06)',color:qty?'var(--text)':'rgba(245,240,232,0.32)',
+                                display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
+                              −
+                            </button>
+                            <span style={{ minWidth:28,textAlign:'center',fontSize:'var(--fs-13)',fontWeight:900,color:'var(--text)' }}>{qty||0}</span>
+                            <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, 1)}
+                              style={{ width:30,height:30,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff',
+                                display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ fontSize:'var(--fs-11)', color:'var(--text3)' }}>Not in cart</span>
+                        )}
+                      </div>
+                      <textarea
+                        value={productCardNotes[p.id] || ''}
+                        onPointerDown={event => event.stopPropagation()}
+                        onClick={event => event.stopPropagation()}
+                        onChange={event => setProductNote(p.id, event.target.value)}
+                        placeholder="Note (optional)"
+                        style={{ width:'100%', resize:'none', minHeight:44, border:'1px solid var(--border)', borderRadius:8, background:'var(--bg)', color:'var(--text)', fontSize:'var(--fs-11)', padding:'6px 8px', boxSizing:'border-box' }}
+                      />
+                      {taggedAddons(p.id).length > 0 && (
+                        <div style={{ border:'1px solid var(--border)', borderRadius:8, padding:8, background:'var(--bg2)' }}>
+                          <div style={{ fontSize:'var(--fs-11)', fontWeight:700, color:'var(--text2)', marginBottom:6 }}>Add-ons</div>
+                          {taggedAddons(p.id).map(addon => {
+                            const key = `${p.id}:${addon.id}`
+                            const c = addonCounts[key] || 0
+                            return (
+                              <div key={addon.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:6 }}>
+                                <span style={{ fontSize:'var(--fs-11)', color:'var(--text)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span>
+                                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+                                  <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); changeAddonQty(p.id, addon.id, -1) }} style={{ width:20,height:20,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)' }}>−</button>
+                                  <span style={{ minWidth:14, textAlign:'center', fontSize:'var(--fs-11)' }}>{c}</span>
+                                  <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); changeAddonQty(p.id, addon.id, 1) }} style={{ width:20,height:20,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                       <div style={{
                         marginTop:'auto',
                         borderTop:'1px solid var(--product-cta-divider)',
@@ -1021,54 +1095,15 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         minHeight:38,
                         display:'flex',alignItems:'center',justifyContent:'center'
                       }}>
-                        {qty>0&&!p.out_of_stock ? (
-                          <>
-                          <div style={{
-                            width:'100%',
-                            display:'flex',alignItems:'center',justifyContent:'space-between',gap:7,
-                            padding:'2px 0'
-                          }}>
-                            <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, -1)} disabled={!qty}
-                              style={{ width:30,height:30,borderRadius:'50%',border:'1px solid rgba(255,255,255,0.18)',
-                                background:qty?'var(--card2)':'rgba(255,255,255,0.06)',color:qty?'var(--text)':'rgba(245,240,232,0.32)',
-                                display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
-                              −
-                            </button>
-                            <span style={{ minWidth:30,textAlign:'center',fontSize:'var(--fs-13)',fontWeight:900,color:'#fff' }}>{qty||0}</span>
-                            <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => adjustQuickQty(event, p, 1)}
-                              style={{ width:30,height:30,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff',
-                                display:'flex',alignItems:'center',justifyContent:'center',fontSize:'var(--fs-18)',fontWeight:800 }}>
-                              +
-                            </button>
-                            {taggedAddons(p.id).length > 0 && (
-                              <button type="button" onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); setAddonProductId(addonProductId === p.id ? null : p.id) }}
-                                style={{ marginLeft:6, border:'1px solid var(--border2)', background:'var(--card2)', color:'var(--text)', borderRadius:8, padding:'4px 6px', fontSize:'var(--fs-11)' }}>
-                                ➕ Add-ons
-                              </button>
-                            )}
-                          </div>
-                          {addonProductId === p.id && taggedAddons(p.id).length > 0 && (
-                            <div style={{ marginTop:8, border:'1px solid var(--border)', borderRadius:8, padding:8, background:'var(--bg2)' }}>
-                              {taggedAddons(p.id).map(addon => {
-                                const key = `${p.id}:${addon.id}`
-                                const c = addonCounts[key] || 0
-                                return (
-                                  <div key={addon.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:6 }}>
-                                    <span style={{ fontSize:'var(--fs-11)', color:'var(--text)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span>
-                                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                                      <button type="button" onClick={() => changeAddonQty(p.id, addon.id, -1)} style={{ width:20,height:20,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)' }}>−</button>
-                                      <span style={{ minWidth:14, textAlign:'center', fontSize:'var(--fs-11)' }}>{c}</span>
-                                      <button type="button" onClick={() => changeAddonQty(p.id, addon.id, 1)} style={{ width:20,height:20,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button>
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                          </>
-                        ) : (
-                          <span style={{ fontSize:'var(--fs-12)', fontWeight:800, color:'var(--product-cta-text)' }}>+ Add</span>
-                        )}
+                        <button
+                          type="button"
+                          onPointerDown={event => event.stopPropagation()}
+                          onClick={event => { event.stopPropagation(); addProductWithConfiguredMeta(p) }}
+                          disabled={p.out_of_stock}
+                          style={{ width:'100%', border:'none', borderRadius:8, padding:'7px 10px', background:'var(--brand)', color:'#fff', fontWeight:800, fontSize:'var(--fs-12)' }}
+                        >
+                          + Add
+                        </button>
                       </div>
                     </div>
                   )
