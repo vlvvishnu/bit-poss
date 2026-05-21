@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react'
+import { loadAddons, loadProductAddonTags } from '../../utils/addons'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
+import { useTheme } from '../../store/useTheme'
 import Modal from '../ui/Modal'
 import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 
@@ -14,7 +16,7 @@ const STATUS = {
 }
 const StatusPill = ({ status }) => {
   const s = STATUS[status] || STATUS.pending
-  return <span style={{ fontSize:10,fontWeight:700,padding:'2px 6px',borderRadius:5,
+  return <span style={{ fontSize: 'var(--fs-10)',fontWeight:700,padding:'2px 6px',borderRadius:5,
     background:s.bg,color:s.color,whiteSpace:'nowrap' }}>{s.label}</span>
 }
 const Spinner = ({ size=14 }) => (
@@ -46,7 +48,7 @@ function TablePicker({ count, selected, onSelect, tenantId }) {
   return (
     <div style={{ display:'flex',flexWrap:'wrap',gap:6,padding:'10px 14px',
       borderBottom:'1px solid var(--border)',flexShrink:0,alignItems:'center' }}>
-      <span style={{ fontSize:10,fontWeight:700,color:'var(--text3)',
+      <span style={{ fontSize: 'var(--fs-10)',fontWeight:700,color:'var(--text3)',
         textTransform:'uppercase',letterSpacing:'0.5px',flexShrink:0 }}>Table:</span>
       <div style={{ display:'flex',flexWrap:'wrap',gap:5 }}>
         {Array.from({length:count},(_,i)=>i+1).map(n => {
@@ -56,7 +58,7 @@ function TablePicker({ count, selected, onSelect, tenantId }) {
             <button key={n} onClick={() => onSelect(isSelected?null:n)}
               style={{
                 position:'relative', minWidth:44, height:36, borderRadius:8,
-                fontSize:12, fontWeight:700, cursor:'pointer',
+                fontSize: 'var(--fs-12)', fontWeight:700, cursor:'pointer',
                 background: isSelected?'var(--brand)':isActive?'var(--brand-lt)':'var(--card)',
                 border:`2px solid ${isSelected?'var(--brand)':isActive?'rgba(232,68,10,0.35)':'var(--border)'}`,
                 color: isSelected?'#fff':isActive?'var(--brand)':'var(--text2)',
@@ -100,28 +102,28 @@ function RoundAccordion({
         padding:'10px 12px',background:'none',border:'none',
         cursor:'pointer',textAlign:'left',
       }}>
-        <span style={{ fontSize:11,color:'var(--text3)',flexShrink:0 }}>{open?'▾':'▸'}</span>
+        <span style={{ fontSize: 'var(--fs-11)',color:'var(--text3)',flexShrink:0 }}>{open?'▾':'▸'}</span>
         <div style={{ flex:1,minWidth:0 }}>
           <div style={{ display:'flex',alignItems:'center',gap:6,flexWrap:'wrap' }}>
-            <span style={{ fontSize:12,fontWeight:700,color:'var(--text)' }}>
+            <span style={{ fontSize: 'var(--fs-12)',fontWeight:700,color:'var(--text)' }}>
               {isNew ? '🆕 New round' : `Round #${order.order_number||'—'}`}
             </span>
-            <span style={{ fontSize:10,fontWeight:700,padding:'1px 6px',borderRadius:5,
+            <span style={{ fontSize: 'var(--fs-10)',fontWeight:700,padding:'1px 6px',borderRadius:5,
               background:STATUS[order.status]?.bg||'rgba(245,158,11,0.12)',
               color:statusColor }}>
               {STATUS[order.status]?.label||'⏳ Waiting'}
             </span>
             {rejected.length>0 && (
-              <span style={{ fontSize:10,color:'var(--red)' }}>{rejected.length} removed</span>
+              <span style={{ fontSize: 'var(--fs-10)',color:'var(--red)' }}>{rejected.length} removed</span>
             )}
           </div>
           {!open && (
-            <div style={{ fontSize:11,color:'var(--text3)',marginTop:1 }}>
+            <div style={{ fontSize: 'var(--fs-11)',color:'var(--text3)',marginTop:1 }}>
               {active.length} item{active.length!==1?'s':''} · ₹{subtotal.toFixed(2)}
             </div>
           )}
         </div>
-        <span style={{ fontSize:12,fontWeight:700,color:'var(--brand)',flexShrink:0 }}>
+        <span style={{ fontSize: 'var(--fs-12)',fontWeight:700,color:'var(--brand)',flexShrink:0 }}>
           ₹{subtotal.toFixed(2)}
         </span>
       </button>
@@ -133,15 +135,15 @@ function RoundAccordion({
             return (
               <div key={item.id} style={{ borderBottom:'1px solid var(--border)' }}>
                 <div style={{ display:'flex',alignItems:'center',gap:8,padding:'8px 12px' }}>
-                  <span style={{ fontSize:15,flexShrink:0 }}>
+                  <span style={{ fontSize: 'var(--fs-15)',flexShrink:0 }}>
                     {item.product_icon||item.icon||'🍽'}</span>
                   <div style={{ flex:1,minWidth:0 }}>
-                    <div style={{ fontSize:12,fontWeight:500,color:'var(--text)',
+                    <div style={{ fontSize: 'var(--fs-12)',fontWeight:500,color:'var(--text)',
                       overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
                       {item.product_name||item.name}
                     </div>
                     {!isNew && item.notes && (
-                      <div style={{ fontSize:10,color:'var(--amber)',marginTop:1 }}>
+                      <div style={{ fontSize: 'var(--fs-10)',color:'var(--amber)',marginTop:1 }}>
                         📝 {item.notes}</div>
                     )}
                     {!isNew && (
@@ -155,40 +157,40 @@ function RoundAccordion({
                       <button onClick={()=>onRemoveItem&&onRemoveItem(item.id)}
                         style={{ width:22,height:22,borderRadius:'50%',
                           background:'var(--card)',border:'1px solid var(--border)',
-                          color:'var(--text)',fontSize:13,display:'flex',
+                          color:'var(--text)',fontSize: 'var(--fs-13)',display:'flex',
                           alignItems:'center',justifyContent:'center',cursor:'pointer' }}>−</button>
-                      <span style={{ fontSize:12,fontWeight:700,minWidth:16,
+                      <span style={{ fontSize: 'var(--fs-12)',fontWeight:700,minWidth:16,
                         textAlign:'center',color:'var(--text)' }}>{item.qty}</span>
                       <button onClick={()=>onAddItem&&onAddItem(item)}
                         style={{ width:22,height:22,borderRadius:'50%',
                           background:'var(--brand)',border:'none',color:'#fff',
-                          fontSize:13,display:'flex',alignItems:'center',
+                          fontSize: 'var(--fs-13)',display:'flex',alignItems:'center',
                           justifyContent:'center',cursor:'pointer' }}>+</button>
                     </div>
                   ) : (
                     <div style={{ flexShrink:0,textAlign:'right' }}>
-                      <div style={{ fontSize:11,fontWeight:600,color:'var(--brand)' }}>
+                      <div style={{ fontSize: 'var(--fs-11)',fontWeight:600,color:'var(--brand)' }}>
                         ×{item.qty}</div>
                       {order.status==='pending' && onRemoveItem && onAddItem ? (
                         <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4 }}>
                           <div style={{ display:'flex',alignItems:'center',gap:4 }}>
                             <button onClick={e=>{e.stopPropagation();onQtyChange&&onQtyChange(item,-1,order.id)}}
                               style={{ width:20,height:20,borderRadius:'50%',background:'var(--card2)',
-                                border:'1px solid var(--border)',color:'var(--text)',fontSize:12,
+                                border:'1px solid var(--border)',color:'var(--text)',fontSize: 'var(--fs-12)',
                                 display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>−</button>
-                            <span style={{ fontSize:12,fontWeight:700,minWidth:14,textAlign:'center',color:'var(--text)' }}>
+                            <span style={{ fontSize: 'var(--fs-12)',fontWeight:700,minWidth:14,textAlign:'center',color:'var(--text)' }}>
                               {item.qty}</span>
                             <button onClick={e=>{e.stopPropagation();onQtyChange&&onQtyChange(item,1,order.id)}}
                               style={{ width:20,height:20,borderRadius:'50%',background:'var(--brand)',
-                                border:'none',color:'#fff',fontSize:12,
+                                border:'none',color:'#fff',fontSize: 'var(--fs-12)',
                                 display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>+</button>
                           </div>
                           <button onClick={e=>{e.stopPropagation();onRemoveItem(item,order.id)}}
-                            style={{ fontSize:10,color:'var(--red)',background:'none',
+                            style={{ fontSize: 'var(--fs-10)',color:'var(--red)',background:'none',
                               border:'none',cursor:'pointer',padding:0 }}>reject</button>
                         </div>
                       ) : (
-                        <div style={{ fontSize:11,fontWeight:600,color:'var(--text2)' }}>×{item.qty}</div>
+                        <div style={{ fontSize: 'var(--fs-11)',fontWeight:600,color:'var(--text2)' }}>×{item.qty}</div>
                       )}
                     </div>
                   )}
@@ -199,7 +201,7 @@ function RoundAccordion({
                       value={itemNote}
                       onChange={e => onChangeNote&&onChangeNote(item.id, e.target.value)}
                       placeholder="Note for kitchen (e.g. no onions)…"
-                      style={{ width:'100%',padding:'5px 9px',fontSize:11,
+                      style={{ width:'100%',padding:'5px 9px',fontSize: 'var(--fs-11)',
                         background:'var(--bg)',border:'1px solid var(--border)',
                         borderRadius:6,color:'var(--text)',outline:'none' }}/>
                   </div>
@@ -210,7 +212,7 @@ function RoundAccordion({
 
           {rejected.map(item => (
             <div key={item.id} style={{ display:'flex',gap:8,padding:'5px 12px',
-              opacity:0.4,textDecoration:'line-through',fontSize:11,
+              opacity:0.4,textDecoration:'line-through',fontSize: 'var(--fs-11)',
               color:'var(--text3)',borderBottom:'1px solid var(--border)' }}>
               <span>{item.product_icon||item.icon||'🍽'}</span>
               <span style={{ flex:1 }}>{item.product_name||item.name} ×{item.qty}</span>
@@ -224,7 +226,7 @@ function RoundAccordion({
                 disabled={sendingKOT||!tableNum}
                 style={{
                   width:'100%',border:'none',borderRadius:8,
-                  padding:'11px',fontWeight:800,fontSize:14,
+                  padding:'11px',fontWeight:800,fontSize: 'var(--fs-14)',
                   background:!tableNum?'var(--card2)':'#E8440A',
                   color:!tableNum?'var(--text3)':'#fff',
                   cursor:!tableNum?'default':'pointer',
@@ -313,8 +315,8 @@ function TableOrderPanel({
     <div style={{ display:'flex',alignItems:'center',justifyContent:'center',
       flex:1,color:'var(--text3)',textAlign:'center',padding:24 }}>
       <div>
-        <div style={{ fontSize:28,marginBottom:8 }}>🍽</div>
-        <div style={{ fontSize:12 }}>Select a table to start</div>
+        <div style={{ fontSize: 'var(--fs-28)',marginBottom:8 }}>🍽</div>
+        <div style={{ fontSize: 'var(--fs-12)' }}>Select a table to start</div>
       </div>
     </div>
   )
@@ -322,10 +324,10 @@ function TableOrderPanel({
   return (
     <div style={{ display:'flex',flexDirection:'column',height:'100%' }}>
       <div style={{ padding:'10px 14px',borderBottom:'1px solid var(--border)',flexShrink:0 }}>
-        <div style={{ fontFamily:"'Plus Jakarta Sans'",fontWeight:800,fontSize:13,color:'var(--text)' }}>
+        <div style={{ fontFamily:"'Plus Jakarta Sans'",fontWeight:800,fontSize: 'var(--fs-13)',color:'var(--text)' }}>
           📋 Table Order — {tableName}
         </div>
-        <div style={{ fontSize:10,color:'var(--text3)',marginTop:1 }}>
+        <div style={{ fontSize: 'var(--fs-10)',color:'var(--text3)',marginTop:1 }}>
           {rounds.length} sent round{rounds.length!==1?'s':''} · {allActive.length} active items
         </div>
       </div>
@@ -343,8 +345,8 @@ function TableOrderPanel({
 
         {rounds.length===0 && (optimisticRounds||[]).length===0 && cartItems.length===0 && (
           <div style={{ textAlign:'center',padding:'20px',color:'var(--text3)' }}>
-            <div style={{ fontSize:22,marginBottom:6 }}>🍳</div>
-            <div style={{ fontSize:11 }}>No rounds sent yet.<br/>Add items and send to kitchen.</div>
+            <div style={{ fontSize: 'var(--fs-22)',marginBottom:6 }}>🍳</div>
+            <div style={{ fontSize: 'var(--fs-11)' }}>No rounds sent yet.<br/>Add items and send to kitchen.</div>
           </div>
         )}
 
@@ -377,12 +379,12 @@ function TableOrderPanel({
         <div style={{ borderTop:'1px solid var(--border)',padding:12,flexShrink:0 }}>
           {taxRate>0 && (
             <div style={{ display:'flex',justifyContent:'space-between',
-              fontSize:11,color:'var(--text3)',marginBottom:2 }}>
+              fontSize: 'var(--fs-11)',color:'var(--text3)',marginBottom:2 }}>
               <span>Subtotal</span><span>₹{sub.toFixed(2)}</span>
             </div>
           )}
           <div style={{ display:'flex',justifyContent:'space-between',
-            fontSize:14,fontWeight:800,marginBottom:10,
+            fontSize: 'var(--fs-14)',fontWeight:800,marginBottom:10,
             borderTop:taxRate>0?'1px solid var(--border)':'none',
             paddingTop:taxRate>0?5:0 }}>
             <span>Bill Total</span>
@@ -395,7 +397,7 @@ function TableOrderPanel({
               tableNumber:tableNum,
             })}
             style={{ width:'100%',background:'#16A34A',color:'#fff',border:'none',
-              borderRadius:'var(--r)',padding:'11px',fontWeight:700,fontSize:13,cursor:'pointer' }}>
+              borderRadius:'var(--r)',padding:'11px',fontWeight:700,fontSize: 'var(--fs-13)',cursor:'pointer' }}>
             💳 Checkout & Pay
           </button>
         </div>
@@ -414,37 +416,37 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) 
   return (
     <div style={{ display:'flex',flexDirection:'column',height:'100%' }}>
       <div style={{ padding:'10px 14px',borderBottom:'1px solid var(--border)',flexShrink:0 }}>
-        <div style={{ fontFamily:"'Plus Jakarta Sans'",fontWeight:800,fontSize:13,color:'var(--text)' }}>
+        <div style={{ fontFamily:"'Plus Jakarta Sans'",fontWeight:800,fontSize: 'var(--fs-13)',color:'var(--text)' }}>
           🛒 Cart
         </div>
-        <div style={{ fontSize:10,color:'var(--brand)',fontWeight:600,marginTop:1 }}>{typeLabel}</div>
+        <div style={{ fontSize: 'var(--fs-10)',color:'var(--brand)',fontWeight:600,marginTop:1 }}>{typeLabel}</div>
       </div>
       <div style={{ flex:1,overflowY:'auto',padding:'4px 0' }}>
         {items.length===0 ? (
           <div style={{ textAlign:'center',padding:'24px 16px',color:'var(--text3)' }}>
-            <div style={{ fontSize:22,marginBottom:6 }}>🛒</div>
-            <div style={{ fontSize:11 }}>Tap menu to add</div>
+            <div style={{ fontSize: 'var(--fs-22)',marginBottom:6 }}>🛒</div>
+            <div style={{ fontSize: 'var(--fs-11)' }}>Tap menu to add</div>
           </div>
         ) : items.map(item=>(
           <div key={item.id} style={{ display:'flex',alignItems:'center',
             gap:8,padding:'7px 14px',borderBottom:'1px solid var(--border)' }}>
-            <span style={{ fontSize:15,flexShrink:0 }}>{item.icon||'🍽'}</span>
+            <span style={{ fontSize: 'var(--fs-15)',flexShrink:0 }}>{item.icon||'🍽'}</span>
             <div style={{ flex:1,minWidth:0 }}>
-              <div style={{ fontSize:12,fontWeight:500,overflow:'hidden',
+              <div style={{ fontSize: 'var(--fs-12)',fontWeight:500,overflow:'hidden',
                 textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--text)' }}>
                 {item.name}</div>
-              <div style={{ fontSize:11,color:'var(--brand)',fontWeight:600 }}>
+              <div style={{ fontSize: 'var(--fs-11)',color:'var(--brand)',fontWeight:600 }}>
                 ₹{(item.price*item.qty).toFixed(2)}</div>
             </div>
             <div style={{ display:'flex',alignItems:'center',gap:4,flexShrink:0 }}>
               <button onClick={()=>onRemove(item.id)}
                 style={{ width:22,height:22,borderRadius:'50%',background:'var(--card2)',
-                  border:'1px solid var(--border)',color:'var(--text)',fontSize:13,
+                  border:'1px solid var(--border)',color:'var(--text)',fontSize: 'var(--fs-13)',
                   display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>−</button>
-              <span style={{ fontSize:12,fontWeight:700,minWidth:16,textAlign:'center' }}>{item.qty}</span>
+              <span style={{ fontSize: 'var(--fs-12)',fontWeight:700,minWidth:16,textAlign:'center' }}>{item.qty}</span>
               <button onClick={()=>onAdd(item)}
                 style={{ width:22,height:22,borderRadius:'50%',background:'var(--brand)',
-                  border:'none',color:'#fff',fontSize:13,display:'flex',
+                  border:'none',color:'#fff',fontSize: 'var(--fs-13)',display:'flex',
                   alignItems:'center',justifyContent:'center',cursor:'pointer' }}>+</button>
             </div>
           </div>
@@ -453,13 +455,13 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings }) 
       {items.length>0 && (
         <div style={{ borderTop:'1px solid var(--border)',padding:12,flexShrink:0 }}>
           <div style={{ display:'flex',justifyContent:'space-between',
-            fontSize:14,fontWeight:800,marginBottom:10 }}>
+            fontSize: 'var(--fs-14)',fontWeight:800,marginBottom:10 }}>
             <span>Total</span>
             <span style={{ color:'var(--brand)' }}>₹{total.toFixed(2)}</span>
           </div>
           <button onClick={onCheckout}
             style={{ width:'100%',background:'var(--brand)',color:'#fff',border:'none',
-              borderRadius:'var(--r)',padding:'11px',fontWeight:700,fontSize:14,cursor:'pointer' }}>
+              borderRadius:'var(--r)',padding:'11px',fontWeight:700,fontSize: 'var(--fs-14)',cursor:'pointer' }}>
             Checkout · ₹{total.toFixed(2)} →
           </button>
         </div>
@@ -477,21 +479,23 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   return (
     <div style={{ position:'fixed',inset:0,zIndex:300,
       display:'flex',flexDirection:'column',justifyContent:'flex-end',
-      background:'rgba(0,0,0,0.55)',backdropFilter:'blur(2px)' }}
+      background:'rgba(0,0,0,0.55)',backdropFilter:'blur(2px)',
+      animation:'sheetBackdropIn 180ms ease-out' }}
       onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
         height:'90vh',display:'flex',flexDirection:'column',
-        boxShadow:'0 -8px 40px rgba(0,0,0,0.45)' }}>
+        boxShadow:'0 -8px 40px rgba(0,0,0,0.45)',
+        animation:'sheetSlideUp 260ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
         <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
           <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
         </div>
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',
           padding:'8px 16px 0',flexShrink:0 }}>
-          <span style={{ fontWeight:800,fontSize:15,color:'var(--text)' }}>
+          <span style={{ fontWeight:800,fontSize: 'var(--fs-15)',color:'var(--text)' }}>
             {isDine ? `📋 Table Order — ${tableName||'?'}` : '🛒 Cart'}
           </span>
           <button onClick={onClose} style={{ background:'none',border:'none',
-            color:'var(--text2)',fontSize:20,cursor:'pointer',padding:'0 4px',lineHeight:1 }}>✕</button>
+            color:'var(--text2)',fontSize: 'var(--fs-20)',cursor:'pointer',padding:'0 4px',lineHeight:1 }}>✕</button>
         </div>
         <div style={{ flex:1,overflowY:'auto',padding:'8px 12px' }}>
           {isDine ? (
@@ -620,7 +624,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
   const BtnRow = () => (
     <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
       {error && (
-        <div style={{ fontSize:12,color:'var(--red)',background:'rgba(239,68,68,0.08)',
+        <div style={{ fontSize: 'var(--fs-12)',color:'var(--red)',background:'rgba(239,68,68,0.08)',
           border:'1px solid rgba(239,68,68,0.2)',borderRadius:6,padding:'8px 10px' }}>
           ⚠ {error}
         </div>
@@ -629,7 +633,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
         <button onClick={confirm} disabled={loading}
           style={{ width:'100%',background:loading?'var(--card2)':'#16A34A',
             color:loading?'var(--text3)':'#fff',border:'none',borderRadius:8,
-            padding:13,fontWeight:700,fontSize:14,cursor:loading?'default':'pointer',
+            padding:13,fontWeight:700,fontSize: 'var(--fs-14)',cursor:loading?'default':'pointer',
             display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}>
           {loading&&<Spinner/>}
           {loading?'Processing…':`Collect ₹${total.toFixed(2)} →`}
@@ -637,7 +641,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
       ) : step===1 ? (
         <button onClick={()=>{setError('');setStep(2)}}
           style={{ width:'100%',background:'var(--brand)',color:'#fff',border:'none',
-            borderRadius:8,padding:13,fontWeight:700,fontSize:14,cursor:'pointer' }}>
+            borderRadius:8,padding:13,fontWeight:700,fontSize: 'var(--fs-14)',cursor:'pointer' }}>
           Next: Payment →
         </button>
       ) : (
@@ -649,7 +653,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           <button onClick={confirm} disabled={loading}
             style={{ flex:1,background:loading?'var(--card2)':'var(--brand)',
               color:loading?'var(--text3)':'#fff',border:'none',borderRadius:8,
-              padding:12,fontWeight:700,fontSize:14,cursor:loading?'default':'pointer',
+              padding:12,fontWeight:700,fontSize: 'var(--fs-14)',cursor:loading?'default':'pointer',
               display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}>
             {loading&&<Spinner/>}
             {loading?'Placing…':`Place Order · ₹${total.toFixed(2)}`}
@@ -668,7 +672,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           borderRadius:8,padding:3 }}>
           {[['1 · Customer',1],['2 · Payment',2]].map(([l,s])=>(
             <div key={s} style={{ flex:1,textAlign:'center',padding:7,borderRadius:6,
-              fontSize:12,fontWeight:600,
+              fontSize: 'var(--fs-12)',fontWeight:600,
               background:step===s?'var(--card2)':'transparent',
               color:step>=s?'var(--text)':'var(--text3)' }}>{l}</div>
           ))}
@@ -676,18 +680,18 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
       )}
       {/* Bill summary */}
       <div style={{ background:'var(--bg)',borderRadius:8,padding:'10px 12px',marginBottom:14 }}>
-        <div style={{ color:'var(--brand)',fontWeight:700,fontSize:12,marginBottom:5 }}>
+        <div style={{ color:'var(--brand)',fontWeight:700,fontSize: 'var(--fs-12)',marginBottom:5 }}>
           {isDine?`🍽 ${tableName}`:orderType==='delivery'?'🚚 Delivery':'🛍 Takeaway'}
         </div>
         {(items||[]).map((i,idx)=>(
           <div key={idx} style={{ display:'flex',justifyContent:'space-between',
-            padding:'2px 0',color:'var(--text2)',fontSize:12,
+            padding:'2px 0',color:'var(--text2)',fontSize: 'var(--fs-12)',
             borderBottom:'1px solid var(--border)' }}>
             <span>{i.product_icon||i.icon||'🍽'} {i.product_name||i.name} ×{i.qty}</span>
             <span>₹{(Number(i.unit_price||i.price)*i.qty).toFixed(2)}</span>
           </div>
         ))}
-        <div style={{ display:'flex',justifyContent:'space-between',fontSize:14,
+        <div style={{ display:'flex',justifyContent:'space-between',fontSize: 'var(--fs-14)',
           fontWeight:800,marginTop:5 }}>
           <span>Total</span>
           <span style={{ color:'var(--brand)' }}>₹{total.toFixed(2)}</span>
@@ -701,17 +705,17 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
             {label:'Name',  value:name,  set:setName,  type:'text', placeholder:'Optional'},
           ].map(f=>(
             <label key={f.label} style={{ display:'flex',flexDirection:'column',gap:4 }}>
-              <span style={{ fontSize:11,fontWeight:700,color:'var(--text2)',
+              <span style={{ fontSize: 'var(--fs-11)',fontWeight:700,color:'var(--text2)',
                 textTransform:'uppercase',letterSpacing:'0.4px' }}>{f.label}</span>
               <input value={f.value} onChange={e=>f.set(e.target.value)}
                 type={f.type} placeholder={f.placeholder}
                 style={{ width:'100%',padding:'9px 12px',background:'var(--bg)',
                   border:'1.5px solid var(--border2)',borderRadius:8,
-                  color:'var(--text)',fontSize:14,outline:'none' }}/>
+                  color:'var(--text)',fontSize: 'var(--fs-14)',outline:'none' }}/>
             </label>
           ))}
           {phone && settings?.wa_webhook_url && (
-            <div style={{ fontSize:11,color:'#25D366',display:'flex',alignItems:'center',gap:5,
+            <div style={{ fontSize: 'var(--fs-11)',color:'#25D366',display:'flex',alignItems:'center',gap:5,
               background:'rgba(37,211,102,0.06)',border:'1px solid rgba(37,211,102,0.2)',
               borderRadius:7,padding:'6px 10px' }}>
               📱 Invoice will be sent on WhatsApp
@@ -722,7 +726,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
       {/* Step 2 — Payment method */}
       {(isDine || step===2) && (
         <div>
-          <div style={{ fontSize:11,fontWeight:700,color:'var(--text2)',
+          <div style={{ fontSize: 'var(--fs-11)',fontWeight:700,color:'var(--text2)',
             textTransform:'uppercase',letterSpacing:'0.4px',marginBottom:10 }}>
             Payment Method
           </div>
@@ -732,10 +736,10 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
                 background:payMethod===m.id?'var(--brand-lt)':'var(--card2)',
                 border:`2px solid ${payMethod===m.id?'var(--brand)':'var(--border)'}`,
                 borderRadius:10,padding:'12px 8px',cursor:'pointer',textAlign:'center' }}>
-                <div style={{ fontSize:24,marginBottom:4 }}>{m.icon}</div>
-                <div style={{ fontSize:12,fontWeight:700,color:'var(--text)' }}>{m.label}</div>
+                <div style={{ fontSize: 'var(--fs-24)',marginBottom:4 }}>{m.icon}</div>
+                <div style={{ fontSize: 'var(--fs-12)',fontWeight:700,color:'var(--text)' }}>{m.label}</div>
                 {m.id==='upi'&&!upiId&&(
-                  <div style={{ fontSize:10,color:'var(--amber)',marginTop:2 }}>Set in Settings</div>
+                  <div style={{ fontSize: 'var(--fs-10)',color:'var(--amber)',marginTop:2 }}>Set in Settings</div>
                 )}
               </button>
             ))}
@@ -758,11 +762,11 @@ function SuccessModal({ order, onClose }) {
         </button>
       }>
       <div style={{ textAlign:'center',padding:'8px 0' }}>
-        <div style={{ fontSize:48,marginBottom:8 }}>✅</div>
-        <div style={{ fontSize:28,fontWeight:800,color:'var(--brand)',margin:'8px 0' }}>
+        <div style={{ fontSize: 'var(--fs-48)',marginBottom:8 }}>✅</div>
+        <div style={{ fontSize: 'var(--fs-28)',fontWeight:800,color:'var(--brand)',margin:'8px 0' }}>
           ₹{Number(order.total).toFixed(2)}
         </div>
-        <div style={{ fontSize:13,color:'var(--text2)' }}>
+        <div style={{ fontSize: 'var(--fs-13)',color:'var(--text2)' }}>
           {order.payMethod==='cash'?'💵 Cash':
            order.payMethod==='upi' ?'📱 UPI' :
            order.payMethod==='card'?'💳 Card':'🔖 Other'}
@@ -773,9 +777,10 @@ function SuccessModal({ order, onClose }) {
 }
 
 // ── Main OrderPage ─────────────────────────────────────────────────
-export default function OrderPage({ defaultType='takeaway' }) {
+export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const { categories, products, addToCart, removeFromCart, cart, cartItems,
           cartSubtotal, clearCart, settings, tenantId, showToast } = useStore()
+  const { dark } = useTheme()
 
   const [orderType]                     = useState(defaultType)
   const [tableNum, setTableNum]         = useState(null)
@@ -788,6 +793,14 @@ export default function OrderPage({ defaultType='takeaway' }) {
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
   const [itemNotes, setItemNotes]       = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
+  const [addonCounts, setAddonCounts] = useState({})
+  const [productCardNotes, setProductCardNotes] = useState({})
+  const [overlayProductId, setOverlayProductId] = useState(null)
+  const [overlayType, setOverlayType] = useState(null)
+  // Legacy compatibility shim: older compiled snippets may still reference these symbols.
+  const quickQtyProductId = null
+  const setQuickQtyProductId = () => {}
+  const clearLongPressTimer = () => {}
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 860)
@@ -807,6 +820,8 @@ export default function OrderPage({ defaultType='takeaway' }) {
   const cartCount  = items.reduce((s,i) => s+i.qty, 0)
   const tableCount = settings?.table_count || 10
   const tableName  = tableNum ? `T${tableNum}` : null
+  const addons = useMemo(() => loadAddons(tenantId), [tenantId])
+  const addonTags = useMemo(() => loadProductAddonTags(tenantId), [tenantId, products.length])
 
   async function handleSendToKitchen() {
     if (!tableNum)    { showToast('Select a table first','warning'); return }
@@ -855,6 +870,58 @@ export default function OrderPage({ defaultType='takeaway' }) {
     setItemNotes(prev => ({ ...prev, [productId]: val }))
   }
 
+  function setProductNote(productId, val) {
+    setProductCardNotes(prev => ({ ...prev, [productId]: val }))
+  }
+
+  function selectedAddonsForProduct(productId) {
+    return taggedAddons(productId)
+      .map(addon => ({ ...addon, qty: addonCounts[`${productId}:${addon.id}`] || 0 }))
+      .filter(addon => addon.qty > 0)
+  }
+
+  function composeItemNote(productId) {
+    const base = (productCardNotes[productId] || '').trim()
+    const selected = selectedAddonsForProduct(productId)
+    const addonLine = selected.length
+      ? `Add-ons: ${selected.map(a => `${a.name} x${a.qty}`).join(', ')}`
+      : ''
+    return [base, addonLine].filter(Boolean).join(' | ')
+  }
+
+  function addProductWithConfiguredMeta(product) {
+    const existingQty = cart[product.id]?.qty || 0
+    addToCart(product)
+    if (existingQty === 0) {
+      const mergedNote = composeItemNote(product.id)
+      if (mergedNote) handleNoteChange(product.id, mergedNote)
+    }
+  }
+  function adjustQuickQty(e, product, delta) {
+    e.stopPropagation()
+    if (delta > 0) addToCart(product)
+    else removeFromCart(product.id)
+  }
+  const overlayProduct = products.find(p => p.id === overlayProductId) || null
+
+
+
+  function taggedAddons(productId) {
+    const ids = addonTags[productId] || []
+    return addons.filter(a => ids.includes(a.id))
+  }
+
+  function changeAddonQty(productId, addonId, delta) {
+    const key = `${productId}:${addonId}`
+    setAddonCounts(prev => {
+      const next = { ...prev }
+      const qty = Math.max(0, (next[key] || 0) + delta)
+      if (qty === 0) delete next[key]
+      else next[key] = qty
+      return next
+    })
+  }
+
   function openCheckout() {
     if (!items.length){ showToast('Cart is empty','warning'); return }
     setCheckoutData({ items, orderType, tableNum, tableName, total, sub, tax:sub*taxRate, existingOrderId:null })
@@ -900,7 +967,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
             background:activeCat===String(cat.id)?'var(--brand-lt)':'none',
             border:`1.5px solid ${activeCat===String(cat.id)?'rgba(232,68,10,0.3)':'var(--border)'}`,
             color:activeCat===String(cat.id)?'var(--brand)':'var(--text2)',
-            fontSize:11,fontWeight:600,cursor:'pointer' }}>{cat.icon} {cat.name}</button>
+            fontSize: 'var(--fs-11)',fontWeight:600,cursor:'pointer' }}>{cat.icon} {cat.name}</button>
         ))}
       </div>
 
@@ -908,49 +975,110 @@ export default function OrderPage({ defaultType='takeaway' }) {
         <div style={{ flex:1,overflowY:'auto',padding:10 }}>
           {products.length===0&&(
             <div style={{ textAlign:'center',padding:40,color:'var(--text2)' }}>
-              <div style={{ fontSize:32,marginBottom:8 }}>🍽</div>
-              <div>No products yet. Add them in Products.</div>
+              <div style={{ fontSize: 'var(--fs-32)',marginBottom:8 }}>🍽</div>
+              <div style={{ fontWeight:800,color:'var(--text)',marginBottom:4 }}>No products added yet</div>
+              <div style={{ fontSize: 'var(--fs-12)',marginBottom:14 }}>Add products manually, or start faster with sample categories and products.</div>
+              {onAddSampleMenu && (
+                <button onClick={onAddSampleMenu} style={{
+                  background:'var(--brand)',color:'#fff',border:'none',borderRadius:10,
+                  padding:'10px 14px',fontWeight:800,fontSize: 'var(--fs-12)',
+                }}>Add sample menu</button>
+              )}
             </div>
           )}
           {groups.map((group,gi)=>(
             <div key={gi}>
               {group.name&&(
-                <div style={{ fontSize:10,fontWeight:700,color:'var(--text3)',
+                <div style={{ fontSize: 'var(--fs-10)',fontWeight:700,color:'var(--text3)',
                   textTransform:'uppercase',letterSpacing:'0.5px',padding:'8px 0 5px' }}>
                   {group.icon} {group.name}
                 </div>
               )}
               <div style={{ display:'grid',
-                gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',
+                gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',
                 gap:7,marginBottom:10 }}>
                 {group.items.map(p=>{
                   const qty=cart[p.id]?.qty
                   return (
-                    <button key={p.id} onClick={()=>!p.out_of_stock&&addToCart(p)}
-                      disabled={p.out_of_stock}
-                      style={{
-                        background:qty?'var(--brand-lt2)':'var(--card)',
-                        border:`1.5px solid ${qty?'rgba(232,68,10,0.25)':'var(--border)'}`,
-                        borderRadius:'var(--r)',padding:'10px 8px',
-                        cursor:p.out_of_stock?'not-allowed':'pointer',
-                        opacity:p.out_of_stock?0.45:1,
-                        display:'flex',flexDirection:'column',gap:3,
-                        textAlign:'left',position:'relative' }}>
-                      <span style={{ fontSize:22 }}>{p.icon||'🍽'}</span>
-                      <span style={{ fontSize:12,fontWeight:500,color:'var(--text2)',lineHeight:1.3 }}>
+                    <div key={p.id} style={{
+                      background: dark ? '#151515' : '#FFFFFF',
+                      border: dark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #E5E7EB',
+                      borderRadius:18,
+                      boxShadow: dark ? '0 4px 12px rgba(0,0,0,0.35)' : '0 1px 2px rgba(0,0,0,0.04)',
+                      opacity:p.out_of_stock?0.45:1,
+                      display:'flex',flexDirection:'column',
+                      textAlign:'left',position:'relative',overflow:'hidden',
+                      minHeight:208,
+                    }}>
+                      <div
+                        role="button"
+                        tabIndex={p.out_of_stock ? -1 : 0}
+                        aria-disabled={p.out_of_stock}
+                        onClick={() => { if (!p.out_of_stock) addProductWithConfiguredMeta(p) }}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            if (!p.out_of_stock) addProductWithConfiguredMeta(p)
+                          }
+                        }}
+                        style={{
+                          cursor:p.out_of_stock?'not-allowed':'pointer',
+                          display:'flex',flexDirection:'column',gap:6,
+                          padding:'10px 8px',
+                          minHeight:146,
+                          touchAction:'manipulation'
+                        }}
+                      >
+                      <span style={{ fontSize: 'var(--fs-22)' }}>{p.icon||'🍽'}</span>
+                      <span style={{ fontSize: 'var(--fs-12)',fontWeight:500,color: dark ? '#F5F5F5' : '#111827',lineHeight:1.3 }}>
                         {p.name}</span>
-                      <span style={{ fontSize:12,color:'var(--brand)',fontWeight:700 }}>
+                      <span style={{ fontSize: 'var(--fs-12)',color: dark ? '#00D26A' : '#16A34A',fontWeight:700 }}>
                         ₹{Number(p.price).toFixed(2)}</span>
                       {qty&&<span style={{ position:'absolute',top:5,right:5,
-                        background:'var(--brand)',color:'#fff',fontSize:9,fontWeight:800,
+                        background:'var(--brand)',color:'#fff',fontSize: 'var(--fs-9)',fontWeight:800,
                         borderRadius:'50%',width:16,height:16,display:'flex',
                         alignItems:'center',justifyContent:'center' }}>{qty}</span>}
-                    </button>
+                      <div style={{ fontSize:'var(--fs-11)', color: dark ? '#9CA3AF' : '#6B7280' }}>{qty > 0 ? `${qty} in cart` : 'Not in cart'}</div>
+                      </div>
+                      <div
+                        onClick={qty === 0 ? (e) => { e.stopPropagation(); if (!p.out_of_stock) addProductWithConfiguredMeta(p) } : undefined}
+                        style={{ marginTop:'auto', borderTop: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #E5E7EB', background: dark ? '#2A2A2A' : '#F5F7F9', minHeight:62, display:'flex', flexDirection:'column', justifyContent:'center' }}>
+                        {qty > 0 ? (
+                          <>
+                            <div style={{ height:26, display:'grid', gridTemplateColumns:'1fr 1px 1fr', alignItems:'center', borderBottom: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E5E7EB' }}>
+                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('addons') }} style={{ border:'none', background:'none', color: dark ? '#CFCFCF' : '#6B7280', fontSize:'13px', fontWeight:500 }}>+Addons</button>
+                              <div style={{ width:1, height:'60%', background: dark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' }} />
+                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('note') }} style={{ border:'none', background:'none', color: dark ? '#CFCFCF' : '#6B7280', fontSize:'13px', fontWeight:500 }}>+Notes</button>
+                            </div>
+                            <div style={{ height:36, display:'flex', alignItems:'center', justifyContent:'center', gap:16 }}>
+                              <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>−</button>
+                              <span style={{ minWidth:18, textAlign:'center', color: dark ? '#FFFFFF' : '#111827', fontWeight:700, fontSize:'20px', lineHeight:1 }}>{qty}</span>
+                              <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, 1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>+</button>
+                            </div>
+                          </>
+                        ) : (
+                          <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ height:62, border:'none', background:'none', color: dark ? '#00D26A' : '#10B981', fontWeight:700, fontSize:'14px', lineHeight:1 }}>+ Add</button>
+                        )}
+                      </div>
+                    </div>
                   )
                 })}
               </div>
             </div>
           ))}
+          {overlayProduct && (
+            <div onClick={() => { setOverlayProductId(null); setOverlayType(null) }} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2500 }}>
+              <div onClick={e => e.stopPropagation()} style={{ width:'min(92vw,360px)', background:'var(--card)', border:'1px solid var(--border2)', borderRadius:12, padding:12 }}>
+                <div style={{ fontWeight:800, color:'var(--text)', marginBottom:8 }}>{overlayProduct.name}</div>
+                {overlayType === 'note' ? (
+                  <textarea value={productCardNotes[overlayProduct.id] || ''} onChange={e => setProductNote(overlayProduct.id, e.target.value)} placeholder="Type note..." style={{ width:'100%', minHeight:90, border:'1px solid var(--border)', borderRadius:8, background:'var(--bg)', color:'var(--text)', padding:8 }} />
+                ) : (
+                  <div>{taggedAddons(overlayProduct.id).length === 0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons tagged for this product.</div> : taggedAddons(overlayProduct.id).map(addon => { const key = `${overlayProduct.id}:${addon.id}`; const c = addonCounts[key] || 0; return <div key={addon.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}><span style={{ color:'var(--text)', fontSize:'var(--fs-12)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span><div style={{ display:'flex', gap:6, alignItems:'center' }}><button onClick={() => changeAddonQty(overlayProduct.id, addon.id, -1)} style={{ width:24,height:24,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)' }}>−</button><span style={{ minWidth:14, textAlign:'center' }}>{c}</span><button onClick={() => changeAddonQty(overlayProduct.id, addon.id, 1)} style={{ width:24,height:24,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button></div></div> })}</div>
+                )}
+                <button onClick={() => { setOverlayProductId(null); setOverlayType(null) }} style={{ marginTop:10, width:'100%', background:'var(--brand)', color:'#fff', border:'none', borderRadius:8, padding:'8px 10px', fontWeight:700 }}>Done</button>
+              </div>
+            </div>
+          )}
           {isMobile&&<div style={{ height:100 }}/>}
         </div>
 
@@ -990,27 +1118,27 @@ export default function OrderPage({ defaultType='takeaway' }) {
                   background:(!tableNum||cartCount===0)?'var(--card2)':'#E8440A',
                   color:(!tableNum||cartCount===0)?'var(--text3)':'#fff',
                   border:`1.5px solid ${(!tableNum||cartCount===0)?'var(--border)':'#E8440A'}`,
-                  borderRadius:14,padding:'13px 8px',fontWeight:800,fontSize:14,
+                  borderRadius:14,padding:'13px 8px',fontWeight:800,fontSize: 'var(--fs-14)',
                   cursor:(!tableNum||cartCount===0)?'default':'pointer',
                   display:'flex',alignItems:'center',justifyContent:'center',gap:6,
                   transition:'all 0.15s' }}>
-                {sendingKOT?<Spinner size={16}/>:<span style={{ fontSize:17 }}>🍳</span>}
+                {sendingKOT?<Spinner size={16}/>:<span style={{ fontSize: 'var(--fs-17)' }}>🍳</span>}
                 {sendingKOT?'Sending…':!tableNum?'Select table':
                  cartCount>0?`Send ${cartCount} to Kitchen`:'Send to Kitchen'}
               </button>
               <button onClick={()=>setSheetOpen(true)}
                 style={{ flex:1,background:'var(--card)',
                   border:'1.5px solid var(--border)',borderRadius:14,
-                  padding:'13px 8px',fontWeight:700,fontSize:13,
+                  padding:'13px 8px',fontWeight:700,fontSize: 'var(--fs-13)',
                   color:'var(--text)',cursor:'pointer',
                   display:'flex',alignItems:'center',justifyContent:'center',gap:6,
                   position:'relative' }}>
-                <span style={{ fontSize:18 }}>🛒</span>
+                <span style={{ fontSize: 'var(--fs-18)' }}>🛒</span>
                 <span>Order</span>
                 {cartCount>0&&(
                   <span style={{ position:'absolute',top:6,right:6,
                     background:'var(--brand)',color:'#fff',
-                    fontSize:10,fontWeight:800,borderRadius:'50%',
+                    fontSize: 'var(--fs-10)',fontWeight:800,borderRadius:'50%',
                     width:18,height:18,display:'flex',
                     alignItems:'center',justifyContent:'center',
                     border:'2px solid var(--bg)' }}>{cartCount}</span>
@@ -1022,9 +1150,9 @@ export default function OrderPage({ defaultType='takeaway' }) {
               style={{ flex:1,background:'var(--brand)',color:'#fff',border:'none',
                 borderRadius:14,padding:'13px 20px',
                 display:'flex',alignItems:'center',justifyContent:'space-between',
-                fontWeight:700,fontSize:14,cursor:'pointer' }}>
+                fontWeight:700,fontSize: 'var(--fs-14)',cursor:'pointer' }}>
               <span style={{ background:'rgba(255,255,255,0.25)',borderRadius:8,
-                padding:'2px 8px',fontSize:13 }}>{cartCount}</span>
+                padding:'2px 8px',fontSize: 'var(--fs-13)' }}>{cartCount}</span>
               <span>View Cart · ₹{total.toFixed(2)}</span>
               <span>→</span>
             </button>
@@ -1036,25 +1164,27 @@ export default function OrderPage({ defaultType='takeaway' }) {
       {confirmKOT && isMobile && (
         <div style={{ position:'fixed',inset:0,zIndex:400,
           display:'flex',flexDirection:'column',justifyContent:'flex-end',
-          background:'rgba(0,0,0,0.6)',backdropFilter:'blur(3px)' }}
+          background:'rgba(0,0,0,0.6)',backdropFilter:'blur(3px)',
+          animation:'sheetBackdropIn 180ms ease-out' }}
           onClick={e=>e.target===e.currentTarget&&setConfirmKOT(false)}>
           <div style={{ background:'var(--card)',borderRadius:'18px 18px 0 0',
             display:'flex',flexDirection:'column',
-            boxShadow:'0 -8px 40px rgba(0,0,0,0.5)' }}>
+            boxShadow:'0 -8px 40px rgba(0,0,0,0.5)',
+            animation:'sheetSlideUp 260ms cubic-bezier(0.2, 0.8, 0.2, 1)' }}>
             <div style={{ display:'flex',justifyContent:'center',padding:'10px 0 0',flexShrink:0 }}>
               <div style={{ width:40,height:4,borderRadius:2,background:'var(--border2)' }}/>
             </div>
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',
               padding:'10px 16px',borderBottom:'1px solid var(--border)' }}>
               <div>
-                <div style={{ fontWeight:800,fontSize:15,color:'var(--text)' }}>🍳 Send to Kitchen</div>
-                <div style={{ fontSize:11,color:'var(--text3)',marginTop:1 }}>
+                <div style={{ fontWeight:800,fontSize: 'var(--fs-15)',color:'var(--text)' }}>🍳 Send to Kitchen</div>
+                <div style={{ fontSize: 'var(--fs-11)',color:'var(--text3)',marginTop:1 }}>
                   Table {tableName||'?'} · {cartCount} item{cartCount!==1?'s':''}
                 </div>
               </div>
               <button onClick={()=>setConfirmKOT(false)}
                 style={{ background:'none',border:'none',color:'var(--text2)',
-                  fontSize:20,cursor:'pointer',lineHeight:1 }}>✕</button>
+                  fontSize: 'var(--fs-20)',cursor:'pointer',lineHeight:1 }}>✕</button>
             </div>
             <div style={{ overflowY:'auto',maxHeight:'45vh',padding:'8px 14px' }}>
               <RoundAccordion
@@ -1079,7 +1209,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
               paddingBottom:'calc(12px + env(safe-area-inset-bottom,0px))',
               borderTop:'1px solid var(--border)' }}>
               <div style={{ display:'flex',justifyContent:'space-between',
-                fontSize:14,fontWeight:800,marginBottom:12 }}>
+                fontSize: 'var(--fs-14)',fontWeight:800,marginBottom:12 }}>
                 <span>Total</span>
                 <span style={{ color:'var(--brand)' }}>
                   ₹{(items.reduce((s,i)=>s+i.price*i.qty,0)*(1+(settings?.tax_rate||0)/100)).toFixed(2)}
@@ -1090,7 +1220,7 @@ export default function OrderPage({ defaultType='takeaway' }) {
                 disabled={sendingKOT||!tableNum}
                 style={{ width:'100%',background:!tableNum?'var(--card2)':'#E8440A',
                   color:!tableNum?'var(--text3)':'#fff',border:'none',borderRadius:14,
-                  padding:'15px',fontWeight:800,fontSize:16,
+                  padding:'15px',fontWeight:800,fontSize: 'var(--fs-16)',
                   cursor:!tableNum?'default':'pointer',
                   display:'flex',alignItems:'center',justifyContent:'center',gap:8 }}>
                 {sendingKOT?<Spinner size={16}/>:'🍳'}
