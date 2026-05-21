@@ -5,6 +5,24 @@ import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
 import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 
+const AddonGlyph = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 10.5h16v1.8H4z" fill="currentColor"/>
+    <path d="M7 12.5h10l1.2 5.8H5.8z" fill="currentColor"/>
+    <circle cx="8.2" cy="9.1" r="2.2" fill="currentColor"/>
+    <circle cx="12" cy="7.5" r="2" fill="currentColor"/>
+    <circle cx="15.8" cy="9.1" r="2.2" fill="currentColor"/>
+    <path d="M18 4l3-1.2L19.8 0 16.8 1.2z" fill="currentColor"/>
+  </svg>
+)
+
+const NoteGlyph = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="3.5" y="2.8" width="14.2" height="18.4" rx="2.5" stroke="currentColor" strokeWidth="1.8"/>
+    <path d="M7 8h7M7 11.5h7M7 15h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M17.8 14.6v6.2M14.7 17.7h6.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+  </svg>
+)
 // ── Status config ─────────────────────────────────────────────────
 const STATUS = {
   pending:   { label:'⏳ Waiting',   bg:'rgba(245,158,11,0.12)', color:'#F59E0B' },
@@ -1047,17 +1065,17 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                       <div style={{ fontSize:'var(--fs-11)', color:'var(--text3)' }}>{qty > 0 ? `${qty} in cart` : 'Not in cart'}</div>
                       <div style={{ marginTop:'auto', marginLeft:-8, marginRight:-8, marginBottom:-10, borderTop:'1px solid var(--product-cta-divider)', background:'var(--card2)', padding:'8px 8px', borderBottomLeftRadius:'var(--r)', borderBottomRightRadius:'var(--r)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:6 }}>
                         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('addons') }} style={{ width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text)' }}>🧩</button>
-                          <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('note') }} style={{ width:26,height:26,borderRadius:6,border:'1px solid var(--border)',background:'var(--bg2)',color:'var(--text)' }}>📝</button>
+                          <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('addons') }} style={{ width:24,height:24,borderRadius:4,border:'1px solid #355D42',background:'#2A4232',color:'#9AE5BC', display:'flex', alignItems:'center', justifyContent:'center' }}><AddonGlyph /></button>
+                          <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('note') }} style={{ width:24,height:24,borderRadius:4,border:'1px solid #355D42',background:'#2A4232',color:'#9AE5BC', display:'flex', alignItems:'center', justifyContent:'center' }}><NoteGlyph /></button>
                         </div>
                         {qty > 0 ? (
                           <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                            <button type="button" onClick={event => adjustQuickQty(event, p, -1)} style={{ width:24,height:24,borderRadius:'50%',border:'none',background:'var(--text3)',color:'#fff' }}>−</button>
+                            <button type="button" onClick={event => adjustQuickQty(event, p, -1)} style={{ width:19,height:19,borderRadius:'50%',border:'none',background:'#6C6C6C',color:'#fff', fontSize:'12px', lineHeight:1 }}>−</button>
                             <span style={{ minWidth:14, textAlign:'center', color:'var(--text)', fontWeight:800 }}>{qty}</span>
-                            <button type="button" onClick={event => adjustQuickQty(event, p, 1)} style={{ width:24,height:24,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button>
+                            <button type="button" onClick={event => adjustQuickQty(event, p, 1)} style={{ width:19,height:19,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff', fontSize:'12px', lineHeight:1 }}>+</button>
                           </div>
                         ) : (
-                          <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ border:'none', background:'none', color:'var(--brand)', fontWeight:900, fontSize:'var(--fs-20)', lineHeight:1 }}>+ Add</button>
+                          <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ border:'none', background:'none', color:'var(--brand)', fontWeight:900, fontSize:'26px', lineHeight:1 }}>+ Add</button>
                         )}
                       </div>
                     </div>
