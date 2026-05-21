@@ -796,6 +796,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   // Legacy compatibility shim: older compiled snippets may still reference these symbols.
   const quickQtyProductId = null
   const setQuickQtyProductId = () => {}
+  const clearLongPressTimer = () => {}
 
   useEffect(() => {
     const h = () => setIsMobile(window.innerWidth < 860)
