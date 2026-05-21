@@ -296,6 +296,23 @@ export default function SettingsPage() {
           </div>
         </Section>
 
+
+        <Section title="➕ Product Add-ons">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 120px auto', gap:8, marginBottom:12 }}>
+            <input value={addonName} onChange={e=>setAddonName(e.target.value)} placeholder="Cheese slice" style={wideInputStyle}/>
+            <input value={addonPrice} onChange={e=>setAddonPrice(e.target.value)} type="number" min="0" step="0.01" placeholder="20" style={{...inputStyle, width:120, textAlign:'left'}}/>
+            <SaveBtn saving={false} onClick={addAddon} label="Add"/>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {addons.length===0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons created yet.</div> : addons.map(a => (
+              <div key={a.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px' }}>
+                <span style={{ color:'var(--text)' }}>{a.name} · ₹{Number(a.price).toFixed(2)}</span>
+                <button onClick={()=>removeAddon(a.id)} style={{ border:'none', background:'none', color:'var(--red)', cursor:'pointer' }}>Remove</button>
+              </div>
+            ))}
+          </div>
+        </Section>
+
         {/* ── Change Password ───────────────────────────────────── */}
         <Section title="🔒 Change Password">
           <Field label="New password" hint="Minimum 8 characters">
