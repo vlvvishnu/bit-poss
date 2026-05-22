@@ -828,6 +828,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [productCardNotes, setProductCardNotes] = useState({})
   const [overlayProductId, setOverlayProductId] = useState(null)
   const [overlayType, setOverlayType] = useState(null)
+  const [selectedSizeByProduct, setSelectedSizeByProduct] = useState({})
+  const [selectedVariantByProduct, setSelectedVariantByProduct] = useState({})
   // Legacy compatibility shim: older compiled snippets may still reference these symbols.
   const quickQtyProductId = null
   const setQuickQtyProductId = () => {}
@@ -930,6 +932,10 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   function noteActionLabel(productId) {
     return (productCardNotes[productId] || '').trim() ? 'View Notes' : '+Notes'
   }
+  const sizeOptions = ['Small', 'Medium', 'Large']
+  const variantOptions = ['Hot', 'Cold', 'Thickshake']
+  const getSize = (productId) => selectedSizeByProduct[productId] || 'Medium'
+  const getVariant = (productId) => selectedVariantByProduct[productId] || 'Cold'
 
   function composeItemNote(productId) {
     const base = (productCardNotes[productId] || '').trim()
@@ -1045,9 +1051,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                   {group.icon} {group.name}
                 </div>
               )}
-              <div style={{ display:'grid',
-                gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',
-                gap:7,marginBottom:10 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:10 }}>
                 {group.items.map(p=>{
                   const qty=cart[p.id]?.qty
                   return (
@@ -1076,12 +1080,12 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                           cursor:p.out_of_stock?'not-allowed':'pointer',
                           display:'flex',flexDirection:'column',gap:5,
                           padding:'10px 8px 6px',
-                          minHeight:146,
+                          minHeight:128,
                           touchAction:'manipulation'
                         }}
                       >
-                      <span style={{ fontSize: 'var(--fs-22)' }}>{p.icon||'🍽'}</span>
-                      <span style={{ fontSize: 'var(--fs-12)',fontWeight:500,color: dark ? '#F5F5F5' : '#111827',lineHeight:1.3 }}>
+                      <span style={{ fontSize: 'var(--fs-20)' }}>{p.icon||'🍽'}</span>
+                      <span style={{ fontSize: 'var(--fs-13)',fontWeight:500,color: dark ? '#F5F5F5' : '#111827',lineHeight:1.3 }}>
                         {p.name}</span>
                       <span style={{ fontSize: 'var(--fs-12)',color: dark ? '#00D26A' : '#16A34A',fontWeight:700 }}>
                         ₹{Number(p.price).toFixed(2)}</span>
@@ -1090,24 +1094,18 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         boxShadow:'0 2px 6px rgba(0,0,0,0.25)',
                         borderRadius:'50%',width:20,height:20,display:'flex',
                         alignItems:'center',justifyContent:'center' }}>{qty}</span>}
-                      <div style={{ fontSize:'var(--fs-11)', color: dark ? '#9CA3AF' : '#6B7280' }}>{qty > 0 ? `${qty} in cart` : 'Not in cart'}</div>
+                      <div style={{ fontSize:'var(--fs-11)', color: dark ? '#9CA3AF' : '#6B7280' }}>{getSize(p.id)} • {getVariant(p.id)}</div>
+                      <button type="button" onClick={(e)=>{e.stopPropagation();setOverlayProductId(p.id);setOverlayType('customize')}} style={{ marginTop:2, border:'none', background:'none', color: dark ? '#CFCFCF' : '#6B7280', fontSize:'12px', textAlign:'left' }}>▼ Customize</button>
                       </div>
                       <div
                         onClick={qty === 0 ? (e) => { e.stopPropagation(); if (!p.out_of_stock) addProductWithConfiguredMeta(p) } : undefined}
                         style={{ marginTop:'auto', borderTop: dark ? '1px solid rgba(255,255,255,0.05)' : '1px solid #E5E7EB', background: dark ? '#2A2A2A' : '#F5F7F9', minHeight:62, display:'flex', flexDirection:'column', justifyContent:'center' }}>
                         {qty > 0 ? (
-                          <>
-                            <div style={{ height:26, display:'grid', gridTemplateColumns:'1fr 1px 1fr', alignItems:'center', borderBottom: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E5E7EB' }}>
-                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('addons') }} style={{ border:'none', background:'none', color: dark ? '#CFCFCF' : '#6B7280', fontSize:'13px', fontWeight:500 }}>+Addons</button>
-                              <div style={{ width:1, height:'60%', background: dark ? 'rgba(255,255,255,0.08)' : '#E5E7EB' }} />
-                              <button type="button" onClick={e => { e.stopPropagation(); setOverlayProductId(p.id); setOverlayType('note') }} style={{ border:'none', background:'none', color: (productCardNotes[p.id]||'').trim() ? '#B6FFD4' : (dark ? '#CFCFCF' : '#6B7280'), fontSize:'13px', fontWeight:500 }}>{noteActionLabel(p.id)}</button>
-                            </div>
-                            <div style={{ height:36, display:'flex', alignItems:'center', justifyContent:'center', gap:16 }}>
-                              <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>−</button>
-                              <span style={{ minWidth:18, textAlign:'center', color: dark ? '#FFFFFF' : '#111827', fontWeight:700, fontSize:'20px', lineHeight:1 }}>{qty}</span>
-                              <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, 1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>+</button>
-                            </div>
-                          </>
+                          <div style={{ height:62, display:'flex', alignItems:'center', justifyContent:'center', gap:16 }}>
+                            <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>−</button>
+                            <span style={{ minWidth:18, textAlign:'center', color: dark ? '#FFFFFF' : '#111827', fontWeight:700, fontSize:'20px', lineHeight:1 }}>{qty}</span>
+                            <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, 1) }} style={{ width:22,height:22,borderRadius:'999px',border:'none',background: dark ? '#4A4A4A' : '#E5E7EB',color: dark ? '#FFFFFF' : '#111827', fontSize:'14px', lineHeight:1 }}>+</button>
+                          </div>
                         ) : (
                           <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ height:62, border:'none', background:'none', color: dark ? '#00D26A' : '#10B981', fontWeight:700, fontSize:'14px', lineHeight:1 }}>+ Add</button>
                         )}
@@ -1124,6 +1122,13 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                 <div style={{ fontWeight:800, color:'var(--text)', marginBottom:8 }}>{overlayProduct.name}</div>
                 {overlayType === 'note' ? (
                   <textarea value={productCardNotes[overlayProduct.id] || ''} onChange={e => setProductNote(overlayProduct.id, e.target.value)} placeholder="Type note..." style={{ width:'100%', minHeight:90, border:'1px solid var(--border)', borderRadius:8, background:'var(--bg)', color:'var(--text)', padding:8 }} />
+                ) : overlayType === 'customize' ? (
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    <div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)', marginBottom:4 }}>Size</div>{sizeOptions.map(s => <button key={s} onClick={() => setSelectedSizeByProduct(prev => ({...prev, [overlayProduct.id]: s}))} style={{ width:'100%', textAlign:'left', marginBottom:4, border:'1px solid var(--border)', background:getSize(overlayProduct.id)===s?'var(--brand-lt)':'var(--card2)', color:'var(--text)', borderRadius:8, padding:'7px 9px' }}>{getSize(overlayProduct.id)===s?'●':'○'} {s}</button>)}</div>
+                    <div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)', marginBottom:4 }}>Variant</div>{variantOptions.map(v => <button key={v} onClick={() => setSelectedVariantByProduct(prev => ({...prev, [overlayProduct.id]: v}))} style={{ width:'100%', textAlign:'left', marginBottom:4, border:'1px solid var(--border)', background:getVariant(overlayProduct.id)===v?'var(--brand-lt)':'var(--card2)', color:'var(--text)', borderRadius:8, padding:'7px 9px' }}>{getVariant(overlayProduct.id)===v?'●':'○'} {v}</button>)}</div>
+                    <button onClick={() => setOverlayType('addons')} style={{ width:'100%', border:'1px solid var(--border)', background:'var(--card2)', color:'var(--text)', borderRadius:8, padding:'8px 10px', textAlign:'left' }}>Addons</button>
+                    <button onClick={() => setOverlayType('note')} style={{ width:'100%', border:'1px solid var(--border)', background:'var(--card2)', color:'var(--text)', borderRadius:8, padding:'8px 10px', textAlign:'left' }}>{noteActionLabel(overlayProduct.id)}</button>
+                  </div>
                 ) : (
                   <div>{taggedAddons(overlayProduct.id).length === 0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons tagged for this product.</div> : taggedAddons(overlayProduct.id).map(addon => { const key = `${overlayProduct.id}:${addon.id}`; const c = addonCounts[key] || 0; return <div key={addon.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}><span style={{ color:'var(--text)', fontSize:'var(--fs-12)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span><div style={{ display:'flex', gap:6, alignItems:'center' }}><button onClick={() => changeAddonQty(overlayProduct.id, addon.id, -1)} style={{ width:24,height:24,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)' }}>−</button><span style={{ minWidth:14, textAlign:'center' }}>{c}</span><button onClick={() => changeAddonQty(overlayProduct.id, addon.id, 1)} style={{ width:24,height:24,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button></div></div> })}</div>
                 )}
