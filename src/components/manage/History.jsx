@@ -31,7 +31,7 @@ const STATUS = {
 function StatusBadge({ status }) {
   const s = STATUS[status] || STATUS.pending
   return (
-    <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:5,
+    <span style={{ fontSize: 'var(--fs-10)', fontWeight:700, padding:'2px 7px', borderRadius:5,
       background:s.bg, color:s.color, whiteSpace:'nowrap' }}>{s.label}</span>
   )
 }
@@ -56,17 +56,17 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
       {active.map(i => (
         <div key={i.id} style={{ display:'flex', alignItems:'center', gap:8,
           padding:'8px 0', borderBottom:'1px solid var(--border)' }}>
-          <span style={{ fontSize:16, flexShrink:0 }}>{i.product_icon||'🍽'}</span>
+          <span style={{ fontSize: 'var(--fs-16)', flexShrink:0 }}>{i.product_icon||'🍽'}</span>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:13, fontWeight:500, color:'var(--text)' }}>
+            <div style={{ fontSize: 'var(--fs-13)', fontWeight:500, color:'var(--text)' }}>
               {i.product_name}
             </div>
             {i.notes && (
-              <div style={{ fontSize:11, color:'var(--amber)' }}>📝 {i.notes}</div>
+              <div style={{ fontSize: 'var(--fs-11)', color:'var(--amber)' }}>📝 {i.notes}</div>
             )}
           </div>
-          <span style={{ fontSize:12, color:'var(--text2)', marginRight:8 }}>×{i.qty}</span>
-          <span style={{ fontSize:13, fontWeight:600, color:'var(--brand)', flexShrink:0 }}>
+          <span style={{ fontSize: 'var(--fs-12)', color:'var(--text2)', marginRight:8 }}>×{i.qty}</span>
+          <span style={{ fontSize: 'var(--fs-13)', fontWeight:600, color:'var(--brand)', flexShrink:0 }}>
             ₹{(Number(i.unit_price)*i.qty).toFixed(2)}
           </span>
         </div>
@@ -74,13 +74,13 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
 
       {rejected.length > 0 && (
         <div style={{ marginTop:8 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)',
+          <div style={{ fontSize: 'var(--fs-10)', fontWeight:700, color:'var(--text3)',
             textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:4 }}>
             Removed items
           </div>
           {rejected.map(i => (
             <div key={i.id} style={{ display:'flex', gap:8, padding:'4px 0',
-              opacity:0.45, textDecoration:'line-through', fontSize:12, color:'var(--text3)' }}>
+              opacity:0.45, textDecoration:'line-through', fontSize: 'var(--fs-12)', color:'var(--text3)' }}>
               <span>{i.product_icon||'🍽'}</span>
               <span style={{ flex:1 }}>{i.product_name} ×{i.qty}</span>
               <span style={{ color:'var(--red)' }}>removed</span>
@@ -91,7 +91,7 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
 
       {/* Total */}
       <div style={{ display:'flex', justifyContent:'space-between',
-        padding:'10px 0 0', fontWeight:800, fontSize:15,
+        padding:'10px 0 0', fontWeight:800, fontSize: 'var(--fs-15)',
         borderTop:'1px solid var(--border)', marginTop:4 }}>
         <span>Total</span>
         <span style={{ color:'var(--brand)' }}>₹{Number(order.total).toFixed(2)}</span>
@@ -100,7 +100,7 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
       {/* Meta */}
       <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:5,
         background:'var(--bg)', borderRadius:8, padding:'10px 12px',
-        fontSize:12, color:'var(--text2)' }}>
+        fontSize: 'var(--fs-12)', color:'var(--text2)' }}>
         <div style={{ display:'flex', justifyContent:'space-between' }}>
           <span>Order #</span>
           <span style={{ fontWeight:700, color:'var(--text)' }}>#{order.order_number}</span>
@@ -142,7 +142,7 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
             background: resending ? 'var(--card2)' : 'rgba(37,211,102,0.08)',
             color: resending ? 'var(--text3)' : '#25D366',
             border:`1px solid ${resending ? 'var(--border)' : 'rgba(37,211,102,0.25)'}`,
-            borderRadius:8, padding:'10px', fontWeight:600, fontSize:13,
+            borderRadius:8, padding:'10px', fontWeight:600, fontSize: 'var(--fs-13)',
             cursor: resending ? 'default' : 'pointer',
             display:'flex', alignItems:'center', justifyContent:'center', gap:6,
             transition:'all 0.15s',
@@ -161,7 +161,7 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
         <button onClick={() => onRefund(order.id)}
           style={{ width:'100%', marginTop:8, background:'rgba(239,68,68,0.08)',
             color:'var(--red)', border:'1px solid rgba(239,68,68,0.2)',
-            borderRadius:8, padding:'10px', fontWeight:600, fontSize:13, cursor:'pointer' }}>
+            borderRadius:8, padding:'10px', fontWeight:600, fontSize: 'var(--fs-13)', cursor:'pointer' }}>
           ↩ Refund this order
         </button>
       )}
@@ -183,16 +183,16 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
             padding:'8px 16px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
             <div>
-              <span style={{ fontWeight:800, fontSize:15, color:'var(--text)' }}>
+              <span style={{ fontWeight:800, fontSize: 'var(--fs-15)', color:'var(--text)' }}>
                 Order #{order.order_number}
               </span>
               <div style={{ marginTop:2, display:'flex', gap:6, alignItems:'center' }}>
                 <StatusBadge status={order.status}/>
-                <span style={{ fontSize:11, color:'var(--text3)' }}>{fmt(order.created_at)}</span>
+                <span style={{ fontSize: 'var(--fs-11)', color:'var(--text3)' }}>{fmt(order.created_at)}</span>
               </div>
             </div>
             <button onClick={onClose} style={{ background:'none', border:'none',
-              color:'var(--text2)', fontSize:20, cursor:'pointer', lineHeight:1 }}>✕</button>
+              color:'var(--text2)', fontSize: 'var(--fs-20)', cursor:'pointer', lineHeight:1 }}>✕</button>
           </div>
           <div style={{ flex:1, overflowY:'auto', padding:'12px 16px 20px' }}>
             {content}
@@ -214,17 +214,17 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'14px 18px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
           <div>
-            <div style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:16,
+            <div style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize: 'var(--fs-16)',
               color:'var(--text)' }}>
               Order #{order.order_number}
             </div>
             <div style={{ display:'flex', gap:6, alignItems:'center', marginTop:3 }}>
               <StatusBadge status={order.status}/>
-              <span style={{ fontSize:11, color:'var(--text3)' }}>{fmtFull(order.created_at)}</span>
+              <span style={{ fontSize: 'var(--fs-11)', color:'var(--text3)' }}>{fmtFull(order.created_at)}</span>
             </div>
           </div>
           <button onClick={onClose} style={{ background:'none', border:'none',
-            color:'var(--text2)', fontSize:18, cursor:'pointer', padding:4 }}>✕</button>
+            color:'var(--text2)', fontSize: 'var(--fs-18)', cursor:'pointer', padding:4 }}>✕</button>
         </div>
         <div style={{ flex:1, overflowY:'auto', padding:'14px 18px 18px' }}>
           {content}
@@ -361,13 +361,13 @@ export default function HistoryPage() {
       {/* ── Header ─────────────────────────────────────────────── */}
       <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-          <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:16,
+          <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize: 'var(--fs-16)',
             flex:1, color:'var(--text)' }}>Order History</h2>
           <button onClick={() => setShowFilters(f=>!f)}
             style={{ display:'flex', alignItems:'center', gap:5,
               background:showFilters?'var(--brand-lt)':'var(--card)',
               border:`1.5px solid ${showFilters?'rgba(232,68,10,0.3)':'var(--border)'}`,
-              borderRadius:8, padding:'5px 10px', fontSize:12, fontWeight:600,
+              borderRadius:8, padding:'5px 10px', fontSize: 'var(--fs-12)', fontWeight:600,
               color:showFilters?'var(--brand)':'var(--text2)', cursor:'pointer' }}>
             ⚙ Filters {showFilters ? '▴' : '▾'}
           </button>
@@ -375,25 +375,25 @@ export default function HistoryPage() {
 
         <div style={{ position:'relative', marginBottom:10 }}>
           <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)',
-            fontSize:14, color:'var(--text3)', pointerEvents:'none' }}>🔍</span>
+            fontSize: 'var(--fs-14)', color:'var(--text3)', pointerEvents:'none' }}>🔍</span>
           <input value={search} onChange={e=>setSearch(e.target.value)}
             placeholder="Search by order #, customer name, phone, or item…"
             style={{ width:'100%', padding:'8px 10px 8px 32px',
               background:'var(--card)', border:'1.5px solid var(--border)',
-              borderRadius:8, color:'var(--text)', fontSize:13, outline:'none',
+              borderRadius:8, color:'var(--text)', fontSize: 'var(--fs-13)', outline:'none',
               fontFamily:"'DM Sans'" }}/>
           {search && (
             <button onClick={()=>setSearch('')}
               style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)',
                 background:'none', border:'none', color:'var(--text3)',
-                fontSize:16, cursor:'pointer', lineHeight:1 }}>✕</button>
+                fontSize: 'var(--fs-16)', cursor:'pointer', lineHeight:1 }}>✕</button>
           )}
         </div>
 
         <div style={{ display:'flex', gap:5, flexWrap:'wrap', marginBottom: showFilters ? 10 : 0 }}>
           {DATE_OPTS.map(d => (
             <button key={d.id} onClick={()=>setDateRange(d.id)}
-              style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:600,
+              style={{ padding:'4px 10px', borderRadius:20, fontSize: 'var(--fs-11)', fontWeight:600,
                 background:dateRange===d.id?'var(--brand-lt)':'none',
                 border:`1.5px solid ${dateRange===d.id?'rgba(232,68,10,0.3)':'var(--border)'}`,
                 color:dateRange===d.id?'var(--brand)':'var(--text2)', cursor:'pointer' }}>
@@ -407,24 +407,24 @@ export default function HistoryPage() {
             <input type="date" value={customFrom} onChange={e=>setCustomFrom(e.target.value)}
               style={{ padding:'6px 10px', background:'var(--card)',
                 border:'1.5px solid var(--border)', borderRadius:8,
-                color:'var(--text)', fontSize:12, outline:'none' }}/>
-            <span style={{ fontSize:12, color:'var(--text3)' }}>to</span>
+                color:'var(--text)', fontSize: 'var(--fs-12)', outline:'none' }}/>
+            <span style={{ fontSize: 'var(--fs-12)', color:'var(--text3)' }}>to</span>
             <input type="date" value={customTo} onChange={e=>setCustomTo(e.target.value)}
               style={{ padding:'6px 10px', background:'var(--card)',
                 border:'1.5px solid var(--border)', borderRadius:8,
-                color:'var(--text)', fontSize:12, outline:'none' }}/>
+                color:'var(--text)', fontSize: 'var(--fs-12)', outline:'none' }}/>
           </div>
         )}
 
         {showFilters && (
           <div style={{ display:'flex', gap:10, marginTop:8, flexWrap:'wrap' }}>
             <div>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)',
+              <div style={{ fontSize: 'var(--fs-10)', fontWeight:700, color:'var(--text3)',
                 textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:5 }}>Status</div>
               <div style={{ display:'flex', gap:4 }}>
                 {['all','paid','pending','refunded'].map(s => (
                   <button key={s} onClick={()=>setStatusFilter(s)}
-                    style={{ padding:'3px 9px', borderRadius:20, fontSize:11, fontWeight:600,
+                    style={{ padding:'3px 9px', borderRadius:20, fontSize: 'var(--fs-11)', fontWeight:600,
                       background:statusFilter===s?'var(--brand-lt)':'none',
                       border:`1.5px solid ${statusFilter===s?'rgba(232,68,10,0.3)':'var(--border)'}`,
                       color:statusFilter===s?'var(--brand)':'var(--text2)', cursor:'pointer' }}>
@@ -434,12 +434,12 @@ export default function HistoryPage() {
               </div>
             </div>
             <div>
-              <div style={{ fontSize:10, fontWeight:700, color:'var(--text3)',
+              <div style={{ fontSize: 'var(--fs-10)', fontWeight:700, color:'var(--text3)',
                 textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:5 }}>Type</div>
               <div style={{ display:'flex', gap:4 }}>
                 {[['all','All'],['dine','Dine In'],['takeaway','Takeaway'],['delivery','Delivery']].map(([v,l]) => (
                   <button key={v} onClick={()=>setTypeFilter(v)}
-                    style={{ padding:'3px 9px', borderRadius:20, fontSize:11, fontWeight:600,
+                    style={{ padding:'3px 9px', borderRadius:20, fontSize: 'var(--fs-11)', fontWeight:600,
                       background:typeFilter===v?'var(--brand-lt)':'none',
                       border:`1.5px solid ${typeFilter===v?'rgba(232,68,10,0.3)':'var(--border)'}`,
                       color:typeFilter===v?'var(--brand)':'var(--text2)', cursor:'pointer' }}>
@@ -461,9 +461,9 @@ export default function HistoryPage() {
             <div key={s.label} style={{ flex:1, background:'var(--card2)',
               borderRadius:8, padding:'7px 10px', border:'1px solid var(--border)',
               textAlign:'center' }}>
-              <div style={{ fontSize:15, fontWeight:800, color:'var(--text)',
+              <div style={{ fontSize: 'var(--fs-15)', fontWeight:800, color:'var(--text)',
                 fontFamily:"'Plus Jakarta Sans'" }}>{s.val}</div>
-              <div style={{ fontSize:10, color:'var(--text3)', marginTop:1 }}>{s.label}</div>
+              <div style={{ fontSize: 'var(--fs-10)', color:'var(--text3)', marginTop:1 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -477,9 +477,9 @@ export default function HistoryPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign:'center', padding:40, color:'var(--text2)' }}>
-            <div style={{ fontSize:36, marginBottom:8 }}>📋</div>
-            <div style={{ fontSize:14, fontWeight:600 }}>No orders found</div>
-            <div style={{ fontSize:12, color:'var(--text3)', marginTop:4 }}>
+            <div style={{ fontSize: 'var(--fs-36)', marginBottom:8 }}>📋</div>
+            <div style={{ fontSize: 'var(--fs-14)', fontWeight:600 }}>No orders found</div>
+            <div style={{ fontSize: 'var(--fs-12)', color:'var(--text3)', marginTop:4 }}>
               Try adjusting your filters or search
             </div>
           </div>
@@ -498,15 +498,15 @@ export default function HistoryPage() {
                 transition:'background 0.1s' }}>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap' }}>
-                  <span style={{ fontWeight:700, fontSize:13, color:'var(--text)' }}>
+                  <span style={{ fontWeight:700, fontSize: 'var(--fs-13)', color:'var(--text)' }}>
                     #{o.order_number}
                   </span>
                   <StatusBadge status={o.status}/>
-                  <span style={{ fontSize:10, color:'var(--text3)',
+                  <span style={{ fontSize: 'var(--fs-10)', color:'var(--text3)',
                     background:'var(--card)', border:'1px solid var(--border)',
                     padding:'1px 6px', borderRadius:5 }}>{typeLabel}</span>
                 </div>
-                <div style={{ fontSize:11, color:'var(--text3)', marginTop:3,
+                <div style={{ fontSize: 'var(--fs-11)', color:'var(--text3)', marginTop:3,
                   display:'flex', gap:8, flexWrap:'wrap' }}>
                   <span>{itemCount} item{itemCount!==1?'s':''}</span>
                   {o.customer_name  && <span>· {o.customer_name}</span>}
@@ -515,10 +515,10 @@ export default function HistoryPage() {
                 </div>
               </div>
               <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontWeight:700, color:'var(--brand)', fontSize:14 }}>
+                <div style={{ fontWeight:700, color:'var(--brand)', fontSize: 'var(--fs-14)' }}>
                   ₹{Number(o.total).toFixed(2)}
                 </div>
-                <div style={{ fontSize:10, color:'var(--text3)', marginTop:1 }}>
+                <div style={{ fontSize: 'var(--fs-10)', color:'var(--text3)', marginTop:1 }}>
                   {o.payment_method==='upi'?'📱':o.payment_method==='cash'?'💵':'💳'}
                 </div>
               </div>
