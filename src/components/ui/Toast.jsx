@@ -19,7 +19,7 @@ export default function Toast() {
       background: c.bg, border: `1px solid ${c.border}`,
       borderRadius: 10, padding: '10px 16px',
       display: 'flex', alignItems: 'center', gap: 8,
-      color: '#F5F0E8', fontSize: 13, fontWeight: 500,
+      color: '#F5F0E8', fontSize: 'var(--fs-13)', fontWeight: 500,
       boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
       maxWidth: 'min(400px, 90vw)', whiteSpace: 'pre-wrap',
     }}>
