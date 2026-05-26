@@ -23,12 +23,6 @@ const inputStyle = {
   width:180, textAlign:'right',
 }
 
-const wideInputStyle = {
-  ...inputStyle,
-  width: '100%',
-  textAlign: 'left',
-  boxSizing: 'border-box',
-}
 
 // ── single save button used everywhere in this file ───────────────
 function SaveBtn({ saving, onClick, label = 'Save' }) {
@@ -84,7 +78,6 @@ export default function SettingsPage() {
   const [addonName, setAddonName] = useState('')
   const [addonPrice, setAddonPrice] = useState('')
 
-  // Populate fields when settings load
   useEffect(() => {
     setAddons(loadAddons(tenantId))
   }, [tenantId])
@@ -167,26 +160,6 @@ export default function SettingsPage() {
     }
   }
 
-
-  function addAddon() {
-    const name = addonName.trim()
-    const price = Number(addonPrice)
-    if (!name || Number.isNaN(price) || price < 0) {
-      showToast('Enter valid add-on name and price', 'warning')
-      return
-    }
-    const next = [...addons, { id: `addon-${Date.now()}`, name, price }]
-    setAddons(next)
-    saveAddons(tenantId, next)
-    setAddonName(''); setAddonPrice('')
-    showToast('Add-on saved', 'success')
-  }
-
-  function removeAddon(id) {
-    const next = addons.filter(a => a.id !== id)
-    setAddons(next)
-    saveAddons(tenantId, next)
-  }
 
   async function changePassword() {
     if (newPw !== confirmPw) { showToast('Passwords do not match', 'error'); return }
@@ -279,22 +252,6 @@ export default function SettingsPage() {
           </div>
         </Section>
 
-
-        <Section title="➕ Product Add-ons">
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 120px auto', gap:8, marginBottom:12 }}>
-            <input value={addonName} onChange={e=>setAddonName(e.target.value)} placeholder="Cheese slice" style={wideInputStyle}/>
-            <input value={addonPrice} onChange={e=>setAddonPrice(e.target.value)} type="number" min="0" step="0.01" placeholder="20" style={{...inputStyle, width:120, textAlign:'left'}}/>
-            <SaveBtn saving={false} onClick={addAddon} label="Add"/>
-          </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {addons.length===0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons created yet.</div> : addons.map(a => (
-              <div key={a.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px' }}>
-                <span style={{ color:'var(--text)' }}>{a.name} · ₹{Number(a.price).toFixed(2)}</span>
-                <button onClick={()=>removeAddon(a.id)} style={{ border:'none', background:'none', color:'var(--red)', cursor:'pointer' }}>Remove</button>
-              </div>
-            ))}
-          </div>
-        </Section>
 
         {/* ── Change Password ───────────────────────────────────── */}
         <Section title="🔒 Change Password">

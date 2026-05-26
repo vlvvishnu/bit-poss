@@ -1125,13 +1125,14 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
           ))}
           {overlayProduct && (
             <div onClick={() => { setOverlayProductId(null); setOverlayType(null) }} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2500 }}>
-              <div onClick={e => e.stopPropagation()} style={{ width: overlayType==='customize' ? 'min(100vw,480px)' : 'min(92vw,360px)', background:'var(--card)', border:'1px solid var(--border2)', borderRadius: overlayType==='customize' ? '20px 20px 0 0' : 12, padding:12, alignSelf: overlayType==='customize' ? 'flex-end' : 'center' }}>
+              <div onClick={e => e.stopPropagation()} style={{ width: overlayType==='customize' ? (isMobile ? 'min(100vw,480px)' : '480px') : 'min(92vw,360px)', maxHeight: overlayType==='customize' ? (isMobile ? '88vh' : '80vh') : 'unset', overflowY:'auto', background:'var(--card)', border:'1px solid var(--border2)', borderRadius: overlayType==='customize' ? (isMobile ? '20px 20px 0 0' : 16) : 12, padding:12, alignSelf: overlayType==='customize' && isMobile ? 'flex-end' : 'center', transform: overlayType==='customize' && !isMobile ? 'translate(0,0)' : 'none' }}>
+                <button onClick={() => { setOverlayProductId(null); setOverlayType(null) }} style={{ position:'absolute', top:10, right:10, border:'none', background:'none', color:'var(--text2)', fontSize:'var(--fs-18)' }}>✕</button>
                 <div style={{ fontWeight:800, color:'var(--text)', marginBottom:8 }}>{overlayProduct.name}</div>
                 {overlayType === 'note' ? (
                   <textarea value={productCardNotes[overlayProduct.id] || ''} onChange={e => setProductNote(overlayProduct.id, e.target.value)} placeholder="Type note..." style={{ width:'100%', minHeight:90, border:'1px solid var(--border)', borderRadius:8, background:'var(--bg)', color:'var(--text)', padding:8 }} />
                 ) : overlayType === 'customize' ? (
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                    <div style={{ width:42,height:4,borderRadius:3,background:'var(--border2)',margin:'0 auto 2px' }}/>
+                    {isMobile && <div style={{ width:42,height:4,borderRadius:3,background:'var(--border2)',margin:'0 auto 2px' }}/>}
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                       <div style={{ display:'flex', gap:8, alignItems:'center' }}><span>{overlayProduct.icon||'🍽'}</span><div><div style={{ fontWeight:700 }}>{overlayProduct.name}</div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)' }}>{getSize(overlayProduct.id)} · {getVariant(overlayProduct.id)}</div></div></div>
                       <span style={{ background:'var(--brand)', color:'#fff', borderRadius:999, padding:'2px 8px', fontSize:'var(--fs-11)', fontWeight:700 }}>{customQty}</span>

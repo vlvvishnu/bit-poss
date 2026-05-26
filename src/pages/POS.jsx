@@ -8,6 +8,7 @@ import ProductsPage from '../components/manage/Products'
 import CategoriesPage from '../components/manage/Categories'
 import HistoryPage from '../components/manage/History'
 import SettingsPage from '../components/manage/Settings'
+import AddonsPage from '../components/manage/Addons'
 import SampleMenuSeeder from '../components/manage/SampleMenuSeeder'
 
 const TOP_NAV = [
@@ -19,8 +20,8 @@ const TOP_NAV = [
 const MORE_NAV = [
   { id: 'history',    icon: '📋', label: 'History'    },
   { id: 'kitchen',    icon: '🍳', label: 'Kitchen'    },
-  { id: 'products',   icon: '🏷', label: 'Products'   },
-  { id: 'categories', icon: '📦', label: 'Categories' },
+  { id: 'manage',     icon: '🧰', label: 'Manage'     },
+  { id: 'addons',     icon: '🧩', label: 'Add-ons'    },
   { id: 'settings',   icon: '⚙️', label: 'Settings'   },
 ]
 
@@ -107,6 +108,24 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, incr
       )}
     </div>
   )
+}
+
+function ManagePage({ onRefresh }) {
+  const [tab, setTab] = useState('products')
+  const tabs = [{id:'products',label:'Products'},{id:'categories',label:'Categories'},{id:'addons',label:'Add-ons'}]
+  const actionLabel = tab === 'products' ? '+ Add Product' : tab === 'categories' ? '+ Add Category' : '+ Add Add-on'
+  return <div style={{ flex:1, overflowY:'auto', padding:'16px' }}>
+    <div style={{ maxWidth:1200, margin:'0 auto' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:'var(--fs-18)' }}>Manage</h2>
+        <button style={{ background:'var(--brand)', color:'#fff', border:'none', borderRadius:8, padding:'8px 12px', fontWeight:700 }}>{actionLabel}</button>
+      </div>
+      <div style={{ display:'flex', gap:14, borderBottom:'1px solid var(--border)', overflowX:'auto', whiteSpace:'nowrap', marginBottom:14 }}>
+        {tabs.map(t => <button key={t.id} onClick={()=>setTab(t.id)} style={{ border:'none', background:'none', color:tab===t.id?'var(--brand)':'var(--text2)', fontWeight:tab===t.id?700:500, padding:'8px 0', borderBottom:tab===t.id?'2px solid var(--brand)':'2px solid transparent' }}>{t.label}</button>)}
+      </div>
+      {tab==='products' ? <ProductsPage onRefresh={onRefresh}/> : tab==='categories' ? <CategoriesPage onRefresh={onRefresh}/> : <AddonsPage/>}
+    </div>
+  </div>
 }
 
 export default function POS() {
@@ -251,8 +270,8 @@ export default function POS() {
   function renderPage() {
     if (page === 'history')    return <HistoryPage />
     if (page === 'kitchen')    return <KDS />
-    if (page === 'products')   return <ProductsPage onRefresh={loadData} />
-    if (page === 'categories') return <CategoriesPage onRefresh={loadData} />
+    if (page === 'manage')     return <ManagePage onRefresh={loadData} />
+    if (page === 'addons')     return <AddonsPage />
     if (page === 'settings')   return <SettingsPage />
     return <OrderPage defaultType={page} key={page} onAddSampleMenu={openSamplePrompt} />
   }
