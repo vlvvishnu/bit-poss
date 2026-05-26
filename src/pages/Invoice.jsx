@@ -35,7 +35,7 @@ const L = {
   metaRow: { display:'flex', justifyContent:'space-between',
     padding:'5px 0', fontSize: 'var(--fs-13)', color:'#7A6E65' },
   dlBtn: {
-    background:'#E8440A', color:'#fff', border:'none',
+    background:'#1D9E75', color:'#fff', border:'none',
     borderRadius:12, padding:'14px', fontWeight:700,
     fontSize: 'var(--fs-15)', cursor:'pointer', width:'100%',
     display:'flex', alignItems:'center', justifyContent:'center', gap:8,
@@ -89,8 +89,8 @@ export default function Invoice() {
 
   if (loading) return (
     <div style={{ ...L.page, alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
-      <div style={{ width:36,height:36,border:'3px solid rgba(232,68,10,0.2)',
-        borderTopColor:'#E8440A',borderRadius:'50%',
+      <div style={{ width:36,height:36,border:'3px solid rgba(168,217,200,0.35)',
+        borderTopColor:'#1D9E75',borderRadius:'50%',
         animation:'spin 0.7s linear infinite' }}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
@@ -128,7 +128,7 @@ export default function Invoice() {
 
       {/* Nav */}
       <div style={L.header} className="no-print">
-        <span style={L.logo}>BITE<span style={{ color:'#E8440A' }}>.</span></span>
+        <span style={L.logo}>BITE<span style={{ color:'#1D9E75' }}>.</span></span>
         <span style={{ fontSize: 'var(--fs-12)', color:'#7A6E65' }}>Invoice</span>
       </div>
 
@@ -150,7 +150,7 @@ export default function Invoice() {
               <div>
                 <div style={{ fontSize: 'var(--fs-11)', color:'rgba(245,240,232,0.4)',
                   textTransform:'uppercase', letterSpacing:'0.5px' }}>Invoice</div>
-                <div style={{ fontSize: 'var(--fs-24)', fontWeight:800, color:'#E8440A',
+                <div style={{ fontSize: 'var(--fs-24)', fontWeight:800, color:'#1D9E75',
                   fontFamily:"'Plus Jakarta Sans',sans-serif" }}>
                   #{order.order_number}
                 </div>
@@ -196,7 +196,7 @@ export default function Invoice() {
                     {item.product_icon||'🍽'} {item.product_name}
                   </div>
                   {item.notes && (
-                    <div style={{ fontSize: 'var(--fs-11)', color:'#E8440A', marginTop:2 }}>
+                    <div style={{ fontSize: 'var(--fs-11)', color:'#1D9E75', marginTop:2 }}>
                       📝 {item.notes}
                     </div>
                   )}
@@ -224,7 +224,7 @@ export default function Invoice() {
               )}
               <div style={L.totalRow}>
                 <span>Total</span>
-                <span style={{ color:'#E8440A' }}>₹{Number(order.total).toFixed(2)}</span>
+                <span style={{ color:'#1D9E75' }}>₹{Number(order.total).toFixed(2)}</span>
               </div>
             </div>
 

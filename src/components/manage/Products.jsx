@@ -209,7 +209,7 @@ export default function ProductsPage() {
             style={{
               flexShrink: 0, padding: '4px 12px', borderRadius: 20,
               background: catFilter === String(cat.id) ? 'var(--brand-lt)' : 'none',
-              border: `1.5px solid ${catFilter === String(cat.id) ? 'rgba(232,68,10,0.3)' : 'var(--border)'}`,
+              border: `1.5px solid ${catFilter === String(cat.id) ? 'rgba(168,217,200,0.7)' : 'var(--border)'}`,
               color: catFilter === String(cat.id) ? 'var(--brand)' : 'var(--text2)',
               fontSize: 'var(--fs-12)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
             }}>
@@ -231,7 +231,7 @@ export default function ProductsPage() {
               <div key={p.id} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 background: selected.has(p.id) ? 'var(--brand-lt2)' : 'var(--card)',
-                border: `1px solid ${selected.has(p.id) ? 'rgba(232,68,10,0.2)' : 'var(--border)'}`,
+                border: `1px solid ${selected.has(p.id) ? 'rgba(168,217,200,0.35)' : 'var(--border)'}`,
                 borderRadius: 'var(--r)', padding: '10px 12px',
                 opacity: p.out_of_stock ? 0.55 : 1,
               }}>

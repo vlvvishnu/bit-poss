@@ -5,11 +5,11 @@ const L = {
   page: { minHeight:'100vh', background:'#0D0B08', color:'#F5F0E8', display:'flex', flexDirection:'column', fontFamily:"'DM Sans',sans-serif", overflowX:'hidden' },
   nav: { display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'0 clamp(16px,5vw,72px)', minHeight:68, flexShrink:0, background:'rgba(13,11,8,0.82)', borderBottom:'1px solid rgba(255,255,255,0.08)', position:'sticky', top:0, zIndex:100, backdropFilter:'blur(18px)' },
   logo: { fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:800, fontSize:'clamp(18px,4.5vw,22px)', color:'#F5F0E8', letterSpacing:'-0.6px', whiteSpace:'nowrap' },
-  logoDot: { color:'#E8440A' },
-  btnPri: { background:'#E8440A', color:'#fff', border:'none', borderRadius:12, padding:'clamp(9px,2.6vw,12px) clamp(14px,4vw,24px)', fontWeight:800, fontSize:'clamp(12px,3.4vw,14px)', cursor:'pointer', boxShadow:'0 12px 28px rgba(232,68,10,0.28)' },
+  logoDot: { color:'#1D9E75' },
+  btnPri: { background:'#1D9E75', color:'#fff', border:'none', borderRadius:12, padding:'clamp(9px,2.6vw,12px) clamp(14px,4vw,24px)', fontWeight:800, fontSize:'clamp(12px,3.4vw,14px)', cursor:'pointer', boxShadow:'0 12px 28px rgba(29,158,117,0.28)' },
   btnSec: { background:'rgba(255,255,255,0.06)', color:'#F5F0E8', border:'1px solid rgba(255,255,255,0.13)', borderRadius:12, padding:'clamp(8px,2.4vw,11px) clamp(13px,3.7vw,22px)', fontWeight:700, fontSize:'clamp(12px,3.4vw,14px)', cursor:'pointer' },
   hero: { position:'relative', display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,320px),1fr))', gap:'clamp(24px,5vw,56px)', alignItems:'center', padding:'clamp(56px,10vw,112px) clamp(16px,5vw,72px) clamp(42px,8vw,82px)', maxWidth:1220, width:'100%', margin:'0 auto' },
-  tag: { display:'inline-flex', width:'fit-content', background:'rgba(232,68,10,0.13)', color:'#FF8A5C', border:'1px solid rgba(232,68,10,0.28)', borderRadius:999, padding:'6px 14px', fontSize:'clamp(11px,3vw,13px)', fontWeight:800 },
+  tag: { display:'inline-flex', width:'fit-content', background:'rgba(15,61,46,0.95)', color:'#5DCAA5', border:'1px solid rgba(29,158,117,0.28)', borderRadius:999, padding:'6px 14px', fontSize:'clamp(11px,3vw,13px)', fontWeight:800 },
   h1: { fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:800, fontSize:'clamp(34px,9.5vw,76px)', lineHeight:0.96, letterSpacing:'clamp(-2.4px,-0.5vw,-1px)', color:'#F5F0E8', margin:'18px 0 0' },
   sub: { fontSize:'clamp(14px,3.5vw,19px)', color:'rgba(245,240,232,0.68)', maxWidth:560, lineHeight:1.7, margin:'18px 0 0' },
   heroBtns: { display:'flex', gap:12, flexWrap:'wrap', marginTop:26 },
@@ -30,7 +30,7 @@ const L = {
   lbl: { display:'flex', flexDirection:'column', gap:6 },
   lblTxt: { fontSize:'clamp(10px,3vw,11px)', fontWeight:800, color:'rgba(245,240,232,0.52)', textTransform:'uppercase', letterSpacing:'0.4px' },
   inp: { width:'100%', padding:'clamp(10px,3vw,12px) 13px', border:'1.5px solid rgba(255,255,255,0.12)', borderRadius:10, fontSize:'clamp(13px,3.4vw,16px)', background:'#0D0B08', color:'#F5F0E8', outline:'none', fontFamily:"'DM Sans',sans-serif" },
-  aBtn: { width:'100%', background:'#E8440A', color:'#fff', border:'none', borderRadius:12, padding:'clamp(12px,3.6vw,14px)', fontWeight:800, fontSize:'clamp(14px,4vw,15px)', cursor:'pointer', fontFamily:"'Plus Jakarta Sans',sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 },
+  aBtn: { width:'100%', background:'#1D9E75', color:'#fff', border:'none', borderRadius:12, padding:'clamp(12px,3.6vw,14px)', fontWeight:800, fontSize:'clamp(14px,4vw,15px)', cursor:'pointer', fontFamily:"'Plus Jakarta Sans',sans-serif", display:'flex', alignItems:'center', justifyContent:'center', gap:8 },
   err: { background:'rgba(239,68,68,0.12)', border:'1px solid rgba(239,68,68,0.28)', borderRadius:10, padding:'9px 12px', fontSize:'clamp(12px,3.5vw,13px)', color:'#FCA5A5' },
   ok: { background:'rgba(34,197,94,0.12)', border:'1px solid rgba(34,197,94,0.28)', borderRadius:10, padding:'9px 12px', fontSize:'clamp(12px,3.5vw,13px)', color:'#86EFAC' },
 }
@@ -167,16 +167,16 @@ export default function Landing() {
             <button style={{ ...L.btnSec, padding:'clamp(12px,3.8vw,15px) clamp(22px,6vw,32px)' }} onClick={() => openAuth('login')}>Sign in</button>
           </div>
         </div>
-        <div style={{ background:'radial-gradient(circle at top right,rgba(232,68,10,0.28),transparent 45%),linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))', border:'1px solid rgba(255,255,255,0.12)', borderRadius:28, padding:'clamp(18px,5vw,28px)', boxShadow:'0 28px 80px rgba(0,0,0,0.35)' }}>
+        <div style={{ background:'radial-gradient(circle at top right,rgba(29,158,117,0.28),transparent 45%),linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))', border:'1px solid rgba(255,255,255,0.12)', borderRadius:28, padding:'clamp(18px,5vw,28px)', boxShadow:'0 28px 80px rgba(0,0,0,0.35)' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
             <div style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:'clamp(17px,4.2vw,24px)' }}>Live counter</div>
             <span style={{ background:'rgba(34,197,94,0.14)', color:'#86EFAC', border:'1px solid rgba(34,197,94,0.24)', borderRadius:999, padding:'5px 10px', fontSize: 'var(--fs-12)', fontWeight:800 }}>Open</span>
           </div>
           {['Dine-in table T4 · ₹1,246', 'Takeaway order · ₹498', 'Kitchen: 3 items preparing'].map((row, idx) => (
             <div key={row} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 0', borderTop: idx ? '1px solid rgba(255,255,255,0.08)' : 'none' }}>
-              <span style={{ width:36, height:36, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(232,68,10,0.16)' }}>{idx===0?'🍽':idx===1?'🛍':'🍳'}</span>
+              <span style={{ width:36, height:36, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(15,61,46,0.8)' }}>{idx===0?'🍽':idx===1?'🛍':'🍳'}</span>
               <span style={{ flex:1, color:'rgba(245,240,232,0.78)', fontSize:'clamp(12px,3.1vw,15px)' }}>{row}</span>
-              <span style={{ color:'#E8440A', fontWeight:800 }}>→</span>
+              <span style={{ color:'#1D9E75', fontWeight:800 }}>→</span>
             </div>
           ))}
         </div>
@@ -195,7 +195,7 @@ export default function Landing() {
           <span style={L.tag}>Start in minutes</span>
           <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontSize:'clamp(24px,5.8vw,42px)', letterSpacing:'-1px', marginTop:12 }}>From signup to first order.</h2>
         </div>
-        <div style={{ ...L.grid, gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,280px),1fr))' }}>{STEPS.map(s => <div key={s.n} style={L.card}><span style={{ color:'#E8440A', fontWeight:900, fontSize: 'var(--fs-13)' }}>{s.n}</span><span style={L.cTitle}>{s.title}</span><span style={L.cSub}>{s.sub}</span></div>)}</div>
+        <div style={{ ...L.grid, gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,280px),1fr))' }}>{STEPS.map(s => <div key={s.n} style={L.card}><span style={{ color:'#1D9E75', fontWeight:900, fontSize: 'var(--fs-13)' }}>{s.n}</span><span style={L.cTitle}>{s.title}</span><span style={L.cSub}>{s.sub}</span></div>)}</div>
       </section>
 
       <section style={L.section}>
@@ -214,7 +214,7 @@ export default function Landing() {
               <div style={L.aSub}>{tab==='login' ? 'Enter your credentials to continue.' : 'Set up your restaurant POS in minutes.'}</div>
             </div>
 
-            <div style={L.tabs}>{['login','signup'].map(t => <button key={t} onClick={() => switchTab(t)} style={{ flex:1, padding:'13px', background:'none', border:'none', borderBottom: tab===t ? '2px solid #E8440A' : '2px solid transparent', color: tab===t ? '#F5F0E8' : 'rgba(245,240,232,0.42)', fontWeight: tab===t ? 800 : 600, fontSize:'clamp(12px,3.5vw,14px)', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>{t==='login' ? 'Sign In' : 'Create Account'}</button>)}</div>
+            <div style={L.tabs}>{['login','signup'].map(t => <button key={t} onClick={() => switchTab(t)} style={{ flex:1, padding:'13px', background:'none', border:'none', borderBottom: tab===t ? '2px solid #1D9E75' : '2px solid transparent', color: tab===t ? '#F5F0E8' : 'rgba(245,240,232,0.42)', fontWeight: tab===t ? 800 : 600, fontSize:'clamp(12px,3.5vw,14px)', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>{t==='login' ? 'Sign In' : 'Create Account'}</button>)}</div>
 
             <form onSubmit={tab==='login' ? handleLogin : handleSignup} style={L.aBody}>
               {tab==='signup' && <><label style={L.lbl}><span style={L.lblTxt}>Your Name</span><input style={L.inp} value={name} onChange={e=>setName(e.target.value)} placeholder="Jane Smith" autoComplete="name" required /></label><label style={L.lbl}><span style={L.lblTxt}>Restaurant Name</span><input style={L.inp} value={bizName} onChange={e=>setBizName(e.target.value)} placeholder="Restaurant name" autoComplete="organization" required /></label></>}

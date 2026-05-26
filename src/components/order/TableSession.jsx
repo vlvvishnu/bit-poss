@@ -105,7 +105,7 @@ function AddItemsPanel({ tableNum, orderId, tenantId, onAdded, onClose }) {
           <button key={cat.id} onClick={() => setActiveCat(String(cat.id))} style={{
             flexShrink: 0, padding: '4px 10px', borderRadius: 20, whiteSpace: 'nowrap',
             background: activeCat === String(cat.id) ? 'var(--brand-lt)' : 'none',
-            border: `1.5px solid ${activeCat === String(cat.id) ? 'rgba(232,68,10,0.3)' : 'var(--border)'}`,
+            border: `1.5px solid ${activeCat === String(cat.id) ? 'rgba(168,217,200,0.7)' : 'var(--border)'}`,
             color: activeCat === String(cat.id) ? 'var(--brand)' : 'var(--text2)',
             fontSize: 'var(--fs-12)', fontWeight: 600, cursor: 'pointer',
           }}>{cat.icon} {cat.name}</button>
@@ -120,7 +120,7 @@ function AddItemsPanel({ tableNum, orderId, tenantId, onAdded, onClose }) {
             <div key={p.id} style={{
               display: 'flex', alignItems: 'center', gap: 10,
               background: sel ? 'var(--brand-lt2)' : 'var(--card2)',
-              border: `1.5px solid ${sel ? 'rgba(232,68,10,0.25)' : 'var(--border)'}`,
+              border: `1.5px solid ${sel ? 'rgba(168,217,200,0.5)' : 'var(--border)'}`,
               borderRadius: 8, padding: '8px 10px',
             }}>
               <span style={{ fontSize: 'var(--fs-18)' }}>{p.icon || '🍽'}</span>

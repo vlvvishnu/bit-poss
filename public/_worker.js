@@ -157,20 +157,20 @@ function verificationEmailHtml({ origin, verifyUrl, name, bizName }) {
             <tr>
               <td style="background:#1A1208;padding:30px 28px;text-align:center;">
                 <img src="${logoUrl}" width="64" height="64" alt="BITE." style="display:block;margin:0 auto 14px;border-radius:16px;">
-                <div style="font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.8px;color:#F5F0E8;">BITE<span style="color:#E8440A;">.</span></div>
+                <div style="font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.8px;color:#F5F0E8;">BITE<span style="color:#1D9E75;">.</span></div>
                 <div style="margin-top:6px;color:rgba(245,240,232,0.62);font-size:13px;">Restaurant POS by Pay4</div>
               </td>
             </tr>
             <tr>
               <td style="padding:34px 30px 12px;text-align:center;">
-                <div style="display:inline-block;background:rgba(232,68,10,0.10);color:#E8440A;border:1px solid rgba(232,68,10,0.18);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;letter-spacing:0.2px;">Confirm your account</div>
+                <div style="display:inline-block;background:rgba(225,245,238,0.9);color:#1D9E75;border:1px solid rgba(168,217,200,0.35);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;letter-spacing:0.2px;">Confirm your account</div>
                 <h1 style="font-family:'Plus Jakarta Sans',Arial,sans-serif;margin:18px 0 10px;font-size:28px;line-height:1.16;letter-spacing:-0.7px;color:#1A1208;">Welcome to BITE., ${safeName}</h1>
                 <p style="margin:0 auto;color:#7A6E65;font-size:15px;line-height:1.65;max-width:420px;">Tap the button below to confirm your email and activate <strong style="color:#1A1208;">${safeBizName}</strong>.</p>
               </td>
             </tr>
             <tr>
               <td align="center" style="padding:24px 30px 34px;">
-                <a href="${safeVerifyUrl}" style="display:inline-block;background:#E8440A;color:#ffffff;text-decoration:none;border-radius:14px;padding:15px 34px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:15px;font-weight:800;box-shadow:0 10px 22px rgba(232,68,10,0.24);">Confirm my email</a>
+                <a href="${safeVerifyUrl}" style="display:inline-block;background:#1D9E75;color:#ffffff;text-decoration:none;border-radius:14px;padding:15px 34px;font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:15px;font-weight:800;box-shadow:0 10px 22px rgba(29,158,117,0.24);">Confirm my email</a>
               </td>
             </tr>
             <tr>

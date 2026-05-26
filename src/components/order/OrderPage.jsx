@@ -78,7 +78,7 @@ function TablePicker({ count, selected, onSelect, tenantId }) {
                 position:'relative', minWidth:44, height:36, borderRadius:8,
                 fontSize: 'var(--fs-12)', fontWeight:700, cursor:'pointer',
                 background: isSelected?'var(--brand)':isActive?'var(--brand-lt)':'var(--card)',
-                border:`2px solid ${isSelected?'var(--brand)':isActive?'rgba(232,68,10,0.35)':'var(--border)'}`,
+                border:`2px solid ${isSelected?'var(--brand)':isActive?'rgba(168,217,200,0.7)':'var(--border)'}`,
                 color: isSelected?'#fff':isActive?'var(--brand)':'var(--text2)',
                 transition:'all 0.1s',
               }}>
@@ -111,7 +111,7 @@ function RoundAccordion({
 
   return (
     <div style={{
-      border:`1px solid ${isNew?'rgba(232,68,10,0.3)':'var(--border)'}`,
+      border:`1px solid ${isNew?'rgba(168,217,200,0.7)':'var(--border)'}`,
       borderRadius:10, marginBottom:6, overflow:'hidden',
       background: isNew?'var(--brand-lt2)':'var(--card)',
     }}>
@@ -245,7 +245,7 @@ function RoundAccordion({
                 style={{
                   width:'100%',border:'none',borderRadius:8,
                   padding:'11px',fontWeight:800,fontSize: 'var(--fs-14)',
-                  background:!tableNum?'var(--card2)':'#E8440A',
+                  background:!tableNum?'var(--card2)':'#1D9E75',
                   color:!tableNum?'var(--text3)':'#fff',
                   cursor:!tableNum?'default':'pointer',
                   display:'flex',alignItems:'center',justifyContent:'center',gap:7,
@@ -830,6 +830,10 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [overlayType, setOverlayType] = useState(null)
   const [selectedSizeByProduct, setSelectedSizeByProduct] = useState({})
   const [selectedVariantByProduct, setSelectedVariantByProduct] = useState({})
+  const [customQty, setCustomQty] = useState(1)
+  const [sameForAll, setSameForAll] = useState(false)
+  const [openAccordion, setOpenAccordion] = useState(0)
+  const [perItemConfig, setPerItemConfig] = useState([])
   // Legacy compatibility shim: older compiled snippets may still reference these symbols.
   const quickQtyProductId = null
   const setQuickQtyProductId = () => {}
@@ -933,9 +937,13 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
     return (productCardNotes[productId] || '').trim() ? 'View Notes' : '+Notes'
   }
   const sizeOptions = ['Small', 'Medium', 'Large']
-  const variantOptions = ['Hot', 'Cold', 'Thickshake']
+  const tempOptions = ['Cold', 'Ice Cold', 'Room Temp']
+  const sugarOptions = ['0%', '25%', '50%', '75%', '100%']
   const getSize = (productId) => selectedSizeByProduct[productId] || 'Medium'
   const getVariant = (productId) => selectedVariantByProduct[productId] || 'Cold'
+  function seedConfig(productId, qty = 1) {
+    return Array.from({ length: qty }, () => ({ size: getSize(productId), temp: getVariant(productId), sugar: '50%' }))
+  }
 
   function composeItemNote(productId) {
     const base = (productCardNotes[productId] || '').trim()
@@ -1022,7 +1030,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
           <button key={cat.id} onClick={()=>setActiveCat(String(cat.id))} style={{
             flexShrink:0,padding:'4px 10px',borderRadius:20,whiteSpace:'nowrap',
             background:activeCat===String(cat.id)?'var(--brand-lt)':'none',
-            border:`1.5px solid ${activeCat===String(cat.id)?'rgba(232,68,10,0.3)':'var(--border)'}`,
+            border:`1.5px solid ${activeCat===String(cat.id)?'rgba(168,217,200,0.7)':'var(--border)'}`,
             color:activeCat===String(cat.id)?'var(--brand)':'var(--text2)',
             fontSize: 'var(--fs-11)',fontWeight:600,cursor:'pointer' }}>{cat.icon} {cat.name}</button>
         ))}
@@ -1103,7 +1111,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                             <button type="button" disabled={!qty} onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:32,height:24,borderRadius:8,border:'1px solid var(--border2)',background:'var(--card2)',color:'var(--text)',opacity:qty?1:0.35 }}>−</button>
                             <span style={{ minWidth:10, textAlign:'center', color:'var(--text)', fontWeight:700 }}>{qty}</span>
                             <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, 1) }} style={{ width:32,height:24,borderRadius:8,border:'1px solid var(--border2)',background:'var(--card2)',color:'var(--text)' }}>+</button>
-                            <button type="button" onClick={(e)=>{e.stopPropagation();setOverlayProductId(p.id);setOverlayType('customize')}} disabled={qty===0} style={{ border:'none', background:'none', color:'var(--text2)', transform:isVariantOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.15s ease', padding:0 }}>▼</button>
+                            <button type="button" onClick={(e)=>{e.stopPropagation();setOverlayProductId(p.id);setOverlayType('customize');setCustomQty(Math.max(1,qty));setSameForAll(false);setOpenAccordion(0);setPerItemConfig(seedConfig(p.id, Math.max(1,qty)));}} disabled={qty===0} style={{ border:'none', background:'none', color:'var(--text2)', transform:isVariantOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.15s ease', padding:0 }}>▼</button>
                           </div>
                         ) : (
                           <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ height:24, border:'none', background:'none', color: dark ? '#00D26A' : '#10B981', fontWeight:700, fontSize:'14px', lineHeight:1 }}>+ Add</button>
@@ -1117,21 +1125,42 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
           ))}
           {overlayProduct && (
             <div onClick={() => { setOverlayProductId(null); setOverlayType(null) }} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2500 }}>
-              <div onClick={e => e.stopPropagation()} style={{ width:'min(92vw,360px)', background:'var(--card)', border:'1px solid var(--border2)', borderRadius:12, padding:12 }}>
+              <div onClick={e => e.stopPropagation()} style={{ width: overlayType==='customize' ? 'min(100vw,480px)' : 'min(92vw,360px)', background:'var(--card)', border:'1px solid var(--border2)', borderRadius: overlayType==='customize' ? '20px 20px 0 0' : 12, padding:12, alignSelf: overlayType==='customize' ? 'flex-end' : 'center' }}>
                 <div style={{ fontWeight:800, color:'var(--text)', marginBottom:8 }}>{overlayProduct.name}</div>
                 {overlayType === 'note' ? (
                   <textarea value={productCardNotes[overlayProduct.id] || ''} onChange={e => setProductNote(overlayProduct.id, e.target.value)} placeholder="Type note..." style={{ width:'100%', minHeight:90, border:'1px solid var(--border)', borderRadius:8, background:'var(--bg)', color:'var(--text)', padding:8 }} />
                 ) : overlayType === 'customize' ? (
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                    <div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)', marginBottom:4 }}>Size</div>{sizeOptions.map(s => <button key={s} onClick={() => setSelectedSizeByProduct(prev => ({...prev, [overlayProduct.id]: s}))} style={{ width:'100%', textAlign:'left', marginBottom:4, border:'1px solid var(--border)', background:getSize(overlayProduct.id)===s?'var(--brand-lt)':'var(--card2)', color:'var(--text)', borderRadius:8, padding:'7px 9px' }}>{getSize(overlayProduct.id)===s?'●':'○'} {s}</button>)}</div>
-                    <div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)', marginBottom:4 }}>Variant</div>{variantOptions.map(v => <button key={v} onClick={() => setSelectedVariantByProduct(prev => ({...prev, [overlayProduct.id]: v}))} style={{ width:'100%', textAlign:'left', marginBottom:4, border:'1px solid var(--border)', background:getVariant(overlayProduct.id)===v?'var(--brand-lt)':'var(--card2)', color:'var(--text)', borderRadius:8, padding:'7px 9px' }}>{getVariant(overlayProduct.id)===v?'●':'○'} {v}</button>)}</div>
-                    <button onClick={() => setOverlayType('addons')} style={{ width:'100%', border:'1px solid var(--border)', background:'var(--card2)', color:'var(--text)', borderRadius:8, padding:'8px 10px', textAlign:'left' }}>Addons</button>
-                    <button onClick={() => setOverlayType('note')} style={{ width:'100%', border:'1px solid var(--border)', background:'var(--card2)', color:'var(--text)', borderRadius:8, padding:'8px 10px', textAlign:'left' }}>{noteActionLabel(overlayProduct.id)}</button>
+                    <div style={{ width:42,height:4,borderRadius:3,background:'var(--border2)',margin:'0 auto 2px' }}/>
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                      <div style={{ display:'flex', gap:8, alignItems:'center' }}><span>{overlayProduct.icon||'🍽'}</span><div><div style={{ fontWeight:700 }}>{overlayProduct.name}</div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)' }}>{getSize(overlayProduct.id)} · {getVariant(overlayProduct.id)}</div></div></div>
+                      <span style={{ background:'var(--brand)', color:'#fff', borderRadius:999, padding:'2px 8px', fontSize:'var(--fs-11)', fontWeight:700 }}>{customQty}</span>
+                    </div>
+                    <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:16 }}>
+                      <button onClick={()=>{setCustomQty(q=>Math.max(1,q-1)); setPerItemConfig(prev=>prev.slice(0,-1)); setOpenAccordion(0)}} style={{ width:44,height:44,borderRadius:999,border:'1px solid var(--brand)',background:'none',color:'var(--brand)' }}>−</button>
+                      <span style={{ fontSize:'var(--fs-20)', fontWeight:700 }}>{customQty}</span>
+                      <button onClick={()=>{setCustomQty(q=>q+1); setPerItemConfig(prev=>[...prev, {size:getSize(overlayProduct.id), temp:getVariant(overlayProduct.id), sugar:'50%'}])}} style={{ width:44,height:44,borderRadius:999,border:'1px solid var(--brand)',background:'none',color:'var(--brand)' }}>+</button>
+                    </div>
+                    {customQty >= 2 && <label style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)' }}><span>Same customisation for all</span><input type="checkbox" checked={sameForAll} onChange={e=>setSameForAll(e.target.checked)} /></label>}
+                    {(sameForAll ? [perItemConfig[0] || {size:getSize(overlayProduct.id), temp:getVariant(overlayProduct.id), sugar:'50%'}] : perItemConfig).map((cfg, idx) => (
+                      <div key={idx} style={{ border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+                        <button onClick={()=>setOpenAccordion(openAccordion===idx?-1:idx)} style={{ width:'100%', textAlign:'left', background:'var(--card2)', border:'none', padding:'10px 12px', color:'var(--text)' }}>
+                          <div style={{ fontWeight:700 }}>Item {idx+1}</div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)' }}>{cfg.size} · {cfg.temp} · Sugar {cfg.sugar}</div>
+                        </button>
+                        {openAccordion===idx && <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                          <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SIZE</div>{sizeOptions.map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,size:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.size===s?'var(--brand-lt)':'var(--card2)', color:cfg.size===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>
+                          <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>TEMPERATURE</div>{tempOptions.map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,temp:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.temp===s?'var(--brand-lt)':'var(--card2)', color:cfg.temp===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>
+                          <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SUGAR LEVEL</div>{sugarOptions.map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,sugar:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.sugar===s?'var(--brand-lt)':'var(--card2)', color:cfg.sugar===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>
+                        </div>}
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div>{taggedAddons(overlayProduct.id).length === 0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons tagged for this product.</div> : taggedAddons(overlayProduct.id).map(addon => { const key = `${overlayProduct.id}:${addon.id}`; const c = addonCounts[key] || 0; return <div key={addon.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}><span style={{ color:'var(--text)', fontSize:'var(--fs-12)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span><div style={{ display:'flex', gap:6, alignItems:'center' }}><button onClick={() => changeAddonQty(overlayProduct.id, addon.id, -1)} style={{ width:24,height:24,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)' }}>−</button><span style={{ minWidth:14, textAlign:'center' }}>{c}</span><button onClick={() => changeAddonQty(overlayProduct.id, addon.id, 1)} style={{ width:24,height:24,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button></div></div> })}</div>
                 )}
-                <button onClick={() => { setOverlayProductId(null); setOverlayType(null) }} style={{ marginTop:10, width:'100%', background:'var(--brand)', color:'#fff', border:'none', borderRadius:8, padding:'8px 10px', fontWeight:700 }}>Done</button>
+                <button onClick={() => { setOverlayProductId(null); setOverlayType(null) }} style={{ marginTop:10, width:'100%', background:'var(--brand)', color:'#fff', border:'none', borderRadius:10, padding:'12px 10px', fontWeight:700, position: overlayType==='customize'?'sticky':'static', bottom:0 }}>
+                  {overlayType==='customize' ? `Confirm · ${customQty} item${customQty!==1?'s':''}` : 'Done'}
+                </button>
               </div>
             </div>
           )}
@@ -1172,9 +1201,9 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                 onClick={() => { if(!tableNum){showToast('Select a table first','warning');return} if(cartCount>0) setConfirmKOT(true) }}
                 disabled={sendingKOT}
                 style={{ flex:1.8,
-                  background:(!tableNum||cartCount===0)?'var(--card2)':'#E8440A',
+                  background:(!tableNum||cartCount===0)?'var(--card2)':'#1D9E75',
                   color:(!tableNum||cartCount===0)?'var(--text3)':'#fff',
-                  border:`1.5px solid ${(!tableNum||cartCount===0)?'var(--border)':'#E8440A'}`,
+                  border:`1.5px solid ${(!tableNum||cartCount===0)?'var(--border)':'#1D9E75'}`,
                   borderRadius:14,padding:'13px 8px',fontWeight:800,fontSize: 'var(--fs-14)',
                   cursor:(!tableNum||cartCount===0)?'default':'pointer',
                   display:'flex',alignItems:'center',justifyContent:'center',gap:6,
@@ -1275,7 +1304,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
               <button
                 onClick={async()=>{ setConfirmKOT(false); await handleSendToKitchen() }}
                 disabled={sendingKOT||!tableNum}
-                style={{ width:'100%',background:!tableNum?'var(--card2)':'#E8440A',
+                style={{ width:'100%',background:!tableNum?'var(--card2)':'#1D9E75',
                   color:!tableNum?'var(--text3)':'#fff',border:'none',borderRadius:14,
                   padding:'15px',fontWeight:800,fontSize: 'var(--fs-16)',
                   cursor:!tableNum?'default':'pointer',

@@ -62,9 +62,9 @@ function applyTheme(dark) {
     root.style.setProperty('--text',   '#F5F0E8')
     root.style.setProperty('--text2',  'rgba(245,240,232,0.55)')
     root.style.setProperty('--text3',  'rgba(245,240,232,0.3)')
-    root.style.setProperty('--brand-lt2', 'rgba(232,68,10,0.08)')
-    root.style.setProperty('--product-cta-divider', '#602E17')
-    root.style.setProperty('--product-cta-text', '#D7581A')
+    root.style.setProperty('--brand-lt2', 'rgba(15,61,46,0.45)')
+    root.style.setProperty('--product-cta-divider', '#0F3D2E')
+    root.style.setProperty('--product-cta-text', '#1D9E75')
   } else {
     root.style.setProperty('--bg',     '#F9F7F4')
     root.style.setProperty('--bg2',    '#F0EDE8')
@@ -75,9 +75,9 @@ function applyTheme(dark) {
     root.style.setProperty('--text',   '#1A1208')
     root.style.setProperty('--text2',  'rgba(26,18,8,0.55)')
     root.style.setProperty('--text3',  'rgba(26,18,8,0.3)')
-    root.style.setProperty('--brand-lt2', 'rgba(232,68,10,0.06)')
-    root.style.setProperty('--product-cta-divider', 'rgba(215,88,26,0.28)')
-    root.style.setProperty('--product-cta-text', '#B44917')
+    root.style.setProperty('--brand-lt2', 'rgba(225,245,238,0.85)')
+    root.style.setProperty('--product-cta-divider', 'rgba(168,217,200,0.45)')
+    root.style.setProperty('--product-cta-text', '#0F6E56')
   }
 }
 

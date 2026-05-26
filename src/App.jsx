@@ -117,7 +117,7 @@ export default function App() {
         <span style={{
           width: 28, height: 28,
           border: '3px solid rgba(255,255,255,0.15)',
-          borderTopColor: '#E8440A',
+          borderTopColor: '#1D9E75',
           borderRadius: '50%',
           display: 'inline-block',
           animation: 'spin 0.7s linear infinite'

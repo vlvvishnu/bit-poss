@@ -316,7 +316,7 @@ export default function POS() {
         <div style={{
           margin: isMobile ? '8px 10px 0' : '10px 14px 0',
           padding: '10px 12px', borderRadius: 12,
-          background: 'var(--brand-lt2)', border: '1px solid rgba(232,68,10,0.18)',
+          background: 'var(--brand-lt2)', border: '1px solid rgba(168,217,200,0.35)',
           display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flexShrink: 0,
         }}>
           <div style={{ flex: 1, minWidth: 220 }}>

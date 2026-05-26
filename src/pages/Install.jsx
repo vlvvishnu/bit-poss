@@ -84,10 +84,10 @@ export default function Install() {
       {/* App icon */}
       <div style={{
         width: 96, height: 96, borderRadius: 24,
-        background: '#E8440A',
+        background: '#1D9E75',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: 20,
-        boxShadow: '0 8px 32px rgba(232,68,10,0.3)',
+        boxShadow: '0 8px 32px rgba(168,217,200,0.7)',
         animation: 'bounce 2s ease-in-out infinite',
       }}>
         <img src="/icon-512.png" alt="BITE."
@@ -100,7 +100,7 @@ export default function Install() {
         fontWeight: 800, fontSize: 'var(--fs-28)', color: '#1A1208',
         letterSpacing: '-0.5px', marginBottom: 6, textAlign: 'center',
       }}>
-        BITE<span style={{ color: '#E8440A' }}>.</span> POS
+        BITE<span style={{ color: '#1D9E75' }}>.</span> POS
       </h1>
       <p style={{
         fontSize: 'var(--fs-15)', color: '#7A6E65', marginBottom: 32,
@@ -130,12 +130,12 @@ export default function Install() {
           {/* Android install button */}
           {deferredPrompt && (
             <button onClick={triggerInstall} style={{
-              background: '#E8440A', color: '#fff', border: 'none',
+              background: '#1D9E75', color: '#fff', border: 'none',
               borderRadius: 14, padding: '16px 40px',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontWeight: 800, fontSize: 'var(--fs-17)', cursor: 'pointer',
               marginBottom: 32,
-              boxShadow: '0 4px 16px rgba(232,68,10,0.35)',
+              boxShadow: '0 4px 16px rgba(168,217,200,0.7)',
               display: 'flex', alignItems: 'center', gap: 10,
             }}>
               <span style={{ fontSize: 'var(--fs-22)' }}>📲</span>
@@ -171,7 +171,7 @@ export default function Install() {
               }}>
                 <div style={{
                   width: 26, height: 26, borderRadius: '50%',
-                  background: '#E8440A', color: '#fff',
+                  background: '#1D9E75', color: '#fff',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 'var(--fs-12)', fontWeight: 800, flexShrink: 0,
                 }}>
@@ -200,7 +200,7 @@ export default function Install() {
 
       {/* Back to app */}
       <a href="/" style={{
-        color: '#E8440A', fontSize: 'var(--fs-14)', fontWeight: 600,
+        color: '#1D9E75', fontSize: 'var(--fs-14)', fontWeight: 600,
         textDecoration: 'none', marginTop: 8,
       }}>
         ← Back to BITE.

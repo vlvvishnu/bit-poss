@@ -366,7 +366,7 @@ export default function HistoryPage() {
           <button onClick={() => setShowFilters(f=>!f)}
             style={{ display:'flex', alignItems:'center', gap:5,
               background:showFilters?'var(--brand-lt)':'var(--card)',
-              border:`1.5px solid ${showFilters?'rgba(232,68,10,0.3)':'var(--border)'}`,
+              border:`1.5px solid ${showFilters?'rgba(168,217,200,0.7)':'var(--border)'}`,
               borderRadius:8, padding:'5px 10px', fontSize: 'var(--fs-12)', fontWeight:600,
               color:showFilters?'var(--brand)':'var(--text2)', cursor:'pointer' }}>
             ⚙ Filters {showFilters ? '▴' : '▾'}
@@ -395,7 +395,7 @@ export default function HistoryPage() {
             <button key={d.id} onClick={()=>setDateRange(d.id)}
               style={{ padding:'4px 10px', borderRadius:20, fontSize: 'var(--fs-11)', fontWeight:600,
                 background:dateRange===d.id?'var(--brand-lt)':'none',
-                border:`1.5px solid ${dateRange===d.id?'rgba(232,68,10,0.3)':'var(--border)'}`,
+                border:`1.5px solid ${dateRange===d.id?'rgba(168,217,200,0.7)':'var(--border)'}`,
                 color:dateRange===d.id?'var(--brand)':'var(--text2)', cursor:'pointer' }}>
               {d.label}
             </button>
@@ -426,7 +426,7 @@ export default function HistoryPage() {
                   <button key={s} onClick={()=>setStatusFilter(s)}
                     style={{ padding:'3px 9px', borderRadius:20, fontSize: 'var(--fs-11)', fontWeight:600,
                       background:statusFilter===s?'var(--brand-lt)':'none',
-                      border:`1.5px solid ${statusFilter===s?'rgba(232,68,10,0.3)':'var(--border)'}`,
+                      border:`1.5px solid ${statusFilter===s?'rgba(168,217,200,0.7)':'var(--border)'}`,
                       color:statusFilter===s?'var(--brand)':'var(--text2)', cursor:'pointer' }}>
                     {s==='all'?'All':s.charAt(0).toUpperCase()+s.slice(1)}
                   </button>
@@ -441,7 +441,7 @@ export default function HistoryPage() {
                   <button key={v} onClick={()=>setTypeFilter(v)}
                     style={{ padding:'3px 9px', borderRadius:20, fontSize: 'var(--fs-11)', fontWeight:600,
                       background:typeFilter===v?'var(--brand-lt)':'none',
-                      border:`1.5px solid ${typeFilter===v?'rgba(232,68,10,0.3)':'var(--border)'}`,
+                      border:`1.5px solid ${typeFilter===v?'rgba(168,217,200,0.7)':'var(--border)'}`,
                       color:typeFilter===v?'var(--brand)':'var(--text2)', cursor:'pointer' }}>
                     {l}
                   </button>

@@ -158,7 +158,7 @@ export default function SampleMenuSeeder({ open, onClose, onSeeded }) {
       )}
     >
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-        <div style={{ background:'var(--brand-lt2)', border:'1px solid rgba(232,68,10,0.18)', borderRadius:12, padding:12 }}>
+        <div style={{ background:'var(--brand-lt2)', border:'1px solid rgba(168,217,200,0.35)', borderRadius:12, padding:12 }}>
           <div style={{ fontWeight:800, color:'var(--text)', marginBottom:4 }}>Start with a ready-made restaurant menu</div>
           <div style={{ fontSize: 'var(--fs-13)', color:'var(--text2)' }}>
             We will add categories and products to your database. You can uncheck anything you do not want and edit prices later.
