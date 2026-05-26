@@ -1051,7 +1051,11 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                   {group.icon} {group.name}
                 </div>
               )}
-              <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:10 }}>
+              <div style={{
+                display:'grid',
+                gridTemplateColumns:isMobile ? '1fr' : '1fr 1fr',
+                gap:6, marginBottom:10
+              }}>
                 {group.items.map(p=>{
                   const qty=cart[p.id]?.qty
                   const isVariantOpen = overlayProductId === p.id && overlayType === 'customize'
@@ -1064,7 +1068,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                       opacity:p.out_of_stock?0.45:1,
                       display:'flex',alignItems:'center',gap:10,
                       textAlign:'left',position:'relative',
-                      minHeight:44,padding:'9px 10px',
+                      minHeight:52,padding:'12px 10px',
                     }}>
                       <div
                         role="button"
@@ -1089,11 +1093,6 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                         <div style={{ fontSize:'var(--fs-11)', color:'var(--text2)' }}>{getSize(p.id)} • {getVariant(p.id)}</div>
                       </div>
                       </div>
-                      {qty&&<span style={{ position:'absolute',top:10,right:10,
-                        background:'#00D26A',color:'#fff',fontSize: 'var(--fs-10)',fontWeight:800,
-                        boxShadow:'0 2px 6px rgba(0,0,0,0.25)',
-                        borderRadius:'50%',width:20,height:20,display:'flex',
-                        alignItems:'center',justifyContent:'center' }}>{qty}</span>}
                       <div
                         onClick={qty === 0 ? (e) => { e.stopPropagation(); if (!p.out_of_stock) addProductWithConfiguredMeta(p) } : undefined}
                         style={{ display:'flex',alignItems:'center',gap:8,flexShrink:0 }}>
