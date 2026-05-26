@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
+import { loadAddons, saveAddons } from '../../utils/addons'
 
 function Field({ label, hint, children }) {
   return (
     <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between',
       gap:16, padding:'14px 0', borderBottom:'1px solid var(--border)' }}>
       <div style={{ flex:1 }}>
-        <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{label}</div>
-        {hint && <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>{hint}</div>}
+        <div style={{ fontSize: 'var(--fs-13)', fontWeight:600, color:'var(--text)' }}>{label}</div>
+        {hint && <div style={{ fontSize: 'var(--fs-11)', color:'var(--text3)', marginTop:2 }}>{hint}</div>}
       </div>
       <div style={{ flexShrink:0 }}>{children}</div>
     </div>
@@ -17,7 +18,7 @@ function Field({ label, hint, children }) {
 
 const inputStyle = {
   background:'var(--card2)', border:'1.5px solid var(--border2)',
-  borderRadius:8, color:'var(--text)', fontSize:13,
+  borderRadius:8, color:'var(--text)', fontSize: 'var(--fs-13)',
   padding:'7px 10px', outline:'none', fontFamily:"'DM Sans'",
   width:180, textAlign:'right',
 }
@@ -36,7 +37,7 @@ function SaveBtn({ saving, onClick, label = 'Save' }) {
       background: saving ? 'var(--card2)' : 'var(--brand)',
       color: saving ? 'var(--text2)' : '#fff',
       border: 'none', borderRadius:8, padding:'9px 20px',
-      fontWeight:700, fontSize:13, cursor: saving ? 'default' : 'pointer',
+      fontWeight:700, fontSize: 'var(--fs-13)', cursor: saving ? 'default' : 'pointer',
       display:'flex', alignItems:'center', gap:6, transition:'all 0.15s',
     }}>
       {saving && (
@@ -52,7 +53,7 @@ function SaveBtn({ saving, onClick, label = 'Save' }) {
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom:28 }}>
-      <div style={{ fontSize:13, fontWeight:700, color:'var(--text2)',
+      <div style={{ fontSize: 'var(--fs-13)', fontWeight:700, color:'var(--text2)',
         padding:'8px 0', borderBottom:'2px solid var(--border)', marginBottom:4 }}>
         {title}
       </div>
@@ -76,9 +77,18 @@ export default function SettingsPage() {
   const [savingBiz, setSavingBiz] = useState(false)
   const [savingUpi, setSavingUpi] = useState(false)
   const [savingWa,  setSavingWa]  = useState(false)
+  const [checkingWa, setCheckingWa] = useState(false)
+  const [waStatus, setWaStatus] = useState(null)
   const [savingPw,  setSavingPw]  = useState(false)
+  const [addons, setAddons] = useState([])
+  const [addonName, setAddonName] = useState('')
+  const [addonPrice, setAddonPrice] = useState('')
 
   // Populate fields when settings load
+  useEffect(() => {
+    setAddons(loadAddons(tenantId))
+  }, [tenantId])
+
   useEffect(() => {
     if (settings) {
       setBizName(settings.biz_name || settings.name || '')
@@ -129,6 +139,55 @@ export default function SettingsPage() {
     showToast('WhatsApp settings saved ✓', 'success')
   }
 
+  async function checkWhatsAppConnection() {
+    if (!waWebhook.trim()) {
+      showToast('Enter webhook URL first', 'warning')
+      return
+    }
+    setCheckingWa(true)
+    setWaStatus(null)
+    try {
+      const res = await fetch(waWebhook.trim(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiver: '919999999999', values: { '1': 'Test', '2': 'https://example.com' } }),
+      })
+      if (res.ok) {
+        setWaStatus('connected')
+        showToast('WhatsApp webhook reachable ✓', 'success')
+      } else {
+        setWaStatus('failed')
+        showToast(`Webhook returned ${res.status}`, 'warning')
+      }
+    } catch (e) {
+      setWaStatus('failed')
+      showToast('Webhook is not reachable', 'error')
+    } finally {
+      setCheckingWa(false)
+    }
+  }
+
+
+  function addAddon() {
+    const name = addonName.trim()
+    const price = Number(addonPrice)
+    if (!name || Number.isNaN(price) || price < 0) {
+      showToast('Enter valid add-on name and price', 'warning')
+      return
+    }
+    const next = [...addons, { id: `addon-${Date.now()}`, name, price }]
+    setAddons(next)
+    saveAddons(tenantId, next)
+    setAddonName(''); setAddonPrice('')
+    showToast('Add-on saved', 'success')
+  }
+
+  function removeAddon(id) {
+    const next = addons.filter(a => a.id !== id)
+    setAddons(next)
+    saveAddons(tenantId, next)
+  }
+
   async function changePassword() {
     if (newPw !== confirmPw) { showToast('Passwords do not match', 'error'); return }
     if (newPw.length < 8)    { showToast('Password must be at least 8 characters', 'error'); return }
@@ -143,10 +202,10 @@ export default function SettingsPage() {
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
       <div style={{ maxWidth:640, margin:'0 auto', padding:'20px 16px' }}>
-        <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:18, marginBottom:4 }}>
+        <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize: 'var(--fs-18)', marginBottom:4 }}>
           Settings
         </h2>
-        <p style={{ fontSize:12, color:'var(--text2)', marginBottom:24 }}>{user?.email}</p>
+        <p style={{ fontSize: 'var(--fs-12)', color:'var(--text2)', marginBottom:24 }}>{user?.email}</p>
 
         {/* ── Business ─────────────────────────────────────────── */}
         <Section title="🏪 Business">
@@ -184,7 +243,7 @@ export default function SettingsPage() {
 
         {/* ── WhatsApp Invoice ─────────────────────────────────── */}
         <Section title="📲 WhatsApp Invoice">
-          <div style={{ fontSize:12, color:'var(--text3)', marginBottom:10, lineHeight:1.65 }}>
+          <div style={{ fontSize: 'var(--fs-12)', color:'var(--text3)', marginBottom:10, lineHeight:1.65 }}>
             After getting your template <strong>order_invoice1</strong> approved in Emovur, go to<br/>
             <strong>Dashboard → Templates → View/Edit Webhook</strong> and paste the URL below.<br/>
             <span style={{ color:'var(--text2)' }}>
@@ -200,12 +259,40 @@ export default function SettingsPage() {
                 value={waWebhook}
                 onChange={e => setWaWebhook(e.target.value)}
                 placeholder="https://adminapis.backendprod.com/…"
-                style={{ ...inputStyle, width:'100%', fontSize:11, textAlign:'left' }}
+                style={{ ...inputStyle, width:'100%', fontSize: 'var(--fs-11)', textAlign:'left' }}
               />
             </div>
           </Field>
           <div style={{ paddingTop:14 }}>
-            <SaveBtn saving={savingWa} onClick={saveWhatsApp} label="Save WhatsApp"/>
+            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              <SaveBtn saving={savingWa} onClick={saveWhatsApp} label="Save WhatsApp"/>
+              <button onClick={checkWhatsAppConnection} disabled={checkingWa} style={{
+                background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)',
+                borderRadius:8, padding:'9px 12px', fontWeight:700, cursor:checkingWa?'default':'pointer',
+              }}>{checkingWa ? 'Checking…' : 'Check Connection'}</button>
+            </div>
+            {waStatus && (
+              <div style={{ marginTop:8, fontSize:'var(--fs-11)', color:waStatus==='connected'?'var(--green)':'var(--red)' }}>
+                {waStatus === 'connected' ? 'Connected: WhatsApp webhook is reachable.' : 'Not connected: verify webhook or provider settings.'}
+              </div>
+            )}
+          </div>
+        </Section>
+
+
+        <Section title="➕ Product Add-ons">
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 120px auto', gap:8, marginBottom:12 }}>
+            <input value={addonName} onChange={e=>setAddonName(e.target.value)} placeholder="Cheese slice" style={wideInputStyle}/>
+            <input value={addonPrice} onChange={e=>setAddonPrice(e.target.value)} type="number" min="0" step="0.01" placeholder="20" style={{...inputStyle, width:120, textAlign:'left'}}/>
+            <SaveBtn saving={false} onClick={addAddon} label="Add"/>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {addons.length===0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons created yet.</div> : addons.map(a => (
+              <div key={a.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', border:'1px solid var(--border)', borderRadius:8, padding:'8px 10px' }}>
+                <span style={{ color:'var(--text)' }}>{a.name} · ₹{Number(a.price).toFixed(2)}</span>
+                <button onClick={()=>removeAddon(a.id)} style={{ border:'none', background:'none', color:'var(--red)', cursor:'pointer' }}>Remove</button>
+              </div>
+            ))}
           </div>
         </Section>
 
