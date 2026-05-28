@@ -33,6 +33,11 @@ function ProductEditor({ product, onSave, onClose }) {
     if (product?.id && map[product.id]) setVariants(map[product.id])
   }, [tenantId, product?.id])
 
+  useEffect(() => {
+    const tags = loadProductAddonTags(tenantId)
+    setAddonIds(Array.isArray(tags[product?.id]) ? tags[product.id] : [])
+  }, [tenantId, product?.id])
+
   async function save(e) {
     e.preventDefault()
     if (!name || !price) { setErr('Name and price are required'); return }
