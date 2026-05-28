@@ -1069,7 +1069,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                   const qty=cart[p.id]?.qty
                   const isVariantOpen = overlayProductId === p.id && overlayType === 'customize'
                   const vcfg = variantMap[p.id] || {}
-                  const hasCustom = !!(vcfg?.size?.enabled || vcfg?.sugar?.enabled || vcfg?.temperature?.enabled || (vcfg?.addons?.enabled && (vcfg?.addons?.linkedIds||[]).length>0))
+                  const linkedAddonIds = (vcfg?.addons?.linkedIds?.length ? vcfg.addons.linkedIds : addonTags[p.id]) || []
+                  const hasCustom = !!(vcfg?.size?.enabled || vcfg?.sugar?.enabled || vcfg?.temperature?.enabled || linkedAddonIds.length > 0)
                   return (
                     <div key={p.id} style={{
                       background: dark ? '#151515' : '#FFFFFF',
@@ -1114,10 +1115,13 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                             <button type="button" disabled={!qty} onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:32,height:24,borderRadius:8,border:'1px solid var(--border2)',background:'var(--card2)',color:'var(--text)',opacity:qty?1:0.35 }}>−</button>
                             <span style={{ minWidth:10, textAlign:'center', color:'var(--text)', fontWeight:700 }}>{qty}</span>
                             <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, 1) }} style={{ width:32,height:24,borderRadius:8,border:'1px solid var(--border2)',background:'var(--card2)',color:'var(--text)' }}>+</button>
-                            {hasCustom && <button type="button" onClick={(e)=>{e.stopPropagation();setOverlayProductId(p.id);setOverlayType('customize');setCustomQty(Math.max(1,qty));setSameForAll(false);setOpenAccordion(0);setPerItemConfig(seedConfig(p.id, Math.max(1,qty)));}} disabled={qty===0} style={{ border:'none', background:'none', color:'var(--text2)', transform:isVariantOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.15s ease', padding:0 }}>▼</button>}
+                            {hasCustom && <button type="button" onClick={(e)=>{e.stopPropagation();setOverlayProductId(p.id);setOverlayType('customize');setCustomQty(qty);setSameForAll(false);setOpenAccordion(0);setPerItemConfig(seedConfig(p.id, qty));}} style={{ border:'none', background:'none', color:'var(--text2)', transform:isVariantOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.15s ease', padding:0 }}>▼</button>}
                           </div>
                         ) : (
-                          <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ height:24, border:'none', background:'none', color: dark ? '#00D26A' : '#10B981', fontWeight:700, fontSize:'14px', lineHeight:1 }}>+ Add</button>
+                          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                            <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ height:24, border:'none', background:'none', color: dark ? '#00D26A' : '#10B981', fontWeight:700, fontSize:'14px', lineHeight:1 }}>+ Add</button>
+                            {hasCustom && <button type="button" onClick={(e)=>{e.stopPropagation();setOverlayProductId(p.id);setOverlayType('customize');setCustomQty(1);setSameForAll(false);setOpenAccordion(0);setPerItemConfig(seedConfig(p.id, 1));}} style={{ border:'none', background:'none', color:'var(--text2)', transform:isVariantOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.15s ease', padding:0 }}>▼</button>}
+                          </div>
                         )}
                       </div>
                     </div>

@@ -33,11 +33,6 @@ function ProductEditor({ product, onSave, onClose }) {
     if (product?.id && map[product.id]) setVariants(map[product.id])
   }, [tenantId, product?.id])
 
-  useEffect(() => {
-    const tags = loadProductAddonTags(tenantId)
-    setAddonIds(Array.isArray(tags[product?.id]) ? tags[product.id] : [])
-  }, [tenantId, product?.id])
-
   async function save(e) {
     e.preventDefault()
     if (!name || !price) { setErr('Name and price are required'); return }
@@ -112,16 +107,16 @@ function ProductEditor({ product, onSave, onClose }) {
         <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><input type='checkbox' checked={variants.size.enabled} onChange={e=>setVariants(v=>({...v,size:{...v.size,enabled:e.target.checked}}))}/>Has size variants?</label>
         {variants.size.enabled && <div style={{ marginBottom:10 }}>
           <div style={{ display:'flex', gap:8, marginBottom:8 }}>
-            <button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,priceMode:'fixed'}}))} style={{ border:'1px solid var(--border)', borderRadius:6, padding:'4px 8px', background:variants.size.priceMode==='fixed'?'var(--brand-lt)':'var(--card2)' }}>Fixed price</button>
-            <button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,priceMode:'delta'}}))} style={{ border:'1px solid var(--border)', borderRadius:6, padding:'4px 8px', background:variants.size.priceMode==='delta'?'var(--brand-lt)':'var(--card2)' }}>Extra charge</button>
+            <button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,priceMode:'fixed'}}))} style={{ ...miniBtn, background:variants.size.priceMode==='fixed'?'var(--brand-lt)':'var(--card2)' }}>Fixed price</button>
+            <button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,priceMode:'delta'}}))} style={{ ...miniBtn, background:variants.size.priceMode==='delta'?'var(--brand-lt)':'var(--card2)' }}>Extra charge</button>
           </div>
-          {variants.size.options.map((o, i)=><div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 100px auto', gap:6, marginBottom:6 }}><input value={o.label} onChange={e=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.map((x,idx)=>idx===i?{...x,label:e.target.value}:x)}}))} style={iS}/><input type='number' value={o.price} onChange={e=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.map((x,idx)=>idx===i?{...x,price:Number(e.target.value)||0}:x)}}))} style={iS}/><button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.filter((_,idx)=>idx!==i)}}))}>Remove</button></div>)}
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 100px auto', gap:6 }}><input value={sizeLabel} onChange={e=>setSizeLabel(e.target.value)} placeholder='Large' style={iS}/><input type='number' value={sizePrice} onChange={e=>setSizePrice(e.target.value)} placeholder='20' style={iS}/><button type='button' onClick={()=>{ if(!sizeLabel.trim()) return; setVariants(v=>({...v,size:{...v.size,options:[...v.size.options,{label:sizeLabel.trim(),price:Number(sizePrice)||0}]}})); setSizeLabel(''); setSizePrice('') }}>Add</button></div>
+          {variants.size.options.map((o, i)=><div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 100px auto', gap:6, marginBottom:6 }}><input value={o.label} onChange={e=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.map((x,idx)=>idx===i?{...x,label:e.target.value}:x)}}))} style={iS}/><input type='number' value={o.price} onChange={e=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.map((x,idx)=>idx===i?{...x,price:Number(e.target.value)||0}:x)}}))} style={iS}/><button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.filter((_,idx)=>idx!==i)}}))} style={miniBtn}>Remove</button></div>)}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 100px auto', gap:6 }}><input value={sizeLabel} onChange={e=>setSizeLabel(e.target.value)} placeholder='Large' style={iS}/><input type='number' value={sizePrice} onChange={e=>setSizePrice(e.target.value)} placeholder='20' style={iS}/><button type='button' onClick={()=>{ if(!sizeLabel.trim()) return; setVariants(v=>({...v,size:{...v.size,options:[...v.size.options,{label:sizeLabel.trim(),price:Number(sizePrice)||0}]}})); setSizeLabel(''); setSizePrice('') }} style={miniBtn}>Add</button></div>
         </div>}
         <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><input type='checkbox' checked={variants.sugar.enabled} onChange={e=>setVariants(v=>({...v,sugar:{...v.sugar,enabled:e.target.checked}}))}/>Has sugar level options?</label>
-        {variants.sugar.enabled && <div style={{ marginBottom:10 }}>{['0%','25%','50%','75%','100%'].map(s=><button key={s} type='button' onClick={()=>setVariants(v=>({...v,sugar:{...v.sugar,options:v.sugar.options.includes(s)?v.sugar.options.filter(x=>x!==s):[...v.sugar.options,s]}}))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border)', borderRadius:999, padding:'3px 8px', background:variants.sugar.options.includes(s)?'var(--brand-lt)':'var(--card2)' }}>{s}</button>)}<div style={{ display:'flex', gap:6 }}><input value={customSugar} onChange={e=>setCustomSugar(e.target.value)} placeholder='Custom label' style={iS}/><button type='button' onClick={()=>{ if(!customSugar.trim()) return; setVariants(v=>({...v,sugar:{...v.sugar,options:[...v.sugar.options,customSugar.trim()]}})); setCustomSugar('') }}>Add</button></div></div>}
+        {variants.sugar.enabled && <div style={{ marginBottom:10 }}>{['0%','25%','50%','75%','100%'].map(s=><button key={s} type='button' onClick={()=>setVariants(v=>({...v,sugar:{...v.sugar,options:v.sugar.options.includes(s)?v.sugar.options.filter(x=>x!==s):[...v.sugar.options,s]}}))} style={{ ...chipBtn, background:variants.sugar.options.includes(s)?'var(--brand-lt)':'var(--card2)' }}>{s}</button>)}<div style={{ display:'flex', gap:6 }}><input value={customSugar} onChange={e=>setCustomSugar(e.target.value)} placeholder='Custom label' style={iS}/><button type='button' onClick={()=>{ if(!customSugar.trim()) return; setVariants(v=>({...v,sugar:{...v.sugar,options:[...v.sugar.options,customSugar.trim()]}})); setCustomSugar('') }} style={miniBtn}>Add</button></div></div>}
         <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><input type='checkbox' checked={variants.temperature.enabled} onChange={e=>setVariants(v=>({...v,temperature:{...v.temperature,enabled:e.target.checked}}))}/>Has temperature options?</label>
-        {variants.temperature.enabled && <div style={{ marginBottom:10 }}>{['Cold','Ice Cold','Hot','Room Temp'].map(s=><button key={s} type='button' onClick={()=>setVariants(v=>({...v,temperature:{...v.temperature,options:v.temperature.options.includes(s)?v.temperature.options.filter(x=>x!==s):[...v.temperature.options,s]}}))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border)', borderRadius:999, padding:'3px 8px', background:variants.temperature.options.includes(s)?'var(--brand-lt)':'var(--card2)' }}>{s}</button>)}</div>}
+        {variants.temperature.enabled && <div style={{ marginBottom:10 }}>{['Cold','Ice Cold','Hot','Room Temp'].map(s=><button key={s} type='button' onClick={()=>setVariants(v=>({...v,temperature:{...v.temperature,options:v.temperature.options.includes(s)?v.temperature.options.filter(x=>x!==s):[...v.temperature.options,s]}}))} style={{ ...chipBtn, background:variants.temperature.options.includes(s)?'var(--brand-lt)':'var(--card2)' }}>{s}</button>)}</div>}
         <label style={{ display:'flex', alignItems:'center', gap:8 }}><input type='checkbox' checked={variants.addons.enabled} onChange={e=>setVariants(v=>({...v,addons:{...v.addons,enabled:e.target.checked,linkedIds:addonIds}}))}/>Has add-ons?</label>
       </div>
 
@@ -160,6 +155,16 @@ const iS = {
   background: 'var(--bg)', border: '1.5px solid var(--border2)',
   borderRadius: 8, color: 'var(--text)', fontSize: 'var(--fs-13)',
   outline: 'none', fontFamily: "'DM Sans'",
+}
+
+const miniBtn = {
+  border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px',
+  background: 'var(--card2)', color: 'var(--text)', fontSize: 'var(--fs-12)',
+}
+
+const chipBtn = {
+  marginRight: 6, marginBottom: 6, border: '1px solid var(--border)',
+  borderRadius: 999, padding: '3px 8px', color: 'var(--text)', fontSize: 'var(--fs-12)',
 }
 
 export default function ProductsPage() {
