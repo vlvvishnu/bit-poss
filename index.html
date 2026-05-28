@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-  <meta name="theme-color" content="#E8440A"/>
+  <meta name="theme-color" content="#F9F7F4"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
@@ -18,23 +18,62 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"/>
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"/>
 
-  <!-- Splash screen colors for iOS -->
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="/src/main.jsx"></script>
+  <script>var quickQtyProductId = null;</script>
   <script>
+    window.__biteDeferredPrompt = null
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault()
+      window.__biteDeferredPrompt = event
+    })
+
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      window.addEventListener('load', async () => {
+        let refreshing = false
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (refreshing) return
+          refreshing = true
+          window.location.reload()
+        })
+
+        // One-time hard reset for stale SW/bundle issues.
+        const CACHE_RESET_VERSION = 'sw-reset-v1'
+        if (localStorage.getItem(CACHE_RESET_VERSION) !== 'done') {
+          const regs = await navigator.serviceWorker.getRegistrations()
+          await Promise.all(regs.map(r => r.unregister()))
+          const keys = await caches.keys()
+          await Promise.all(keys.map(k => caches.delete(k)))
+          localStorage.setItem(CACHE_RESET_VERSION, 'done')
+          window.location.reload()
+          return
+        }
+
         navigator.serviceWorker.register('/sw.js')
-          .then(r => console.log('[BITE] SW registered'))
+          .then((registration) => {
+            console.log('[BITE] SW registered')
+
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+            }
+
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing
+              if (!newWorker) return
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' })
+                }
+              })
+            })
+          })
           .catch(e => console.log('[BITE] SW failed:', e))
       })
     }
   </script>
+  <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
