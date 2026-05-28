@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
-import { loadAddons, loadProductAddonTags, saveProductAddonTags } from '../../utils/addons'
+import { loadAddons, loadProductAddonTags, saveProductAddonTags, loadProductVariants, saveProductVariants } from '../../utils/addons'
 
 const ICONS = ['🍔','🍗','🌯','🍟','🥗','🍕','🌮','🥩','🌭','🥪','🍜','🍝','🍛','🥘','🍲',
                '🧆','🥙','🫔','🧅','🧀','🍳','🥚','🥓','🥞','🧇','🥐','🍞','🥖','🥨',
@@ -21,6 +21,17 @@ function ProductEditor({ product, onSave, onClose }) {
   const [ingredients, setIngr]  = useState((product?.ingredients || []).join(', '))
   const [loading, setLoading]   = useState(false)
   const [err, setErr]           = useState('')
+  const [variants, setVariants] = useState({ size:{enabled:false, priceMode:'delta', options:[]}, sugar:{enabled:false, options:[]}, temperature:{enabled:false, options:[]}, addons:{enabled:false, linkedIds:[]} })
+  const [sizeLabel, setSizeLabel] = useState('')
+  const [sizePrice, setSizePrice] = useState('')
+  const [customSugar, setCustomSugar] = useState('')
+
+  useEffect(() => {
+    const tags = loadProductAddonTags(tenantId)
+    setAddonIds(Array.isArray(tags[product?.id]) ? tags[product.id] : [])
+    const map = loadProductVariants(tenantId)
+    if (product?.id && map[product.id]) setVariants(map[product.id])
+  }, [tenantId, product?.id])
 
   useEffect(() => {
     const tags = loadProductAddonTags(tenantId)
@@ -48,6 +59,9 @@ function ProductEditor({ product, onSave, onClose }) {
       const tags = loadProductAddonTags(tenantId)
       tags[targetId] = addonIds
       saveProductAddonTags(tenantId, tags)
+      const vm = loadProductVariants(tenantId)
+      vm[targetId] = { ...variants, addons:{...variants.addons, linkedIds:addonIds} }
+      saveProductVariants(tenantId, vm)
     }
     onSave()
   }
@@ -93,6 +107,23 @@ function ProductEditor({ product, onSave, onClose }) {
           ))}
         </div>
       </Field>
+      <div style={{ border:'1px solid var(--border)', borderRadius:8, padding:10 }}>
+        <div style={{ fontWeight:700, marginBottom:8 }}>Variants</div>
+        <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><input type='checkbox' checked={variants.size.enabled} onChange={e=>setVariants(v=>({...v,size:{...v.size,enabled:e.target.checked}}))}/>Has size variants?</label>
+        {variants.size.enabled && <div style={{ marginBottom:10 }}>
+          <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+            <button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,priceMode:'fixed'}}))} style={{ border:'1px solid var(--border)', borderRadius:6, padding:'4px 8px', background:variants.size.priceMode==='fixed'?'var(--brand-lt)':'var(--card2)' }}>Fixed price</button>
+            <button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,priceMode:'delta'}}))} style={{ border:'1px solid var(--border)', borderRadius:6, padding:'4px 8px', background:variants.size.priceMode==='delta'?'var(--brand-lt)':'var(--card2)' }}>Extra charge</button>
+          </div>
+          {variants.size.options.map((o, i)=><div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 100px auto', gap:6, marginBottom:6 }}><input value={o.label} onChange={e=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.map((x,idx)=>idx===i?{...x,label:e.target.value}:x)}}))} style={iS}/><input type='number' value={o.price} onChange={e=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.map((x,idx)=>idx===i?{...x,price:Number(e.target.value)||0}:x)}}))} style={iS}/><button type='button' onClick={()=>setVariants(v=>({...v,size:{...v.size,options:v.size.options.filter((_,idx)=>idx!==i)}}))}>Remove</button></div>)}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 100px auto', gap:6 }}><input value={sizeLabel} onChange={e=>setSizeLabel(e.target.value)} placeholder='Large' style={iS}/><input type='number' value={sizePrice} onChange={e=>setSizePrice(e.target.value)} placeholder='20' style={iS}/><button type='button' onClick={()=>{ if(!sizeLabel.trim()) return; setVariants(v=>({...v,size:{...v.size,options:[...v.size.options,{label:sizeLabel.trim(),price:Number(sizePrice)||0}]}})); setSizeLabel(''); setSizePrice('') }}>Add</button></div>
+        </div>}
+        <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><input type='checkbox' checked={variants.sugar.enabled} onChange={e=>setVariants(v=>({...v,sugar:{...v.sugar,enabled:e.target.checked}}))}/>Has sugar level options?</label>
+        {variants.sugar.enabled && <div style={{ marginBottom:10 }}>{['0%','25%','50%','75%','100%'].map(s=><button key={s} type='button' onClick={()=>setVariants(v=>({...v,sugar:{...v.sugar,options:v.sugar.options.includes(s)?v.sugar.options.filter(x=>x!==s):[...v.sugar.options,s]}}))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border)', borderRadius:999, padding:'3px 8px', background:variants.sugar.options.includes(s)?'var(--brand-lt)':'var(--card2)' }}>{s}</button>)}<div style={{ display:'flex', gap:6 }}><input value={customSugar} onChange={e=>setCustomSugar(e.target.value)} placeholder='Custom label' style={iS}/><button type='button' onClick={()=>{ if(!customSugar.trim()) return; setVariants(v=>({...v,sugar:{...v.sugar,options:[...v.sugar.options,customSugar.trim()]}})); setCustomSugar('') }}>Add</button></div></div>}
+        <label style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8 }}><input type='checkbox' checked={variants.temperature.enabled} onChange={e=>setVariants(v=>({...v,temperature:{...v.temperature,enabled:e.target.checked}}))}/>Has temperature options?</label>
+        {variants.temperature.enabled && <div style={{ marginBottom:10 }}>{['Cold','Ice Cold','Hot','Room Temp'].map(s=><button key={s} type='button' onClick={()=>setVariants(v=>({...v,temperature:{...v.temperature,options:v.temperature.options.includes(s)?v.temperature.options.filter(x=>x!==s):[...v.temperature.options,s]}}))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border)', borderRadius:999, padding:'3px 8px', background:variants.temperature.options.includes(s)?'var(--brand-lt)':'var(--card2)' }}>{s}</button>)}</div>}
+        <label style={{ display:'flex', alignItems:'center', gap:8 }}><input type='checkbox' checked={variants.addons.enabled} onChange={e=>setVariants(v=>({...v,addons:{...v.addons,enabled:e.target.checked,linkedIds:addonIds}}))}/>Has add-ons?</label>
+      </div>
 
       <Field label="Ingredients (comma separated, optional)">
         <input value={ingredients} onChange={e => setIngr(e.target.value)} placeholder="Beef patty, Cheese, Lettuce" style={iS} />
@@ -137,6 +168,7 @@ export default function ProductsPage() {
   const [selected, setSelected]     = useState(new Set())
   const [editing, setEditing]       = useState(null)   // null | 'new' | product obj
   const [loading, setLoading]       = useState(false)
+  const addonTags = useMemo(() => loadProductAddonTags(tenantId), [tenantId, products.length])
 
   const filtered = useMemo(() =>
     catFilter === 'all' ? products : products.filter(p => String(p.category_id) === catFilter),
@@ -246,6 +278,7 @@ export default function ProductsPage() {
                   <div style={{ fontSize: 'var(--fs-11)', color: 'var(--text3)' }}>
                     {p.catIcon} {p.catName || 'Uncategorised'}
                   </div>
+                  {Array.isArray(addonTags[p.id]) && addonTags[p.id].length > 0 && <span style={{ display:'inline-block', marginTop:3, background:'#E1F5EE', color:'#0F6E56', borderRadius:999, padding:'1px 7px', fontSize:10 }}>+ Add-ons</span>}
                 </div>
                 <div style={{ fontWeight: 700, color: 'var(--brand)', fontSize: 'var(--fs-14)', flexShrink: 0 }}>
                   ₹{Number(p.price).toFixed(2)}

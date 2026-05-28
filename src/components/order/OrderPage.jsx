@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react'
-import { loadAddons, loadProductAddonTags } from '../../utils/addons'
+import { loadAddons, loadProductAddonTags, loadProductVariants } from '../../utils/addons'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
 import { useTheme } from '../../store/useTheme'
@@ -876,6 +876,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const tableName  = tableNum ? `T${tableNum}` : null
   const addons = useMemo(() => loadAddons(tenantId), [tenantId])
   const addonTags = useMemo(() => loadProductAddonTags(tenantId), [tenantId, products.length])
+  const variantMap = useMemo(() => loadProductVariants(tenantId), [tenantId, products.length])
 
   async function handleSendToKitchen() {
     if (!tableNum)    { showToast('Select a table first','warning'); return }
@@ -1067,6 +1068,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                 {group.items.map(p=>{
                   const qty=cart[p.id]?.qty
                   const isVariantOpen = overlayProductId === p.id && overlayType === 'customize'
+                  const vcfg = variantMap[p.id] || {}
+                  const hasCustom = !!(vcfg?.size?.enabled || vcfg?.sugar?.enabled || vcfg?.temperature?.enabled || (vcfg?.addons?.enabled && (vcfg?.addons?.linkedIds||[]).length>0))
                   return (
                     <div key={p.id} style={{
                       background: dark ? '#151515' : '#FFFFFF',
@@ -1111,7 +1114,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                             <button type="button" disabled={!qty} onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, -1) }} style={{ width:32,height:24,borderRadius:8,border:'1px solid var(--border2)',background:'var(--card2)',color:'var(--text)',opacity:qty?1:0.35 }}>−</button>
                             <span style={{ minWidth:10, textAlign:'center', color:'var(--text)', fontWeight:700 }}>{qty}</span>
                             <button type="button" onClick={event => { event.stopPropagation(); adjustQuickQty(event, p, 1) }} style={{ width:32,height:24,borderRadius:8,border:'1px solid var(--border2)',background:'var(--card2)',color:'var(--text)' }}>+</button>
-                            <button type="button" onClick={(e)=>{e.stopPropagation();setOverlayProductId(p.id);setOverlayType('customize');setCustomQty(Math.max(1,qty));setSameForAll(false);setOpenAccordion(0);setPerItemConfig(seedConfig(p.id, Math.max(1,qty)));}} disabled={qty===0} style={{ border:'none', background:'none', color:'var(--text2)', transform:isVariantOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.15s ease', padding:0 }}>▼</button>
+                            {hasCustom && <button type="button" onClick={(e)=>{e.stopPropagation();setOverlayProductId(p.id);setOverlayType('customize');setCustomQty(Math.max(1,qty));setSameForAll(false);setOpenAccordion(0);setPerItemConfig(seedConfig(p.id, Math.max(1,qty)));}} disabled={qty===0} style={{ border:'none', background:'none', color:'var(--text2)', transform:isVariantOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.15s ease', padding:0 }}>▼</button>}
                           </div>
                         ) : (
                           <button type="button" onClick={e => { e.stopPropagation(); addProductWithConfiguredMeta(p) }} style={{ height:24, border:'none', background:'none', color: dark ? '#00D26A' : '#10B981', fontWeight:700, fontSize:'14px', lineHeight:1 }}>+ Add</button>
@@ -1149,9 +1152,10 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                           <div style={{ fontWeight:700 }}>Item {idx+1}</div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)' }}>{cfg.size} · {cfg.temp} · Sugar {cfg.sugar}</div>
                         </button>
                         {openAccordion===idx && <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
-                          <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SIZE</div>{sizeOptions.map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,size:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.size===s?'var(--brand-lt)':'var(--card2)', color:cfg.size===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>
-                          <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>TEMPERATURE</div>{tempOptions.map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,temp:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.temp===s?'var(--brand-lt)':'var(--card2)', color:cfg.temp===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>
-                          <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SUGAR LEVEL</div>{sugarOptions.map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,sugar:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.sugar===s?'var(--brand-lt)':'var(--card2)', color:cfg.sugar===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>
+                          {(variantMap[overlayProduct.id]?.size?.enabled) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SIZE</div>{(variantMap[overlayProduct.id]?.size?.options||[]).map(s => <button key={s.label} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,size:s.label}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.size===s.label?'var(--brand-lt)':'var(--card2)', color:cfg.size===s.label?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s.label} {variantMap[overlayProduct.id]?.size?.priceMode==='delta'?`+₹${s.price}`:`₹${s.price}`}</button>)}</div>}
+                          {(variantMap[overlayProduct.id]?.temperature?.enabled && (variantMap[overlayProduct.id]?.temperature?.options||[]).length>1) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>TEMPERATURE</div>{(variantMap[overlayProduct.id]?.temperature?.options||[]).map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,temp:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.temp===s?'var(--brand-lt)':'var(--card2)', color:cfg.temp===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>}
+                          {(variantMap[overlayProduct.id]?.sugar?.enabled) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SUGAR LEVEL</div>{(variantMap[overlayProduct.id]?.sugar?.options||[]).map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,sugar:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.sugar===s?'var(--brand-lt)':'var(--card2)', color:cfg.sugar===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>}
+                          {(variantMap[overlayProduct.id]?.addons?.enabled) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>ADD-ONS</div>{taggedAddons(overlayProduct.id).filter(a=>(variantMap[overlayProduct.id]?.addons?.linkedIds||[]).includes(a.id)).map(addon=>{ const key=`${overlayProduct.id}:${addon.id}`; const c=addonCounts[key]||0; return <div key={addon.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}><span style={{ fontSize:'var(--fs-11)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span><div style={{ display:'flex', alignItems:'center', gap:6 }}><button onClick={()=>changeAddonQty(overlayProduct.id, addon.id, -1)} style={{ width:20,height:20,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)' }}>−</button><span>{c}</span><button onClick={()=>changeAddonQty(overlayProduct.id, addon.id, 1)} style={{ width:20,height:20,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button></div></div>})}</div>}
                         </div>}
                       </div>
                     ))}
