@@ -64,15 +64,11 @@ export default function SettingsPage() {
   const [taxRate,     setTaxRate]     = useState('')
   const [tableCount,  setTableCount]  = useState('')
   const [kioskId,     setKioskId]     = useState('')
-  const [waWebhook,   setWaWebhook]   = useState('')
   const [newPw,       setNewPw]       = useState('')
   const [confirmPw,   setConfirmPw]   = useState('')
 
   const [savingBiz, setSavingBiz] = useState(false)
   const [savingUpi, setSavingUpi] = useState(false)
-  const [savingWa,  setSavingWa]  = useState(false)
-  const [checkingWa, setCheckingWa] = useState(false)
-  const [waStatus, setWaStatus] = useState(null)
   const [savingPw,  setSavingPw]  = useState(false)
   const [addons, setAddons] = useState([])
   const [addonName, setAddonName] = useState('')
@@ -89,7 +85,6 @@ export default function SettingsPage() {
       setTaxRate(settings.tax_rate ?? '')
       setTableCount(settings.table_count ?? 10)
       setKioskId(settings.kiosk_id || '')
-      setWaWebhook(settings.wa_webhook_url || '')
     }
   }, [settings])
 
@@ -119,47 +114,6 @@ export default function SettingsPage() {
     if (data) setSettings(data)
     showToast('UPI settings saved ✓', 'success')
   }
-
-  async function saveWhatsApp() {
-    setSavingWa(true)
-    const { error } = await supabase.from('tenants').update({
-      wa_webhook_url: waWebhook.trim() || null,
-    }).eq('id', tenantId)
-    setSavingWa(false)
-    if (error) { showToast(error.message, 'error'); return }
-    const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).single()
-    if (data) setSettings(data)
-    showToast('WhatsApp settings saved ✓', 'success')
-  }
-
-  async function checkWhatsAppConnection() {
-    if (!waWebhook.trim()) {
-      showToast('Enter webhook URL first', 'warning')
-      return
-    }
-    setCheckingWa(true)
-    setWaStatus(null)
-    try {
-      const res = await fetch(waWebhook.trim(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiver: '919999999999', values: { '1': 'Test', '2': 'https://example.com' } }),
-      })
-      if (res.ok) {
-        setWaStatus('connected')
-        showToast('WhatsApp webhook reachable ✓', 'success')
-      } else {
-        setWaStatus('failed')
-        showToast(`Webhook returned ${res.status}`, 'warning')
-      }
-    } catch (e) {
-      setWaStatus('failed')
-      showToast('Webhook is not reachable', 'error')
-    } finally {
-      setCheckingWa(false)
-    }
-  }
-
 
   async function changePassword() {
     if (newPw !== confirmPw) { showToast('Passwords do not match', 'error'); return }
@@ -213,45 +167,6 @@ export default function SettingsPage() {
             <SaveBtn saving={savingUpi} onClick={saveUpi} label="Save UPI"/>
           </div>
         </Section>
-
-        {/* ── WhatsApp Invoice ─────────────────────────────────── */}
-        <Section title="📲 WhatsApp Invoice">
-          <div style={{ fontSize: 'var(--fs-12)', color:'var(--text3)', marginBottom:10, lineHeight:1.65 }}>
-            After getting your template <strong>order_invoice1</strong> approved in Emovur, go to<br/>
-            <strong>Dashboard → Templates → View/Edit Webhook</strong> and paste the URL below.<br/>
-            <span style={{ color:'var(--text2)' }}>
-              Template sends: <em>"Your invoice from [Restaurant] is ready 🧾 [link]"</em>
-            </span>
-          </div>
-          <Field
-            label="Emovur Webhook URL"
-            hint="Per-template webhook from your Emovur dashboard"
-          >
-            <div style={{ width:180 }}>
-              <input
-                value={waWebhook}
-                onChange={e => setWaWebhook(e.target.value)}
-                placeholder="https://adminapis.backendprod.com/…"
-                style={{ ...inputStyle, width:'100%', fontSize: 'var(--fs-11)', textAlign:'left' }}
-              />
-            </div>
-          </Field>
-          <div style={{ paddingTop:14 }}>
-            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-              <SaveBtn saving={savingWa} onClick={saveWhatsApp} label="Save WhatsApp"/>
-              <button onClick={checkWhatsAppConnection} disabled={checkingWa} style={{
-                background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)',
-                borderRadius:8, padding:'9px 12px', fontWeight:700, cursor:checkingWa?'default':'pointer',
-              }}>{checkingWa ? 'Checking…' : 'Check Connection'}</button>
-            </div>
-            {waStatus && (
-              <div style={{ marginTop:8, fontSize:'var(--fs-11)', color:waStatus==='connected'?'var(--green)':'var(--red)' }}>
-                {waStatus === 'connected' ? 'Connected: WhatsApp webhook is reachable.' : 'Not connected: verify webhook or provider settings.'}
-              </div>
-            )}
-          </div>
-        </Section>
-
 
         {/* ── Change Password ───────────────────────────────────── */}
         <Section title="🔒 Change Password">

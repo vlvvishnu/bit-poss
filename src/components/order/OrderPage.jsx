@@ -637,12 +637,11 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
         handleClose()
 
         // Auto-send WhatsApp invoice (non-blocking)
-        if (phone && settings?.wa_webhook_url) {
+        if (phone) {
           const bizName = settings?.biz_name || settings?.name || 'Restaurant'
           sendInvoiceWhatsApp(
             { id: order.id, customer_phone: phone },
-            bizName,
-            settings.wa_webhook_url
+            bizName
           )
             .then(r => { if (r.success) showToast('📱 Invoice sent on WhatsApp', 'success') })
             .catch(e => console.warn('[BITE] WA send failed:', e?.message))
@@ -745,7 +744,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
                   color:'var(--text)',fontSize: 'var(--fs-14)',outline:'none' }}/>
             </label>
           ))}
-          {phone && settings?.wa_webhook_url && (
+          {phone && (
             <div style={{ fontSize: 'var(--fs-11)',color:'#25D366',display:'flex',alignItems:'center',gap:5,
               background:'rgba(37,211,102,0.06)',border:'1px solid rgba(37,211,102,0.2)',
               borderRadius:7,padding:'6px 10px' }}>

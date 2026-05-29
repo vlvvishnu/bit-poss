@@ -334,16 +334,12 @@ export default function HistoryPage() {
   }
 
   async function resendWhatsApp(order) {
-    const webhookUrl = settings?.wa_webhook_url
-    if (!webhookUrl) {
-      showToast('Set Emovur webhook URL in Settings first', 'warning'); return
-    }
     if (!order.customer_phone) {
       showToast('No phone number for this order', 'warning'); return
     }
     setResending(true)
     const bizName = settings?.biz_name || settings?.name || 'Restaurant'
-    const result  = await sendInvoiceWhatsApp(order, bizName, webhookUrl)
+    const result  = await sendInvoiceWhatsApp(order, bizName)
     setResending(false)
     showToast(
       result.success ? '📱 Invoice resent on WhatsApp!' : '⚠️ ' + result.message,
