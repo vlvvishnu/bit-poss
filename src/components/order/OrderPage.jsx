@@ -6,6 +6,24 @@ import { useTheme } from '../../store/useTheme'
 import Modal from '../ui/Modal'
 import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 
+const AddonGlyph = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <path d="M4 10.5h16v1.8H4z" fill="currentColor"/>
+    <path d="M7 12.5h10l1.2 5.8H5.8z" fill="currentColor"/>
+    <circle cx="8.2" cy="9.1" r="2.2" fill="currentColor"/>
+    <circle cx="12" cy="7.5" r="2" fill="currentColor"/>
+    <circle cx="15.8" cy="9.1" r="2.2" fill="currentColor"/>
+    <path d="M18 4l3-1.2L19.8 0 16.8 1.2z" fill="currentColor"/>
+  </svg>
+)
+
+const NoteGlyph = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <rect x="3.5" y="2.8" width="14.2" height="18.4" rx="2.5" stroke="currentColor" strokeWidth="1.8"/>
+    <path d="M7 8h7M7 11.5h7M7 15h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M17.8 14.6v6.2M14.7 17.7h6.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+  </svg>
+)
 // ── Status config ─────────────────────────────────────────────────
 const STATUS = {
   pending:   { label:'⏳ Waiting',   bg:'rgba(245,158,11,0.12)', color:'#F59E0B' },
@@ -827,8 +845,25 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }, [])
 
   useEffect(() => {
-    clearCart(); setItemNotes({}); setOptimisticRounds([])
+    clearCart(); setItemNotes({}); setOptimisticRounds([]); setQuickQtyProductId(null)
   }, [tableNum])
+
+  useEffect(() => () => clearLongPressTimer(), [])
+
+  useEffect(() => {
+    function clearQuickQtyOnOutsidePress(event) {
+      if (!quickQtyProductId) return
+      if (event.target.closest('[data-product-card="true"]')) return
+      setQuickQtyProductId(null)
+    }
+
+    document.addEventListener('pointerdown', clearQuickQtyOnOutsidePress)
+    return () => document.removeEventListener('pointerdown', clearQuickQtyOnOutsidePress)
+  }, [quickQtyProductId])
+
+  useEffect(() => {
+    setQuickQtyProductId(null)
+  }, [activeCat])
 
   const isDine     = orderType === 'dine'
   const items      = cartItems()
