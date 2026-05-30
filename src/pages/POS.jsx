@@ -179,12 +179,13 @@ export default function POS() {
     try {
       if (!window.screen?.orientation) return
       if (allowRotate) {
-        window.screen.orientation.unlock?.()
+        if (window.screen.orientation.lock) await window.screen.orientation.lock('any')
+        else window.screen.orientation.unlock?.()
         return
       }
       await window.screen.orientation.lock?.('portrait-primary')
     } catch {
-      // Some browsers only allow orientation lock in installed/fullscreen contexts.
+      // The manifest still enforces portrait for installed PWAs when runtime locking is unavailable.
     }
   }
 
@@ -198,7 +199,16 @@ export default function POS() {
   }
 
   useEffect(() => {
-    applyOrientationPreference(autoRotate)
+    const apply = () => applyOrientationPreference(autoRotate)
+    apply()
+    window.addEventListener('pageshow', apply)
+    document.addEventListener('visibilitychange', apply)
+    window.screen?.orientation?.addEventListener?.('change', apply)
+    return () => {
+      window.removeEventListener('pageshow', apply)
+      document.removeEventListener('visibilitychange', apply)
+      window.screen?.orientation?.removeEventListener?.('change', apply)
+    }
   }, [autoRotate])
 
 
