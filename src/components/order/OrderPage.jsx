@@ -425,11 +425,20 @@ function TableOrderPanel({
 }
 
 // ── Non-dine cart panel ────────────────────────────────────────────
-function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, notes, getSelectedAddons, getCustomLines }) {
-  const extraTotal = item => [
+function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, notes, getSelectedAddons, getCustomLines, onUpdateAddonQty }) {
+  const detailLines = item => [
+    ...(item.details || []),
     ...(getCustomLines?.(item.id) || []),
-    ...(getSelectedAddons?.(item.id) || []),
-  ].reduce((a, line) => a + Number(line.price || 0) * Number(line.qty || 1), 0)
+    ...(getSelectedAddons?.(item.productId || item.id) || []),
+  ]
+  const extraTotal = item => {
+    const itemDetailTotal = (item.details || []).reduce((a, line) => a + Number(line.price || line.unitPrice || 0) * Number(line.qty || 1), 0) * Number(item.qty || 1)
+    const legacyTotal = [
+      ...(getCustomLines?.(item.id) || []),
+      ...(getSelectedAddons?.(item.productId || item.id) || []),
+    ].reduce((a, line) => a + Number(line.price || line.unitPrice || 0) * Number(line.qty || 1), 0)
+    return itemDetailTotal + legacyTotal
+  }
   const sub    = items.reduce((s,i)=>s+i.price*i.qty + extraTotal(i),0)
   const taxRate= (settings?.tax_rate||0)/100
   const total  = sub+sub*taxRate
@@ -460,20 +469,25 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
               {(notes?.[item.id] || '').trim() && (
                 <div style={{ marginTop:2, fontSize:'var(--fs-10)', color:'#B6FFD4' }}>📝 {notes[item.id]}</div>
               )}
-              {((getCustomLines?.(item.id)?.length || 0) > 0 || (getSelectedAddons?.(item.id)?.length || 0) > 0) && (
+              {detailLines(item).length > 0 && (
                 <div style={{ marginTop:4, paddingLeft:20, borderLeft:'1px solid rgba(255,255,255,0.08)' }}>
-                  {(getCustomLines?.(item.id)||[]).map((line, idx) => (
-                    <div key={`custom-${idx}`} style={{ display:'flex', justifyContent:'space-between', fontSize:'var(--fs-11)', color:'var(--text2)' }}>
-                      <span>└ {line.label}{line.qty > 1 ? ` ×${line.qty}` : ''}</span>
-                      <span>+₹{(Number(line.price||0)*Number(line.qty||1)).toFixed(2)}</span>
-                    </div>
-                  ))}
-                  {getSelectedAddons(item.id).map(a => (
-                    <div key={a.id} style={{ display:'flex', justifyContent:'space-between', fontSize:'var(--fs-11)', color:'var(--text2)' }}>
-                      <span>└ {a.name} ×{a.qty}</span>
-                      <span>+₹{(Number(a.price) * a.qty).toFixed(2)}</span>
-                    </div>
-                  ))}
+                  {detailLines(item).map((line, idx) => {
+                    const linePrice = Number(line.price || line.unitPrice || 0) * Number(line.qty || 1) * (item.details?.includes(line) ? Number(item.qty || 1) : 1)
+                    const isAddon = line.type === 'addon'
+                    return (
+                      <div key={`${line.id || line.label}-${idx}`} style={{ display:'flex', alignItems:'center', gap:6, fontSize:'var(--fs-11)', color:'var(--text2)' }}>
+                        <span style={{ flex:1 }}>└ {line.label || line.name}</span>
+                        {isAddon && (
+                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <button onClick={() => onUpdateAddonQty?.(item.id, line.id, -1)} style={{ width:18,height:18,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)',fontSize:'var(--fs-10)',display:'flex',alignItems:'center',justifyContent:'center' }}>−</button>
+                            <span style={{ minWidth:12,textAlign:'center',fontWeight:700 }}>{line.qty || 1}</span>
+                            <button onClick={() => onUpdateAddonQty?.(item.id, line.id, 1)} style={{ width:18,height:18,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff',fontSize:'var(--fs-10)',display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
+                          </div>
+                        )}
+                        <span style={{ minWidth:48,textAlign:'right' }}>+₹{linePrice.toFixed(2)}</span>
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -496,6 +510,13 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
       </div>
       {items.length>0 && (
         <div style={{ borderTop:'1px solid var(--border)',padding:12,flexShrink:0 }}>
+          <div style={{ display:'flex',justifyContent:'space-between',fontSize:'var(--fs-12)',color:'var(--text2)',marginBottom:6 }}>
+            <span>Subtotal</span><span>₹{sub.toFixed(2)}</span>
+          </div>
+          <div style={{ display:'flex',justifyContent:'space-between',fontSize:'var(--fs-12)',color:'var(--text2)',marginBottom:8 }}>
+            <span>Taxes & charges</span><span>₹{(total-sub).toFixed(2)}</span>
+          </div>
+          <div style={{ height:1,background:'var(--border)',marginBottom:8 }} />
           <div style={{ display:'flex',justifyContent:'space-between',
             fontSize: 'var(--fs-14)',fontWeight:800,marginBottom:10 }}>
             <span>Total</span>
@@ -515,7 +536,7 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
 // ── Mobile bottom sheet ────────────────────────────────────────────
 function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   cartItems, onAdd, onRemove, onSendToKitchen, onCheckout, onTableCheckout,
-  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded, getSelectedAddons, getCustomLines }) {
+  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded, getSelectedAddons, getCustomLines, onUpdateAddonQty }) {
 
   if (!open) return null
   return (
@@ -553,7 +574,7 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
             <CartPanel items={cartItems} orderType="takeaway"
               onAdd={onAdd} onRemove={onRemove}
               onCheckout={() => { onCheckout(); onClose() }}
-              settings={settings} notes={notes} getSelectedAddons={getSelectedAddons} getCustomLines={getCustomLines}/>
+              settings={settings} notes={notes} getSelectedAddons={getSelectedAddons} getCustomLines={getCustomLines} onUpdateAddonQty={onUpdateAddonQty}/>
           )}
         </div>
       </div>
@@ -632,7 +653,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           (items||[]).map(i => ({
             tenant_id:    tenantId,
             order_id:     order.id,
-            product_id:   i.id || i.product_id,
+            product_id:   i.productId || i.product_id || i.id,
             product_name: i.name || i.product_name,
             product_icon: i.icon || i.product_icon || '',
             unit_price:   Number(i.price || i.unit_price),
@@ -819,7 +840,7 @@ function SuccessModal({ order, onClose }) {
 
 // ── Main OrderPage ─────────────────────────────────────────────────
 export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
-  const { categories, products, addToCart, removeFromCart, cart, cartItems,
+  const { categories, products, addToCart, removeFromCart, updateCartItem, cart, cartItems,
           cartSubtotal, clearCart, settings, tenantId, showToast } = useStore()
   const { dark } = useTheme()
 
@@ -884,11 +905,17 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const addons = useMemo(() => loadAddons(tenantId), [tenantId])
   const addonTags = useMemo(() => loadProductAddonTags(tenantId), [tenantId, products.length])
   const variantMap = useMemo(() => loadProductVariants(tenantId), [tenantId, products.length])
-  const itemExtraTotal = productId => [
-    ...(customLines[productId] || []),
-    ...selectedAddonsForProduct(productId),
-  ].reduce((sum, line) => sum + Number(line.price || 0) * Number(line.qty || 1), 0)
-  const sub        = cartSubtotal() + items.reduce((sum, item) => sum + itemExtraTotal(item.id), 0)
+  const itemExtraTotal = itemOrId => {
+    const item = typeof itemOrId === 'object' ? itemOrId : cart[itemOrId]
+    const productId = typeof itemOrId === 'object' ? (item.productId || item.id) : itemOrId
+    const detailTotal = ((item?.details) || []).reduce((sum, line) => sum + Number(line.price || line.unitPrice || 0) * Number(line.qty || 1), 0) * Number(item?.qty || 1)
+    const legacyTotal = [
+      ...(customLines[productId] || []),
+      ...selectedAddonsForProduct(productId),
+    ].reduce((sum, line) => sum + Number(line.price || line.unitPrice || 0) * Number(line.qty || 1), 0)
+    return detailTotal + legacyTotal
+  }
+  const sub        = cartSubtotal() + items.reduce((sum, item) => sum + itemExtraTotal(item), 0)
   const taxRate    = (settings?.tax_rate||0)/100
   const total      = sub + sub * taxRate
   const cartCount  = items.reduce((s,i) => s+i.qty, 0)
@@ -904,7 +931,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
       id: `opt-${Date.now()}`, order_number: null, status: 'pending',
       order_items: items.map(i => ({
         id:`oi-${i.id}`, product_name:i.name, product_icon:i.icon||'',
-        qty:i.qty, unit_price:Number(i.price) + (itemExtraTotal(i.id) / Math.max(Number(i.qty) || 1, 1)), status:'active', notes:itemNotes[i.id]||null,
+        qty:i.qty, unit_price:Number(i.price) + (itemExtraTotal(i) / Math.max(Number(i.qty) || 1, 1)), status:'active', notes:itemNotes[i.id]||null,
       })),
     }
     setOptimisticRounds(prev => [optimisticOrder, ...prev])
@@ -921,8 +948,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
       const { error } = await supabase.from('order_items').insert(
         items.map(i=>({
           tenant_id:tenantId, order_id:o.id,
-          product_id:i.id, product_name:i.name, product_icon:i.icon||'',
-          unit_price:Number(i.price) + (itemExtraTotal(i.id) / Math.max(Number(i.qty) || 1, 1)), qty:Number(i.qty), status:'active',
+          product_id:i.productId || i.product_id || i.id, product_name:i.name, product_icon:i.icon||'',
+          unit_price:Number(i.price) + (itemExtraTotal(i) / Math.max(Number(i.qty) || 1, 1)), qty:Number(i.qty), status:'active',
           notes:itemNotes[i.id]||null,
         }))
       )
@@ -952,13 +979,42 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   function noteActionLabel(productId) {
     return (productCardNotes[productId] || '').trim() ? 'View Notes' : '+Notes'
   }
-  const sizeOptions = ['Small', 'Medium', 'Large']
   const tempOptions = ['Cold', 'Ice Cold', 'Room Temp']
   const sugarOptions = ['0%', '25%', '50%', '75%', '100%']
-  const getSize = (productId) => selectedSizeByProduct[productId] || 'Medium'
+  const defaultSize = 'Regular'
+  const getSize = (productId) => selectedSizeByProduct[productId] || defaultSize
   const getVariant = (productId) => selectedVariantByProduct[productId] || 'Cold'
+  const defaultConfig = productId => ({ size: getSize(productId), temp: getVariant(productId), sugar: '50%', addons: {} })
+
   function seedConfig(productId, qty = 1) {
-    return Array.from({ length: qty }, () => ({ size: getSize(productId), temp: getVariant(productId), sugar: '50%' }))
+    return Array.from({ length: qty }, () => defaultConfig(productId))
+  }
+
+  function sizeOptionsForProduct(productId) {
+    const opts = variantMap[productId]?.size?.options || []
+    const normalized = opts.map(o => ({ label: o.label, price: Number(o.price || 0) }))
+    return normalized.some(o => o.label === defaultSize)
+      ? normalized
+      : [{ label: defaultSize, price: 0 }, ...normalized]
+  }
+
+  function updateItemConfig(idx, updater) {
+    setPerItemConfig(prev => {
+      const next = prev.map((cfg, i) => {
+        if (sameForAll) return updater({ ...(prev[0] || defaultConfig(overlayProductId)), addons:{ ...((prev[0] || {}).addons || {}) } })
+        if (i !== idx) return cfg
+        return updater({ ...cfg, addons:{ ...(cfg.addons || {}) } })
+      })
+      return next
+    })
+  }
+
+  function toggleSameForAll(checked) {
+    setSameForAll(checked)
+    if (checked) {
+      setPerItemConfig(prev => prev.map(() => ({ ...(prev[0] || defaultConfig(overlayProductId)), addons:{ ...((prev[0] || {}).addons || {}) } })))
+      showToast('Item 1 customisation applied to all items', 'success')
+    }
   }
 
   function composeItemNote(productId) {
@@ -978,13 +1034,28 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
       if (mergedNote) handleNoteChange(product.id, mergedNote)
     }
   }
+
+
+  function qtyForProduct(productId) {
+    return items
+      .filter(item => (item.productId || item.id) === productId)
+      .reduce((sum, item) => sum + Number(item.qty || 0), 0)
+  }
+
+  function removeOneProductUnit(productId) {
+    if (cart[productId]) { removeFromCart(productId); return }
+    const firstVariant = items.find(i => (i.productId || i.id) === productId)
+    if (firstVariant) removeFromCart(firstVariant.id)
+  }
+
   function adjustQuickQty(e, product, delta) {
     e.stopPropagation()
     if (delta > 0) addToCart(product)
-    else removeFromCart(product.id)
+    else removeOneProductUnit(product.id)
   }
 
   function sizePriceFor(productId, sizeLabel) {
+    if (!sizeLabel || sizeLabel === defaultSize) return 0
     const cfg = variantMap[productId]?.size
     const option = cfg?.options?.find(o => o.label === sizeLabel)
     if (!option) return 0
@@ -992,22 +1063,48 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
     return cfg.priceMode === 'fixed' ? Math.max(0, price - Number(products.find(p => p.id === productId)?.price || 0)) : price
   }
 
+  function buildCartVariant(product, cfg = defaultConfig(product.id)) {
+    const addonDetails = Object.entries(cfg.addons || {})
+      .map(([id, qty]) => {
+        const addon = taggedAddons(product.id).find(a => a.id === id)
+        return addon && qty > 0 ? { type:'addon', id, label:addon.name, qty:Number(qty), price:Number(addon.price || 0) } : null
+      })
+      .filter(Boolean)
+    const sizeDelta = sizePriceFor(product.id, cfg.size)
+    const details = [
+      ...(sizeDelta > 0 ? [{ type:'size', label:cfg.size, qty:1, price:sizeDelta }] : []),
+      ...addonDetails,
+    ]
+    const identity = {
+      size: cfg.size || defaultSize,
+      temp: cfg.temp || 'Cold',
+      sugar: cfg.sugar || '50%',
+      addons: addonDetails.map(a => [a.id, a.qty]).sort((a,b) => a[0].localeCompare(b[0])),
+    }
+    return {
+      cartKey: `${product.id}::${JSON.stringify(identity)}`,
+      productId: product.id,
+      name: product.name,
+      icon: product.icon || '',
+      price: Number(product.price || 0),
+      customization: identity,
+      details,
+    }
+  }
+
   function applyCustomization(product) {
-    const currentQty = cart[product.id]?.qty || 0
     const desiredQty = customQty
-    for (let i = currentQty; i < desiredQty; i += 1) addToCart(product)
-    for (let i = desiredQty; i < currentQty; i += 1) removeFromCart(product.id)
-    const configs = sameForAll ? Array.from({ length: desiredQty }, () => perItemConfig[0] || {}) : perItemConfig.slice(0, desiredQty)
-    const sizeCounts = {}
-    configs.forEach(cfg => {
-      const size = cfg.size
-      const price = sizePriceFor(product.id, size)
-      if (size && price > 0) {
-        const key = `${size}:${price}`
-        sizeCounts[key] = { label: size, price, qty: (sizeCounts[key]?.qty || 0) + 1 }
-      }
-    })
-    setCustomLines(prev => ({ ...prev, [product.id]: Object.values(sizeCounts) }))
+    const configs = perItemConfig.slice(0, desiredQty)
+    while (configs.length < desiredQty) configs.push(defaultConfig(product.id))
+
+    items
+      .filter(item => (item.productId || item.id) === product.id)
+      .forEach(item => {
+        for (let count = 0; count < item.qty; count += 1) removeFromCart(item.id)
+      })
+
+    configs.forEach(cfg => addToCart(buildCartVariant(product, cfg)))
+    setCustomLines(prev => ({ ...prev, [product.id]: [] }))
     if (configs[0]?.size) setSelectedSizeByProduct(prev => ({ ...prev, [product.id]: configs[0].size }))
     if (configs[0]?.temp) setSelectedVariantByProduct(prev => ({ ...prev, [product.id]: configs[0].temp }))
     setOverlayProductId(null); setOverlayType(null)
@@ -1035,10 +1132,20 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
     })
   }
 
+  function updateCartAddonQty(cartKey, addonId, delta) {
+    updateCartItem(cartKey, item => {
+      const details = (item.details || []).map(line => {
+        if (line.id !== addonId) return line
+        return { ...line, qty: Math.max(0, Number(line.qty || 0) + delta) }
+      }).filter(line => line.type !== 'addon' || Number(line.qty || 0) > 0)
+      return { ...item, details }
+    })
+  }
+
   function cartItemsWithExtras() {
     return items.map(item => ({
       ...item,
-      price: Number(item.price || 0) + (itemExtraTotal(item.id) / Math.max(Number(item.qty) || 1, 1)),
+      price: Number(item.price || 0) + (itemExtraTotal(item) / Math.max(Number(item.qty) || 1, 1)),
     }))
   }
 
@@ -1120,7 +1227,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                 gap:6, marginBottom:10
               }}>
                 {group.items.map(p=>{
-                  const qty=cart[p.id]?.qty
+                  const qty=qtyForProduct(p.id)
                   const isVariantOpen = overlayProductId === p.id && overlayType === 'customize'
                   const vcfg = variantMap[p.id] || {}
                   const linkedAddonIds = (vcfg?.addons?.linkedIds?.length ? vcfg.addons.linkedIds : addonTags[p.id]) || []
@@ -1199,21 +1306,21 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                       <span style={{ background:'var(--brand)', color:'#fff', borderRadius:999, padding:'2px 8px', fontSize:'var(--fs-11)', fontWeight:700 }}>{customQty}</span>
                     </div>
                     <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:16 }}>
-                      <button onClick={()=>{setCustomQty(q=>Math.max(1,q-1)); setPerItemConfig(prev=>prev.slice(0,-1)); setOpenAccordion(0)}} style={{ width:44,height:44,borderRadius:999,border:'1px solid var(--brand)',background:'none',color:'var(--brand)' }}>−</button>
+                      <button onClick={()=>{setCustomQty(q=>Math.max(1,q-1)); setPerItemConfig(prev=>prev.length>1?prev.slice(0,-1):prev); setOpenAccordion(0)}} style={{ width:44,height:44,borderRadius:999,border:'1px solid var(--brand)',background:'none',color:'var(--brand)' }}>−</button>
                       <span style={{ fontSize:'var(--fs-20)', fontWeight:700 }}>{customQty}</span>
-                      <button onClick={()=>{setCustomQty(q=>q+1); setPerItemConfig(prev=>[...prev, {size:getSize(overlayProduct.id), temp:getVariant(overlayProduct.id), sugar:'50%'}])}} style={{ width:44,height:44,borderRadius:999,border:'1px solid var(--brand)',background:'none',color:'var(--brand)' }}>+</button>
+                      <button onClick={()=>{setCustomQty(q=>q+1); setPerItemConfig(prev=>[...prev, sameForAll ? { ...(prev[0] || defaultConfig(overlayProduct.id)), addons:{...((prev[0] || {}).addons || {})} } : defaultConfig(overlayProduct.id)])}} style={{ width:44,height:44,borderRadius:999,border:'1px solid var(--brand)',background:'none',color:'var(--brand)' }}>+</button>
                     </div>
-                    {customQty >= 2 && <label style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)' }}><span>Same customisation for all</span><input type="checkbox" checked={sameForAll} onChange={e=>setSameForAll(e.target.checked)} /></label>}
-                    {(sameForAll ? [perItemConfig[0] || {size:getSize(overlayProduct.id), temp:getVariant(overlayProduct.id), sugar:'50%'}] : perItemConfig).map((cfg, idx) => (
+                    {customQty >= 2 && <label style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderTop:'1px solid var(--border)',borderBottom:'1px solid var(--border)' }}><span>Same customisation for all</span><input type="checkbox" checked={sameForAll} onChange={e=>toggleSameForAll(e.target.checked)} /></label>}
+                    {perItemConfig.map((cfg, idx) => (
                       <div key={idx} style={{ border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
                         <button onClick={()=>setOpenAccordion(openAccordion===idx?-1:idx)} style={{ width:'100%', textAlign:'left', background:'var(--card2)', border:'none', padding:'10px 12px', color:'var(--text)' }}>
                           <div style={{ fontWeight:700 }}>Item {idx+1}</div><div style={{ fontSize:'var(--fs-11)', color:'var(--text2)' }}>{cfg.size} · {cfg.temp} · Sugar {cfg.sugar}</div>
                         </button>
                         {openAccordion===idx && <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
-                          {(variantMap[overlayProduct.id]?.size?.enabled) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SIZE</div>{(variantMap[overlayProduct.id]?.size?.options||[]).map(s => <button key={s.label} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,size:s.label}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.size===s.label?'var(--brand-lt)':'var(--card2)', color:cfg.size===s.label?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s.label} {variantMap[overlayProduct.id]?.size?.priceMode==='delta'?`+₹${s.price}`:`₹${s.price}`}</button>)}</div>}
-                          {(variantMap[overlayProduct.id]?.temperature?.enabled && (variantMap[overlayProduct.id]?.temperature?.options||[]).length>1) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>TEMPERATURE</div>{(variantMap[overlayProduct.id]?.temperature?.options||[]).map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,temp:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.temp===s?'var(--brand-lt)':'var(--card2)', color:cfg.temp===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>}
-                          {(variantMap[overlayProduct.id]?.sugar?.enabled) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SUGAR LEVEL</div>{(variantMap[overlayProduct.id]?.sugar?.options||[]).map(s => <button key={s} onClick={()=>setPerItemConfig(prev=>prev.map((x,i)=>i===idx?{...x,sugar:s}:x))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.sugar===s?'var(--brand-lt)':'var(--card2)', color:cfg.sugar===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>}
-                          {(variantMap[overlayProduct.id]?.addons?.enabled) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>ADD-ONS</div>{taggedAddons(overlayProduct.id).filter(a=>(variantMap[overlayProduct.id]?.addons?.linkedIds||[]).includes(a.id)).map(addon=>{ const key=`${overlayProduct.id}:${addon.id}`; const c=addonCounts[key]||0; return <div key={addon.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}><span style={{ fontSize:'var(--fs-11)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span><div style={{ display:'flex', alignItems:'center', gap:6 }}><button onClick={()=>changeAddonQty(overlayProduct.id, addon.id, -1)} style={{ width:20,height:20,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)' }}>−</button><span>{c}</span><button onClick={()=>changeAddonQty(overlayProduct.id, addon.id, 1)} style={{ width:20,height:20,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button></div></div>})}</div>}
+                          {(variantMap[overlayProduct.id]?.size?.enabled) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SIZE</div>{sizeOptionsForProduct(overlayProduct.id).map(s => <button key={s.label} onClick={()=>updateItemConfig(idx, cfg => ({...cfg,size:s.label}))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.size===s.label?'var(--brand-lt)':'var(--card2)', color:cfg.size===s.label?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s.label} {variantMap[overlayProduct.id]?.size?.priceMode==='delta'?`+₹${s.price}`:`₹${s.price}`}</button>)}</div>}
+                          {(variantMap[overlayProduct.id]?.temperature?.enabled && (variantMap[overlayProduct.id]?.temperature?.options||[]).length>1) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>TEMPERATURE</div>{(variantMap[overlayProduct.id]?.temperature?.options||[]).map(s => <button key={s} onClick={()=>updateItemConfig(idx, cfg => ({...cfg,temp:s}))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.temp===s?'var(--brand-lt)':'var(--card2)', color:cfg.temp===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>}
+                          {(variantMap[overlayProduct.id]?.sugar?.enabled) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>SUGAR LEVEL</div>{(variantMap[overlayProduct.id]?.sugar?.options||[]).map(s => <button key={s} onClick={()=>updateItemConfig(idx, cfg => ({...cfg,sugar:s}))} style={{ marginRight:6, marginBottom:6, border:'1px solid var(--border2)', background:cfg.sugar===s?'var(--brand-lt)':'var(--card2)', color:cfg.sugar===s?'var(--brand)':'var(--text)', borderRadius:999, padding:'5px 10px' }}>{s}</button>)}</div>}
+                          {((variantMap[overlayProduct.id]?.addons?.enabled) || taggedAddons(overlayProduct.id).length > 0) && <div><div style={{ fontSize:'var(--fs-10)', color:'var(--text2)', marginBottom:4 }}>ADD-ONS</div>{taggedAddons(overlayProduct.id).filter(a=>{ const linked=variantMap[overlayProduct.id]?.addons?.linkedIds||[]; return linked.length ? linked.includes(a.id) : true }).map(addon=>{ const c=(cfg.addons||{})[addon.id]||0; return <div key={addon.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}><span style={{ fontSize:'var(--fs-11)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span><div style={{ display:'flex', alignItems:'center', gap:6 }}><button onClick={()=>updateItemConfig(idx, item => ({...item, addons:{...(item.addons||{}), [addon.id]:Math.max(0, ((item.addons||{})[addon.id]||0)-1)}}))} style={{ width:20,height:20,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)' }}>−</button><span>{c}</span><button onClick={()=>updateItemConfig(idx, item => ({...item, addons:{...(item.addons||{}), [addon.id]:((item.addons||{})[addon.id]||0)+1}}))} style={{ width:20,height:20,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button></div></div>})}</div>}
                         </div>}
                       </div>
                     ))}
@@ -1247,7 +1354,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
               <CartPanel items={items} orderType={orderType}
                 onAdd={addToCart} onRemove={removeFromCart}
                 onCheckout={openCheckout} settings={settings}
-                notes={itemNotes} getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]}/>
+                notes={itemNotes} getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]} onUpdateAddonQty={updateCartAddonQty}/>
             )}
           </div>
         )}
@@ -1342,7 +1449,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                   order_items:items.map(i=>({
                     id:`p-${i.id}`,product_name:i.name,
                     product_icon:i.icon||'',qty:i.qty,
-                    unit_price:Number(i.price) + (itemExtraTotal(i.id) / Math.max(Number(i.qty) || 1, 1)),status:'active',
+                    unit_price:Number(i.price) + (itemExtraTotal(i) / Math.max(Number(i.qty) || 1, 1)),status:'active',
                     notes:itemNotes[i.id]||null,
                   })),
                 }}
@@ -1389,7 +1496,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         notes={itemNotes} onChangeNote={handleNoteChange}
         optimisticRounds={optimisticRounds}
         onRealDataLoaded={() => setOptimisticRounds([])}
-        getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]}/>
+        getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]} onUpdateAddonQty={updateCartAddonQty}/>
 
       <CheckoutModal open={!!checkoutData} onClose={()=>setCheckoutData(null)}
         checkoutData={checkoutData}
