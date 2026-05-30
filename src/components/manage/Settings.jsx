@@ -7,8 +7,8 @@ function Field({ label, hint, children }) {
     <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between',
       gap:16, padding:'14px 0', borderBottom:'1px solid var(--border)' }}>
       <div style={{ flex:1 }}>
-        <div style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{label}</div>
-        {hint && <div style={{ fontSize:11, color:'var(--text3)', marginTop:2 }}>{hint}</div>}
+        <div style={{ fontSize: 'var(--fs-13)', fontWeight:600, color:'var(--text)' }}>{label}</div>
+        {hint && <div style={{ fontSize: 'var(--fs-11)', color:'var(--text3)', marginTop:2 }}>{hint}</div>}
       </div>
       <div style={{ flexShrink:0 }}>{children}</div>
     </div>
@@ -17,17 +17,11 @@ function Field({ label, hint, children }) {
 
 const inputStyle = {
   background:'var(--card2)', border:'1.5px solid var(--border2)',
-  borderRadius:8, color:'var(--text)', fontSize:13,
+  borderRadius:8, color:'var(--text)', fontSize: 'var(--fs-13)',
   padding:'7px 10px', outline:'none', fontFamily:"'DM Sans'",
   width:180, textAlign:'right',
 }
 
-const wideInputStyle = {
-  ...inputStyle,
-  width: '100%',
-  textAlign: 'left',
-  boxSizing: 'border-box',
-}
 
 // ── single save button used everywhere in this file ───────────────
 function SaveBtn({ saving, onClick, label = 'Save' }) {
@@ -36,7 +30,7 @@ function SaveBtn({ saving, onClick, label = 'Save' }) {
       background: saving ? 'var(--card2)' : 'var(--brand)',
       color: saving ? 'var(--text2)' : '#fff',
       border: 'none', borderRadius:8, padding:'9px 20px',
-      fontWeight:700, fontSize:13, cursor: saving ? 'default' : 'pointer',
+      fontWeight:700, fontSize: 'var(--fs-13)', cursor: saving ? 'default' : 'pointer',
       display:'flex', alignItems:'center', gap:6, transition:'all 0.15s',
     }}>
       {saving && (
@@ -52,7 +46,7 @@ function SaveBtn({ saving, onClick, label = 'Save' }) {
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom:28 }}>
-      <div style={{ fontSize:13, fontWeight:700, color:'var(--text2)',
+      <div style={{ fontSize: 'var(--fs-13)', fontWeight:700, color:'var(--text2)',
         padding:'8px 0', borderBottom:'2px solid var(--border)', marginBottom:4 }}>
         {title}
       </div>
@@ -69,16 +63,13 @@ export default function SettingsPage() {
   const [taxRate,     setTaxRate]     = useState('')
   const [tableCount,  setTableCount]  = useState('')
   const [kioskId,     setKioskId]     = useState('')
-  const [waWebhook,   setWaWebhook]   = useState('')
   const [newPw,       setNewPw]       = useState('')
   const [confirmPw,   setConfirmPw]   = useState('')
 
   const [savingBiz, setSavingBiz] = useState(false)
   const [savingUpi, setSavingUpi] = useState(false)
-  const [savingWa,  setSavingWa]  = useState(false)
   const [savingPw,  setSavingPw]  = useState(false)
 
-  // Populate fields when settings load
   useEffect(() => {
     if (settings) {
       setBizName(settings.biz_name || settings.name || '')
@@ -86,7 +77,6 @@ export default function SettingsPage() {
       setTaxRate(settings.tax_rate ?? '')
       setTableCount(settings.table_count ?? 10)
       setKioskId(settings.kiosk_id || '')
-      setWaWebhook(settings.wa_webhook_url || '')
     }
   }, [settings])
 
@@ -117,18 +107,6 @@ export default function SettingsPage() {
     showToast('UPI settings saved ✓', 'success')
   }
 
-  async function saveWhatsApp() {
-    setSavingWa(true)
-    const { error } = await supabase.from('tenants').update({
-      wa_webhook_url: waWebhook.trim() || null,
-    }).eq('id', tenantId)
-    setSavingWa(false)
-    if (error) { showToast(error.message, 'error'); return }
-    const { data } = await supabase.from('tenants').select('*').eq('id', tenantId).single()
-    if (data) setSettings(data)
-    showToast('WhatsApp settings saved ✓', 'success')
-  }
-
   async function changePassword() {
     if (newPw !== confirmPw) { showToast('Passwords do not match', 'error'); return }
     if (newPw.length < 8)    { showToast('Password must be at least 8 characters', 'error'); return }
@@ -143,10 +121,10 @@ export default function SettingsPage() {
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
       <div style={{ maxWidth:640, margin:'0 auto', padding:'20px 16px' }}>
-        <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize:18, marginBottom:4 }}>
+        <h2 style={{ fontFamily:"'Plus Jakarta Sans'", fontWeight:800, fontSize: 'var(--fs-18)', marginBottom:4 }}>
           Settings
         </h2>
-        <p style={{ fontSize:12, color:'var(--text2)', marginBottom:24 }}>{user?.email}</p>
+        <p style={{ fontSize: 'var(--fs-12)', color:'var(--text2)', marginBottom:24 }}>{user?.email}</p>
 
         {/* ── Business ─────────────────────────────────────────── */}
         <Section title="🏪 Business">
@@ -179,33 +157,6 @@ export default function SettingsPage() {
           </Field>
           <div style={{ paddingTop:14 }}>
             <SaveBtn saving={savingUpi} onClick={saveUpi} label="Save UPI"/>
-          </div>
-        </Section>
-
-        {/* ── WhatsApp Invoice ─────────────────────────────────── */}
-        <Section title="📲 WhatsApp Invoice">
-          <div style={{ fontSize:12, color:'var(--text3)', marginBottom:10, lineHeight:1.65 }}>
-            After getting your template <strong>order_invoice1</strong> approved in Emovur, go to<br/>
-            <strong>Dashboard → Templates → View/Edit Webhook</strong> and paste the URL below.<br/>
-            <span style={{ color:'var(--text2)' }}>
-              Template sends: <em>"Your invoice from [Restaurant] is ready 🧾 [link]"</em>
-            </span>
-          </div>
-          <Field
-            label="Emovur Webhook URL"
-            hint="Per-template webhook from your Emovur dashboard"
-          >
-            <div style={{ width:180 }}>
-              <input
-                value={waWebhook}
-                onChange={e => setWaWebhook(e.target.value)}
-                placeholder="https://adminapis.backendprod.com/…"
-                style={{ ...inputStyle, width:'100%', fontSize:11, textAlign:'left' }}
-              />
-            </div>
-          </Field>
-          <div style={{ paddingTop:14 }}>
-            <SaveBtn saving={savingWa} onClick={saveWhatsApp} label="Save WhatsApp"/>
           </div>
         </Section>
 

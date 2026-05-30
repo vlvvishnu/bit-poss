@@ -23,18 +23,18 @@ function TableCard({ table, onClick }) {
       flexDirection: 'column', gap: 6,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 16 }}>
+        <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: 'var(--fs-16)' }}>
           {table.table_name}
         </span>
-        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+        <span style={{ fontSize: 'var(--fs-10)', fontWeight: 700, padding: '2px 7px', borderRadius: 10,
           background: `${statusColor}20`, color: statusColor }}>
           {table.status}
         </span>
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+      <div style={{ fontSize: 'var(--fs-12)', color: 'var(--text2)' }}>
         {table.item_count} item{table.item_count !== 1 ? 's' : ''} · {age}m ago
       </div>
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--brand)' }}>
+      <div style={{ fontSize: 'var(--fs-14)', fontWeight: 700, color: 'var(--brand)' }}>
         ₹{Number(table.total).toFixed(2)}
       </div>
     </button>
@@ -100,10 +100,10 @@ export default function TableView({ onOpenTable }) {
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <h3 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 14 }}>
+        <h3 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 'var(--fs-14)' }}>
           🍽 Active Tables
         </h3>
-        <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+        <span style={{ fontSize: 'var(--fs-11)', color: 'var(--text3)' }}>
           {activeTables.length} of {tableCount} occupied
         </span>
       </div>
@@ -130,8 +130,8 @@ export default function TableView({ onOpenTable }) {
                   borderRadius: 12, padding: '14px 16px', cursor: 'pointer',
                   textAlign: 'left', opacity: 0.6,
                 }}>
-                <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Table {t.num}</div>
-                <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 4 }}>Available</div>
+                <div style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 'var(--fs-15)', color: 'var(--text)' }}>Table {t.num}</div>
+                <div style={{ fontSize: 'var(--fs-11)', color: 'var(--text2)', marginTop: 4 }}>Available</div>
               </button>
             )
           })}
