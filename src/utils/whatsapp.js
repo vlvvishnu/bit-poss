@@ -1,23 +1,19 @@
 // ─────────────────────────────────────────────────────────────
 // BITE. — Emvour WhatsApp Utility
-// Template: order_invoice1
-// Body: "Your invoice from *{{1}}* is ready. 🧾 View & download here 👇 {{2}} Thank you for dining with us! 🙏"
+// Template: order invoice1
+// Payload: { receiver, values: { 1: business name, 2: invoice URL }, media_url }
 // {{1}} = restaurant/business name   |   {{2}} = invoice link
 // ─────────────────────────────────────────────────────────────
 
+const WHATSAPP_TEMPLATE_API_URL = 'https://adminapis.backendprod.com/lms_campaign/api/whatsapp/template/k51iz3b7dy/process'
 const RECEIPT_BASE = `${window.location.origin}/receipt`
 
 /**
- * Send invoice WhatsApp via Emvour template order_invoice1
+ * Send invoice WhatsApp via fixed Emvour template API.
  * @param {object} order        - order row from Supabase (needs .id, .customer_phone)
  * @param {string} bizName      - tenant/restaurant name e.g. "Boba Baba"
- * @param {string} webhookUrl   - from tenants.wa_webhook_url
  */
-export async function sendInvoiceWhatsApp(order, bizName, webhookUrl) {
-  if (!webhookUrl) {
-    console.warn('[BITE] WhatsApp webhook URL not configured')
-    return { success: false, message: 'WhatsApp not configured in Settings' }
-  }
+export async function sendInvoiceWhatsApp(order, bizName) {
 
   const phone = order.customer_phone
   if (!phone) return { success: false, message: 'No phone number on order' }
@@ -38,7 +34,7 @@ export async function sendInvoiceWhatsApp(order, bizName, webhookUrl) {
   }
 
   try {
-    const res = await fetch(webhookUrl, {
+    const res = await fetch(WHATSAPP_TEMPLATE_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
