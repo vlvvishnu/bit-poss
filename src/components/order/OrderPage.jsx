@@ -459,52 +459,57 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
             <div style={{ fontSize: 'var(--fs-11)' }}>Tap menu to add</div>
           </div>
         ) : items.map(item=>(
-          <div key={item.id} style={{ display:'flex',alignItems:'center',
-            gap:8,padding:'7px 14px',borderBottom:'1px solid var(--border)' }}>
-            <span style={{ fontSize: 'var(--fs-15)',flexShrink:0 }}>{item.icon||'🍽'}</span>
-            <div style={{ flex:1,minWidth:0 }}>
-              <div style={{ fontSize: 'var(--fs-12)',fontWeight:500,overflow:'hidden',
-                textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--text)' }}>
-                {item.name}</div>
-              {(notes?.[item.id] || '').trim() && (
-                <div style={{ marginTop:2, fontSize:'var(--fs-10)', color:'#B6FFD4' }}>📝 {notes[item.id]}</div>
-              )}
-              {detailLines(item).length > 0 && (
-                <div style={{ marginTop:4, paddingLeft:20, borderLeft:'1px solid rgba(255,255,255,0.08)' }}>
-                  {detailLines(item).map((line, idx) => {
-                    const linePrice = Number(line.price || line.unitPrice || 0) * Number(line.qty || 1) * (item.details?.includes(line) ? Number(item.qty || 1) : 1)
-                    const isAddon = line.type === 'addon'
-                    return (
-                      <div key={`${line.id || line.label}-${idx}`} style={{ display:'flex', alignItems:'center', gap:6, fontSize:'var(--fs-11)', color:'var(--text2)' }}>
-                        <span style={{ flex:1 }}>└ {line.label || line.name}</span>
-                        {isAddon && (
-                          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                            <button onClick={() => onUpdateAddonQty?.(item.id, line.id, -1)} style={{ width:18,height:18,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)',fontSize:'var(--fs-10)',display:'flex',alignItems:'center',justifyContent:'center' }}>−</button>
-                            <span style={{ minWidth:12,textAlign:'center',fontWeight:700 }}>{line.qty || 1}</span>
-                            <button onClick={() => onUpdateAddonQty?.(item.id, line.id, 1)} style={{ width:18,height:18,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff',fontSize:'var(--fs-10)',display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
-                          </div>
-                        )}
-                        <span style={{ minWidth:48,textAlign:'right' }}>+₹{linePrice.toFixed(2)}</span>
-                      </div>
-                    )
-                  })}
+          <div key={item.id} style={{ padding:'6px 14px',borderBottom:'1px solid var(--border)' }}>
+            <div style={{ display:'grid',gridTemplateColumns:'minmax(0, 1fr) 80px 80px',alignItems:'center',columnGap:8,minHeight:48 }}>
+              <div style={{ display:'flex',alignItems:'center',gap:8,minWidth:0 }}>
+                <span style={{ fontSize: 'var(--fs-15)',flexShrink:0 }}>{item.icon||'🍽'}</span>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize: 'var(--fs-14)',fontWeight:500,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--text)' }}>
+                    {item.name}
+                  </div>
+                  {(notes?.[item.id] || '').trim() && (
+                    <div style={{ marginTop:2,fontSize:'var(--fs-10)',color:'#B6FFD4',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>📝 {notes[item.id]}</div>
+                  )}
                 </div>
-              )}
-            </div>
-            <div style={{ display:'flex',alignItems:'center',gap:6,flexShrink:0 }}>
-              <button onClick={()=>onRemove(item.id)}
-                style={{ width:22,height:22,borderRadius:'50%',background:'var(--card2)',
-                  border:'1px solid var(--border)',color:'var(--text)',fontSize: 'var(--fs-13)',
-                  display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}>−</button>
-              <span style={{ fontSize: 'var(--fs-12)',fontWeight:700,minWidth:16,textAlign:'center' }}>{item.qty}</span>
-              <button onClick={()=>onAdd(item)}
-                style={{ width:22,height:22,borderRadius:'50%',background:'var(--brand)',
-                  border:'none',color:'#fff',fontSize: 'var(--fs-13)',display:'flex',
-                  alignItems:'center',justifyContent:'center',cursor:'pointer' }}>+</button>
-              <span style={{ minWidth:58,textAlign:'right',fontSize:'var(--fs-12)',fontWeight:700,color:'var(--brand)' }}>
+              </div>
+              <div style={{ width:80,display:'flex',alignItems:'center',justifyContent:'center',gap:4 }}>
+                <button onClick={()=>onRemove(item.id)}
+                  style={{ width:24,height:24,borderRadius:'50%',background:'var(--card2)',
+                    border:'1px solid var(--border)',color:'var(--text)',fontSize:'var(--fs-13)',
+                    display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0 }}>−</button>
+                <span style={{ width:20,textAlign:'center',fontSize:'var(--fs-14)',fontWeight:700,color:'var(--text)',fontVariantNumeric:'tabular-nums' }}>{item.qty}</span>
+                <button onClick={()=>onAdd(item)}
+                  style={{ width:24,height:24,borderRadius:'50%',background:'var(--brand)',
+                    border:'none',color:'#fff',fontSize:'var(--fs-13)',display:'flex',
+                    alignItems:'center',justifyContent:'center',cursor:'pointer',flexShrink:0 }}>+</button>
+              </div>
+              <span style={{ width:80,textAlign:'right',fontSize:'var(--fs-13)',fontWeight:700,color:'var(--brand)',fontVariantNumeric:'tabular-nums' }}>
                 ₹{(item.price*item.qty).toFixed(2)}
               </span>
             </div>
+            {detailLines(item).length > 0 && (
+              <div style={{ display:'flex',flexDirection:'column',gap:4,marginTop:2 }}>
+                {detailLines(item).map((line, idx) => {
+                  const linePrice = Number(line.price || line.unitPrice || 0) * Number(line.qty || 1) * (item.details?.includes(line) ? Number(item.qty || 1) : 1)
+                  const isAddon = line.type === 'addon'
+                  return (
+                    <div key={`${line.id || line.label}-${idx}`} style={{ display:'grid',gridTemplateColumns:'minmax(0, 1fr) 80px 80px',alignItems:'center',columnGap:8,minHeight:36,color:'var(--text2)',fontSize:'var(--fs-12)' }}>
+                      <span style={{ minWidth:0,paddingLeft:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',opacity:0.75 }}>└ {line.label || line.name}</span>
+                      <div style={{ width:80,display:'flex',alignItems:'center',justifyContent:'center',gap:4 }}>
+                        {isAddon && (
+                          <>
+                            <button onClick={() => onUpdateAddonQty?.(item.id, line.id, -1)} style={{ width:24,height:24,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)',fontSize:'var(--fs-12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>−</button>
+                            <span style={{ width:20,textAlign:'center',fontSize:'var(--fs-14)',fontWeight:700,fontVariantNumeric:'tabular-nums' }}>{line.qty || 1}</span>
+                            <button onClick={() => onUpdateAddonQty?.(item.id, line.id, 1)} style={{ width:24,height:24,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff',fontSize:'var(--fs-12)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}>+</button>
+                          </>
+                        )}
+                      </div>
+                      <span style={{ width:80,textAlign:'right',fontSize:'var(--fs-13)',fontVariantNumeric:'tabular-nums',whiteSpace:'nowrap' }}>+₹{linePrice.toFixed(2)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         ))}
       </div>
