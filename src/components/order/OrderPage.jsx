@@ -425,8 +425,12 @@ function TableOrderPanel({
 }
 
 // ── Non-dine cart panel ────────────────────────────────────────────
-function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, notes, getSelectedAddons }) {
-  const sub    = items.reduce((s,i)=>s+i.price*i.qty,0)
+function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, notes, getSelectedAddons, getCustomLines }) {
+  const extraTotal = item => [
+    ...(getCustomLines?.(item.id) || []),
+    ...(getSelectedAddons?.(item.id) || []),
+  ].reduce((a, line) => a + Number(line.price || 0) * Number(line.qty || 1), 0)
+  const sub    = items.reduce((s,i)=>s+i.price*i.qty + extraTotal(i),0)
   const taxRate= (settings?.tax_rate||0)/100
   const total  = sub+sub*taxRate
   const typeLabel = orderType==='delivery'?'🚚 Delivery':'🛍 Takeaway'
@@ -453,13 +457,17 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
               <div style={{ fontSize: 'var(--fs-12)',fontWeight:500,overflow:'hidden',
                 textOverflow:'ellipsis',whiteSpace:'nowrap',color:'var(--text)' }}>
                 {item.name}</div>
-              <div style={{ fontSize: 'var(--fs-11)',color:'var(--brand)',fontWeight:600 }}>
-                ₹{(item.price*item.qty).toFixed(2)}</div>
               {(notes?.[item.id] || '').trim() && (
                 <div style={{ marginTop:2, fontSize:'var(--fs-10)', color:'#B6FFD4' }}>📝 {notes[item.id]}</div>
               )}
-              {(getSelectedAddons?.(item.id)?.length || 0) > 0 && (
+              {((getCustomLines?.(item.id)?.length || 0) > 0 || (getSelectedAddons?.(item.id)?.length || 0) > 0) && (
                 <div style={{ marginTop:4, paddingLeft:20, borderLeft:'1px solid rgba(255,255,255,0.08)' }}>
+                  {(getCustomLines?.(item.id)||[]).map((line, idx) => (
+                    <div key={`custom-${idx}`} style={{ display:'flex', justifyContent:'space-between', fontSize:'var(--fs-11)', color:'var(--text2)' }}>
+                      <span>└ {line.label}{line.qty > 1 ? ` ×${line.qty}` : ''}</span>
+                      <span>+₹{(Number(line.price||0)*Number(line.qty||1)).toFixed(2)}</span>
+                    </div>
+                  ))}
                   {getSelectedAddons(item.id).map(a => (
                     <div key={a.id} style={{ display:'flex', justifyContent:'space-between', fontSize:'var(--fs-11)', color:'var(--text2)' }}>
                       <span>└ {a.name} ×{a.qty}</span>
@@ -469,7 +477,7 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
                 </div>
               )}
             </div>
-            <div style={{ display:'flex',alignItems:'center',gap:4,flexShrink:0 }}>
+            <div style={{ display:'flex',alignItems:'center',gap:6,flexShrink:0 }}>
               <button onClick={()=>onRemove(item.id)}
                 style={{ width:22,height:22,borderRadius:'50%',background:'var(--card2)',
                   border:'1px solid var(--border)',color:'var(--text)',fontSize: 'var(--fs-13)',
@@ -479,6 +487,9 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
                 style={{ width:22,height:22,borderRadius:'50%',background:'var(--brand)',
                   border:'none',color:'#fff',fontSize: 'var(--fs-13)',display:'flex',
                   alignItems:'center',justifyContent:'center',cursor:'pointer' }}>+</button>
+              <span style={{ minWidth:58,textAlign:'right',fontSize:'var(--fs-12)',fontWeight:700,color:'var(--brand)' }}>
+                ₹{(item.price*item.qty).toFixed(2)}
+              </span>
             </div>
           </div>
         ))}
@@ -504,7 +515,7 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
 // ── Mobile bottom sheet ────────────────────────────────────────────
 function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   cartItems, onAdd, onRemove, onSendToKitchen, onCheckout, onTableCheckout,
-  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded, getSelectedAddons }) {
+  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded, getSelectedAddons, getCustomLines }) {
 
   if (!open) return null
   return (
@@ -542,7 +553,7 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
             <CartPanel items={cartItems} orderType="takeaway"
               onAdd={onAdd} onRemove={onRemove}
               onCheckout={() => { onCheckout(); onClose() }}
-              settings={settings} notes={notes} getSelectedAddons={getSelectedAddons}/>
+              settings={settings} notes={notes} getSelectedAddons={getSelectedAddons} getCustomLines={getCustomLines}/>
           )}
         </div>
       </div>
@@ -822,6 +833,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [confirmKOT, setConfirmKOT]     = useState(false)
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
   const [itemNotes, setItemNotes]       = useState({})
+  const [customLines, setCustomLines]   = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
   const [addonCounts, setAddonCounts] = useState({})
   const [productCardNotes, setProductCardNotes] = useState({})
@@ -845,7 +857,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }, [])
 
   useEffect(() => {
-    clearCart(); setItemNotes({}); setOptimisticRounds([]); setQuickQtyProductId(null)
+    clearCart(); setItemNotes({}); setCustomLines({}); setOptimisticRounds([])
   }, [tableNum])
 
   useEffect(() => () => clearLongPressTimer(), [])
@@ -867,15 +879,19 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
 
   const isDine     = orderType === 'dine'
   const items      = cartItems()
-  const sub        = cartSubtotal()
-  const taxRate    = (settings?.tax_rate||0)/100
-  const total      = sub + sub * taxRate
-  const cartCount  = items.reduce((s,i) => s+i.qty, 0)
   const tableCount = settings?.table_count || 10
   const tableName  = tableNum ? `T${tableNum}` : null
   const addons = useMemo(() => loadAddons(tenantId), [tenantId])
   const addonTags = useMemo(() => loadProductAddonTags(tenantId), [tenantId, products.length])
   const variantMap = useMemo(() => loadProductVariants(tenantId), [tenantId, products.length])
+  const itemExtraTotal = productId => [
+    ...(customLines[productId] || []),
+    ...selectedAddonsForProduct(productId),
+  ].reduce((sum, line) => sum + Number(line.price || 0) * Number(line.qty || 1), 0)
+  const sub        = cartSubtotal() + items.reduce((sum, item) => sum + itemExtraTotal(item.id), 0)
+  const taxRate    = (settings?.tax_rate||0)/100
+  const total      = sub + sub * taxRate
+  const cartCount  = items.reduce((s,i) => s+i.qty, 0)
 
   async function handleSendToKitchen() {
     if (!tableNum)    { showToast('Select a table first','warning'); return }
@@ -888,11 +904,11 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
       id: `opt-${Date.now()}`, order_number: null, status: 'pending',
       order_items: items.map(i => ({
         id:`oi-${i.id}`, product_name:i.name, product_icon:i.icon||'',
-        qty:i.qty, unit_price:i.price, status:'active', notes:itemNotes[i.id]||null,
+        qty:i.qty, unit_price:Number(i.price) + (itemExtraTotal(i.id) / Math.max(Number(i.qty) || 1, 1)), status:'active', notes:itemNotes[i.id]||null,
       })),
     }
     setOptimisticRounds(prev => [optimisticOrder, ...prev])
-    clearCart(); setItemNotes({}); setSheetOpen(false)
+    clearCart(); setItemNotes({}); setCustomLines({}); setSheetOpen(false)
 
     try {
       const s=sub, t=s*taxRate, tot=s+t
@@ -906,7 +922,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         items.map(i=>({
           tenant_id:tenantId, order_id:o.id,
           product_id:i.id, product_name:i.name, product_icon:i.icon||'',
-          unit_price:Number(i.price), qty:Number(i.qty), status:'active',
+          unit_price:Number(i.price) + (itemExtraTotal(i.id) / Math.max(Number(i.qty) || 1, 1)), qty:Number(i.qty), status:'active',
           notes:itemNotes[i.id]||null,
         }))
       )
@@ -967,12 +983,44 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
     if (delta > 0) addToCart(product)
     else removeFromCart(product.id)
   }
+
+  function sizePriceFor(productId, sizeLabel) {
+    const cfg = variantMap[productId]?.size
+    const option = cfg?.options?.find(o => o.label === sizeLabel)
+    if (!option) return 0
+    const price = Number(option.price || 0)
+    return cfg.priceMode === 'fixed' ? Math.max(0, price - Number(products.find(p => p.id === productId)?.price || 0)) : price
+  }
+
+  function applyCustomization(product) {
+    const currentQty = cart[product.id]?.qty || 0
+    const desiredQty = customQty
+    for (let i = currentQty; i < desiredQty; i += 1) addToCart(product)
+    for (let i = desiredQty; i < currentQty; i += 1) removeFromCart(product.id)
+    const configs = sameForAll ? Array.from({ length: desiredQty }, () => perItemConfig[0] || {}) : perItemConfig.slice(0, desiredQty)
+    const sizeCounts = {}
+    configs.forEach(cfg => {
+      const size = cfg.size
+      const price = sizePriceFor(product.id, size)
+      if (size && price > 0) {
+        const key = `${size}:${price}`
+        sizeCounts[key] = { label: size, price, qty: (sizeCounts[key]?.qty || 0) + 1 }
+      }
+    })
+    setCustomLines(prev => ({ ...prev, [product.id]: Object.values(sizeCounts) }))
+    if (configs[0]?.size) setSelectedSizeByProduct(prev => ({ ...prev, [product.id]: configs[0].size }))
+    if (configs[0]?.temp) setSelectedVariantByProduct(prev => ({ ...prev, [product.id]: configs[0].temp }))
+    setOverlayProductId(null); setOverlayType(null)
+  }
   const overlayProduct = products.find(p => p.id === overlayProductId) || null
 
 
 
   function taggedAddons(productId) {
-    const ids = addonTags[productId] || []
+    const ids = Array.from(new Set([
+      ...(addonTags[productId] || []),
+      ...((variantMap[productId]?.addons?.linkedIds) || []),
+    ]))
     return addons.filter(a => ids.includes(a.id))
   }
 
@@ -987,9 +1035,16 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
     })
   }
 
+  function cartItemsWithExtras() {
+    return items.map(item => ({
+      ...item,
+      price: Number(item.price || 0) + (itemExtraTotal(item.id) / Math.max(Number(item.qty) || 1, 1)),
+    }))
+  }
+
   function openCheckout() {
     if (!items.length){ showToast('Cart is empty','warning'); return }
-    setCheckoutData({ items, orderType, tableNum, tableName, total, sub, tax:sub*taxRate, existingOrderId:null })
+    setCheckoutData({ items: cartItemsWithExtras(), orderType, tableNum, tableName, total, sub, tax:sub*taxRate, existingOrderId:null })
     setSheetOpen(false)
   }
 
@@ -1166,7 +1221,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                 ) : (
                   <div>{taggedAddons(overlayProduct.id).length === 0 ? <div style={{ color:'var(--text3)', fontSize:'var(--fs-12)' }}>No add-ons tagged for this product.</div> : taggedAddons(overlayProduct.id).map(addon => { const key = `${overlayProduct.id}:${addon.id}`; const c = addonCounts[key] || 0; return <div key={addon.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}><span style={{ color:'var(--text)', fontSize:'var(--fs-12)' }}>{addon.name} · ₹{Number(addon.price).toFixed(2)}</span><div style={{ display:'flex', gap:6, alignItems:'center' }}><button onClick={() => changeAddonQty(overlayProduct.id, addon.id, -1)} style={{ width:24,height:24,borderRadius:'50%',border:'1px solid var(--border)',background:'var(--card2)',color:'var(--text)' }}>−</button><span style={{ minWidth:14, textAlign:'center' }}>{c}</span><button onClick={() => changeAddonQty(overlayProduct.id, addon.id, 1)} style={{ width:24,height:24,borderRadius:'50%',border:'none',background:'var(--brand)',color:'#fff' }}>+</button></div></div> })}</div>
                 )}
-                <button onClick={() => { setOverlayProductId(null); setOverlayType(null) }} style={{ marginTop:10, width:'100%', background:'var(--brand)', color:'#fff', border:'none', borderRadius:10, padding:'12px 10px', fontWeight:700, position: overlayType==='customize'?'sticky':'static', bottom:0 }}>
+                <button onClick={() => overlayType==='customize' ? applyCustomization(overlayProduct) : (setOverlayProductId(null), setOverlayType(null))} style={{ marginTop:10, width:'100%', background:'var(--brand)', color:'#fff', border:'none', borderRadius:10, padding:'12px 10px', fontWeight:700, position: overlayType==='customize'?'sticky':'static', bottom:0 }}>
                   {overlayType==='customize' ? `Confirm · ${customQty} item${customQty!==1?'s':''}` : 'Done'}
                 </button>
               </div>
@@ -1192,7 +1247,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
               <CartPanel items={items} orderType={orderType}
                 onAdd={addToCart} onRemove={removeFromCart}
                 onCheckout={openCheckout} settings={settings}
-                notes={itemNotes} getSelectedAddons={selectedAddonsForProduct}/>
+                notes={itemNotes} getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]}/>
             )}
           </div>
         )}
@@ -1287,7 +1342,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                   order_items:items.map(i=>({
                     id:`p-${i.id}`,product_name:i.name,
                     product_icon:i.icon||'',qty:i.qty,
-                    unit_price:i.price,status:'active',
+                    unit_price:Number(i.price) + (itemExtraTotal(i.id) / Math.max(Number(i.qty) || 1, 1)),status:'active',
                     notes:itemNotes[i.id]||null,
                   })),
                 }}
@@ -1334,11 +1389,11 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         notes={itemNotes} onChangeNote={handleNoteChange}
         optimisticRounds={optimisticRounds}
         onRealDataLoaded={() => setOptimisticRounds([])}
-        getSelectedAddons={selectedAddonsForProduct}/>
+        getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]}/>
 
       <CheckoutModal open={!!checkoutData} onClose={()=>setCheckoutData(null)}
         checkoutData={checkoutData}
-        onSuccess={o=>{ setSuccessOrder(o); setCheckoutData(null) }}/>
+        onSuccess={o=>{ setSuccessOrder(o); setCheckoutData(null); setCustomLines({}); setAddonCounts({}) }}/>
       <SuccessModal order={successOrder} onClose={()=>setSuccessOrder(null)}/>
     </div>
   )
