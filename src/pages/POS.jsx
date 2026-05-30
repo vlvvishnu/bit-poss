@@ -20,12 +20,11 @@ const TOP_NAV = [
 const MORE_NAV = [
   { id: 'history',    icon: '📋', label: 'History'    },
   { id: 'kitchen',    icon: '🍳', label: 'Kitchen'    },
-  { id: 'manage',     icon: '🧰', label: 'Manage'     },
-  { id: 'addons',     icon: '🧩', label: 'Add-ons'    },
+  { id: 'manage',     icon: '🧰', label: 'Manage items' },
   { id: 'settings',   icon: '⚙️', label: 'Settings'   },
 ]
 
-function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, increaseFont, decreaseFont, resetFont }) {
+function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, increaseFont, decreaseFont, resetFont, autoRotate, onToggleAutoRotate }) {
   const [open, setOpen] = useState(false)
   const ref = useRef()
 
@@ -96,6 +95,17 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, incr
               <button onClick={increaseFont} style={{ background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:7, padding:'7px 0', fontWeight:800 }}>A+</button>
             </div>
           </div>
+          <button onClick={onToggleAutoRotate} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            width: '100%', padding: '10px 14px', background: 'none',
+            border: 'none', textAlign: 'left', cursor: 'pointer',
+            borderBottom: '1px solid var(--border)',
+            color: 'var(--text)', fontSize: 'var(--fs-13)',
+          }}>
+            <span>{autoRotate ? '🔄' : '📱'}</span>
+            <span style={{ flex:1 }}>Auto rotate</span>
+            <span style={{ color:autoRotate ? 'var(--brand)' : 'var(--text3)', fontWeight:700 }}>{autoRotate ? 'On' : 'Off'}</span>
+          </button>
           <button onClick={() => { setOpen(false); onSignOut() }} style={{
             display: 'flex', alignItems: 'center', gap: 10,
             width: '100%', padding: '10px 14px', background: 'none',
@@ -137,6 +147,7 @@ export default function POS() {
   const [tenantHasProducts, setTenantHasProducts] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
   const [sampleOpen, setSampleOpen] = useState(false)
+  const [autoRotate, setAutoRotate] = useState(() => localStorage.getItem('bite_auto_rotate') === '1')
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 640)
@@ -163,6 +174,32 @@ export default function POS() {
   function openSamplePrompt() {
     setSampleOpen(true)
   }
+
+  async function applyOrientationPreference(allowRotate) {
+    try {
+      if (!window.screen?.orientation) return
+      if (allowRotate) {
+        window.screen.orientation.unlock?.()
+        return
+      }
+      await window.screen.orientation.lock?.('portrait-primary')
+    } catch {
+      // Some browsers only allow orientation lock in installed/fullscreen contexts.
+    }
+  }
+
+  function toggleAutoRotate() {
+    setAutoRotate(prev => {
+      const next = !prev
+      localStorage.setItem('bite_auto_rotate', next ? '1' : '0')
+      applyOrientationPreference(next)
+      return next
+    })
+  }
+
+  useEffect(() => {
+    applyOrientationPreference(autoRotate)
+  }, [autoRotate])
 
 
   // ── Primary data load — fires when tenantId is set ─────────────
@@ -269,7 +306,6 @@ export default function POS() {
     if (page === 'history')    return <HistoryPage />
     if (page === 'kitchen')    return <KDS />
     if (page === 'manage')     return <ManagePage onRefresh={loadData} />
-    if (page === 'addons')     return <AddonsPage />
     if (page === 'settings')   return <SettingsPage />
     return <OrderPage defaultType={page} key={page} onAddSampleMenu={openSamplePrompt} />
   }
@@ -325,6 +361,8 @@ export default function POS() {
             increaseFont={increaseFont}
             decreaseFont={decreaseFont}
             resetFont={resetFont}
+            autoRotate={autoRotate}
+            onToggleAutoRotate={toggleAutoRotate}
           />
         </div>
       </nav>
