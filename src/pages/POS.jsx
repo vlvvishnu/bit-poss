@@ -348,7 +348,11 @@ export default function POS() {
               padding: isMobile ? '5px 8px' : '5px 10px', fontSize: 'var(--fs-12)',
               fontWeight: page===n.id ? 700 : 400,
               cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
-            }}>{n.label}</button>
+              display:'flex', alignItems:'center', gap:isMobile ? 4 : 6,
+            }}>
+              <span aria-hidden="true" style={{ fontSize:isMobile ? 16 : 13, lineHeight:1 }}>{n.icon}</span>
+              <span>{n.label}</span>
+            </button>
           ))}
         </div>
 
