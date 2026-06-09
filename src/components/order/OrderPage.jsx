@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { loadAddons, loadProductAddonTags, loadProductVariants } from '../../utils/addons'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
