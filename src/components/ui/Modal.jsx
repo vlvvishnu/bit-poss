@@ -30,12 +30,12 @@ export default function Modal({ open, onClose, title, children, maxWidth = 480, 
           padding: '16px 20px', borderBottom: '1px solid var(--border)',
           flexShrink: 0,
         }}>
-          <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
+          <span style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 'var(--fs-15)', color: 'var(--text)' }}>
             {title}
           </span>
           <button onClick={onClose} style={{
             background: 'none', border: 'none', color: 'var(--text2)',
-            fontSize: 18, lineHeight: 1, padding: 4, borderRadius: 6,
+            fontSize: 'var(--fs-18)', lineHeight: 1, padding: 4, borderRadius: 6,
           }}>✕</button>
         </div>
         {/* Body */}
