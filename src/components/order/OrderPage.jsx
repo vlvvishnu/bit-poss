@@ -857,7 +857,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [successOrder, setSuccessOrder] = useState(null)
   const [sheetOpen, setSheetOpen]       = useState(false)
   const [confirmKOT, setConfirmKOT]     = useState(false)
-  const [isMobile, setIsMobile]         = useState(window.innerWidth < 860)
+  const [isMobile, setIsMobile]         = useState(window.innerWidth < 768)
   const [itemNotes, setItemNotes]       = useState({})
   const [customLines, setCustomLines]   = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
@@ -871,13 +871,16 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [sameForAll, setSameForAll] = useState(false)
   const [openAccordion, setOpenAccordion] = useState(0)
   const [perItemConfig, setPerItemConfig] = useState([])
+  const [catSheetOpen, setCatSheetOpen] = useState(false)
+  const productScrollRef = useRef(null)
+  const categorySectionRefs = useRef({})
   // Legacy compatibility shim: older compiled snippets may still reference these symbols.
   const quickQtyProductId = null
   const setQuickQtyProductId = () => {}
   const clearLongPressTimer = () => {}
 
   useEffect(() => {
-    const h = () => setIsMobile(window.innerWidth < 860)
+    const h = () => setIsMobile(window.innerWidth < 768)
     window.addEventListener('resize', h)
     return () => window.removeEventListener('resize', h)
   }, [])
@@ -1171,17 +1174,39 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }
 
   const groups = useMemo(() => {
-    const filtered = activeCat==='all'
-      ? products : products.filter(p=>String(p.category_id)===activeCat)
-    if (activeCat!=='all') return [{name:'',icon:'',items:filtered}]
     const map = {}
-    filtered.forEach(p=>{
+    products.forEach(p=>{
       const key = p.category_id||'other'
-      if (!map[key]) map[key] = { name:p.catName||'Other', icon:p.catIcon||'', items:[] }
+      if (!map[key]) map[key] = { id:String(key), name:p.catName||'Other', icon:p.catIcon||'', items:[] }
       map[key].items.push(p)
     })
     return Object.values(map)
-  }, [products, activeCat])
+  }, [products])
+
+  const categoryOptions = useMemo(() => {
+    const counts = products.reduce((map, product) => {
+      const key = String(product.category_id || 'other')
+      map[key] = (map[key] || 0) + 1
+      return map
+    }, {})
+    return [
+      { id:'all', name:'All', icon:'', count:products.length },
+      ...categories.map(cat => ({ ...cat, id:String(cat.id), count:counts[String(cat.id)] || 0 })),
+    ]
+  }, [categories, products])
+
+  function selectCategory(categoryId) {
+    const id = String(categoryId)
+    setActiveCat(id)
+    setCatSheetOpen(false)
+    requestAnimationFrame(() => {
+      if (id === 'all') {
+        productScrollRef.current?.scrollTo({ top:0, behavior:'smooth' })
+        return
+      }
+      categorySectionRefs.current[id]?.scrollIntoView({ behavior:'smooth', block:'start' })
+    })
+  }
 
   return (
     <div style={{ flex:1,display:'flex',flexDirection:'column',overflow:'hidden',position:'relative' }}>
@@ -1191,20 +1216,10 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
           onSelect={setTableNum} tenantId={tenantId}/>
       )}
 
-      <div style={{ display:'flex',gap:5,padding:'6px 12px',overflowX:'auto',
-        borderBottom:'1px solid var(--border)',flexShrink:0,scrollbarWidth:'none' }}>
-        {[{id:'all',name:'All',icon:''},...categories].map(cat=>(
-          <button key={cat.id} onClick={()=>setActiveCat(String(cat.id))} style={{
-            flexShrink:0,padding:'4px 10px',borderRadius:20,whiteSpace:'nowrap',
-            background:activeCat===String(cat.id)?'var(--brand-lt)':'none',
-            border:`1.5px solid ${activeCat===String(cat.id)?'rgba(168,217,200,0.7)':'var(--border)'}`,
-            color:activeCat===String(cat.id)?'var(--brand)':'var(--text2)',
-            fontSize: 'var(--fs-11)',fontWeight:600,cursor:'pointer' }}>{cat.icon} {cat.name}</button>
-        ))}
-      </div>
+
 
       <div style={{ flex:1,display:'flex',overflow:'hidden' }}>
-        <div style={{ flex:1,overflowY:'auto',padding:10 }}>
+        <div ref={productScrollRef} style={{ flex:1,overflowY:'auto',padding:10,paddingBottom:isMobile ? ((cartCount>0 || isDine) ? 120 : 64) : 24 }}>
           {products.length===0&&(
             <div style={{ textAlign:'center',padding:40,color:'var(--text2)' }}>
               <div style={{ fontSize: 'var(--fs-32)',marginBottom:8 }}>🍽</div>
@@ -1219,7 +1234,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
             </div>
           )}
           {groups.map((group,gi)=>(
-            <div key={gi}>
+            <div key={gi} ref={el => { if (group.id) categorySectionRefs.current[group.id] = el }}>
               {group.name&&(
                 <div style={{ fontSize: 'var(--fs-10)',fontWeight:700,color:'var(--text3)',
                   textTransform:'uppercase',letterSpacing:'0.5px',padding:'8px 0 5px' }}>
@@ -1343,7 +1358,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         </div>
 
         {!isMobile && (
-          <div style={{ width:320,flexShrink:0,borderLeft:'1px solid var(--border)',
+          <div style={{ width:300,flexShrink:0,borderLeft:'1px solid var(--border)',
             display:'flex',flexDirection:'column',overflow:'hidden' }}>
             {isDine ? (
               <TableOrderPanel
@@ -1365,7 +1380,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         )}
       </div>
 
-      {isMobile&&(
+      {isMobile&&isDine&&(
         <div style={{ position:'fixed',bottom:0,left:0,right:0,
           padding:'10px 12px',paddingBottom:'calc(14px + env(safe-area-inset-bottom, 8px))',
           background:'var(--bg)',borderTop:'1px solid var(--border)',
@@ -1418,6 +1433,82 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
               <span>→</span>
             </button>
           ) : <div style={{ height:46 }}/>}
+        </div>
+      )}
+
+      {(
+        <button
+          type="button"
+          onClick={() => setCatSheetOpen(true)}
+          style={{
+            position:'fixed',
+            bottom:isMobile && (cartCount>0 || isDine) ? 72 : 16,
+            left:isMobile ? '50%' : 'calc((100vw - 300px) / 2)',
+            transform:'translateX(-50%)',
+            zIndex:100,
+            height:36,
+            padding:'8px 20px',
+            borderRadius:999,
+            border:`0.5px solid ${dark ? '#3A3A3A' : '#DDDDDD'}`,
+            background:dark ? '#1E1E1E' : '#F2F2F2',
+            color:dark ? '#E0E0E0' : '#111111',
+            display:'flex',alignItems:'center',gap:8,
+            boxShadow:'none',
+            fontSize:'13px',fontWeight:500,
+            transition:'bottom 0.25s ease',
+          }}
+        >
+          <span style={{ fontSize:16, color:'var(--text3)', lineHeight:1 }}>▦</span>
+          <span>Categories</span>
+          <span style={{ fontSize:12, color:'var(--text3)', transform:catSheetOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.15s' }}>⌃</span>
+        </button>
+      )}
+
+      {!isDine && isMobile && cartCount>0 && (
+        <button onClick={()=>setSheetOpen(true)} style={{
+          position:'fixed',left:12,right:12,bottom:16,zIndex:99,
+          height:48,padding:'0 16px',border:'none',borderRadius:14,
+          background:'#1D9E75',color:'#fff',display:'flex',alignItems:'center',justifyContent:'space-between',
+          transform:'translateY(0)',opacity:1,transition:'transform 0.25s ease, opacity 0.25s ease',
+          fontSize:'13px',fontWeight:500,cursor:'pointer'
+        }}>
+          <span style={{ display:'flex',alignItems:'center',gap:10 }}>
+            <span style={{ background:'rgba(0,0,0,0.22)',borderRadius:10,padding:'2px 8px',fontSize:11 }}>{cartCount} item{cartCount!==1?'s':''}</span>
+            <span>View Cart</span>
+          </span>
+          <span style={{ display:'flex',alignItems:'center',gap:8 }}>
+            <span style={{ fontSize:14,fontWeight:500 }}>₹{total.toFixed(2)}</span>
+            <span style={{ fontSize:16,opacity:0.8 }}>→</span>
+          </span>
+        </button>
+      )}
+
+      {catSheetOpen && (
+        <div onClick={()=>setCatSheetOpen(false)} style={{ position:'fixed',inset:0,zIndex:200,background:dark?'rgba(0,0,0,0.55)':'rgba(0,0,0,0.4)',display:'flex',alignItems:'flex-end',justifyContent:isMobile?'center':'flex-start' }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            width:isMobile?'100%':'min(420px, calc(100vw - 320px))',
+            marginLeft:isMobile?0:16,
+            maxHeight:'60vh',overflowY:'auto',
+            background:dark?'#1A1A1A':'#FFFFFF',
+            borderRadius:'16px 16px 0 0',
+            padding:'12px 16px 16px',
+            boxShadow:'0 -8px 30px rgba(0,0,0,0.25)'
+          }}>
+            <div style={{ width:42,height:4,borderRadius:999,background:'var(--border2)',margin:'0 auto 12px' }} />
+            <div style={{ fontSize:11,color:'var(--text3)',letterSpacing:'0.8px',fontWeight:800,marginBottom:10 }}>BROWSE CATEGORIES</div>
+            {categoryOptions.map(cat => {
+              const active = activeCat === String(cat.id)
+              return <button key={cat.id} onClick={()=>selectCategory(cat.id)} style={{
+                width:'100%',height:44,display:'flex',alignItems:'center',gap:10,
+                border:'none',borderRadius:8,padding:'0 10px',background:active?(dark?'#252525':'#F0F0F0'):'transparent',
+                color:'var(--text)',fontSize:'var(--fs-13)',cursor:'pointer',textAlign:'left'
+              }}>
+                <span style={{ color:active?(dark?'#1D9E75':'#0F6E56'):'#555',fontSize:13 }}>{active?'●':'○'}</span>
+                <span style={{ flex:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>{cat.icon ? `${cat.icon} ` : ''}{cat.name}</span>
+                <span style={{ marginLeft:'auto',fontSize:12,color:'var(--text3)',fontVariantNumeric:'tabular-nums' }}>{cat.count}</span>
+              </button>
+            })}
+          </div>
         </div>
       )}
 
