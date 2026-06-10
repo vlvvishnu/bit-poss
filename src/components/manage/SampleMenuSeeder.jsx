@@ -3,6 +3,16 @@ import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
 import Modal from '../ui/Modal'
 import { SAMPLE_MENU, sampleMenuItemCount } from '../../data/sampleMenu'
+import { loadProductVariants, saveProductVariants } from '../../utils/addons'
+
+function defaultSampleVariants() {
+  return {
+    size: { enabled: true, priceMode: 'delta', options: [{ label: 'Regular', price: 0 }] },
+    sugar: { enabled: false, options: [] },
+    temperature: { enabled: false, options: [] },
+    addons: { enabled: false, linkedIds: [] },
+  }
+}
 
 function initialSelection() {
   const selected = {}
@@ -117,8 +127,17 @@ export default function SampleMenuSeeder({ open, onClose, onSeeded }) {
         })
       })
 
-      const { error: productError } = await supabase.from('products').insert(productRows)
+      const { data: createdProducts, error: productError } = await supabase
+        .from('products')
+        .insert(productRows)
+        .select('id')
       if (productError) throw productError
+
+      const variantMap = loadProductVariants(tenantId)
+      ;(createdProducts || []).forEach(product => {
+        if (product?.id) variantMap[product.id] = defaultSampleVariants()
+      })
+      saveProductVariants(tenantId, variantMap)
 
       await reloadMenu()
       showToast(`Added ${summary.products} sample products`, 'success')

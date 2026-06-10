@@ -10,6 +10,7 @@ import HistoryPage from '../components/manage/History'
 import SettingsPage from '../components/manage/Settings'
 import AddonsPage from '../components/manage/Addons'
 import SampleMenuSeeder from '../components/manage/SampleMenuSeeder'
+import Modal from '../components/ui/Modal'
 
 const TOP_NAV = [
   { id: 'takeaway', label: 'Takeaway', isOrder: true },
@@ -120,6 +121,122 @@ function MoreMenu({ page, setPage, onSignOut, dark, toggleTheme, fontIndex, incr
   )
 }
 
+
+const ONBOARDING_CARDS = [
+  {
+    icon: '🧋',
+    title: 'Welcome to Bite POS',
+    body: 'Your verified workspace is ready. Take orders fast with a menu built for cafés, counters and restaurants.',
+    stat: 'Fast ordering · live cart · theme ready',
+  },
+  {
+    icon: '🧰',
+    title: 'Manage your menu beautifully',
+    body: 'Add products, categories, variants and add-ons from Manage items. Every sample product starts with Regular as the base size.',
+    stat: 'Products · Categories · Add-ons',
+  },
+  {
+    icon: '⚡',
+    title: 'Two-speed ordering',
+    body: 'Tap a product for quick add, or open customisation for sizes, sugar, temperature and add-ons per item.',
+    stat: 'Quick add + custom orders',
+  },
+  {
+    icon: '✨',
+    title: 'Start with sample products',
+    body: 'Load a ready-made Bite menu now, then edit names, prices and availability anytime.',
+    stat: 'One click sample menu',
+    sample: true,
+  },
+]
+
+function FirstSignupOnboarding({ open, onClose, onAddSample }) {
+  const [step, setStep] = useState(0)
+  const card = ONBOARDING_CARDS[step]
+  const last = step === ONBOARDING_CARDS.length - 1
+
+  useEffect(() => {
+    if (open) setStep(0)
+  }, [open])
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Your Bite workspace is ready"
+      maxWidth={560}
+      footer={(
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+          <div style={{ display:'flex', gap:6 }}>
+            {ONBOARDING_CARDS.map((_, idx) => (
+              <span key={idx} style={{
+                width: idx === step ? 22 : 7,
+                height: 7,
+                borderRadius: 999,
+                background: idx === step ? 'var(--brand)' : 'var(--border2)',
+                transition: 'all 0.2s ease',
+              }}/>
+            ))}
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={onClose} style={{
+              background:'var(--card2)', color:'var(--text2)', border:'1px solid var(--border)',
+              borderRadius:10, padding:'10px 13px', fontWeight:800,
+            }}>Skip</button>
+            {step > 0 && (
+              <button onClick={() => setStep(s => Math.max(0, s - 1))} style={{
+                background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)',
+                borderRadius:10, padding:'10px 13px', fontWeight:800,
+              }}>Back</button>
+            )}
+            <button onClick={() => last ? onAddSample() : setStep(s => Math.min(ONBOARDING_CARDS.length - 1, s + 1))} style={{
+              background:'var(--brand)', color:'#fff', border:'none',
+              borderRadius:10, padding:'10px 15px', fontWeight:900,
+              boxShadow:'0 10px 24px rgba(29,158,117,0.25)',
+            }}>{last ? 'Add sample products' : 'Next'}</button>
+          </div>
+        </div>
+      )}
+    >
+      <div style={{
+        position:'relative', overflow:'hidden', borderRadius:18,
+        border:'1px solid rgba(168,217,200,0.38)',
+        background:'linear-gradient(135deg, var(--brand-lt2), var(--card2))',
+        padding:'22px 18px', minHeight:280,
+      }}>
+        <div style={{
+          position:'absolute', right:-45, top:-55, width:170, height:170,
+          borderRadius:'50%', background:'rgba(29,158,117,0.16)', filter:'blur(2px)'
+        }}/>
+        <div style={{
+          width:74, height:74, borderRadius:24,
+          background:'var(--brand)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center',
+          fontSize:36, boxShadow:'0 18px 40px rgba(29,158,117,0.28)', marginBottom:18,
+        }}>{card.icon}</div>
+        <div style={{
+          display:'inline-flex', alignItems:'center', gap:8,
+          color:'var(--brand)', background:'var(--brand-lt)', border:'1px solid rgba(168,217,200,0.5)',
+          borderRadius:999, padding:'6px 10px', fontSize:'var(--fs-11)', fontWeight:900,
+          marginBottom:12,
+        }}>Verified setup · Step {step + 1}/{ONBOARDING_CARDS.length}</div>
+        <h2 style={{
+          margin:'0 0 8px', color:'var(--text)', fontFamily:"'Plus Jakarta Sans'", fontSize:'clamp(24px, 5vw, 34px)',
+          lineHeight:1.05, letterSpacing:'-0.8px',
+        }}>{card.title}</h2>
+        <p style={{ margin:'0 0 18px', color:'var(--text2)', fontSize:'var(--fs-14)', lineHeight:1.65, maxWidth:420 }}>{card.body}</p>
+        <div style={{
+          display:'flex', alignItems:'center', gap:10, borderRadius:14,
+          background:'var(--card)', border:'1px solid var(--border)', padding:'12px 13px',
+          color:'var(--text)', fontWeight:800, fontSize:'var(--fs-13)',
+        }}>
+          <span style={{ color:'var(--brand)' }}>●</span>
+          <span>{card.stat}</span>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 function ManagePage({ onRefresh }) {
   const [tab, setTab] = useState('products')
   const tabs = [{id:'products',label:'Products'},{id:'categories',label:'Categories'},{id:'addons',label:'Add-ons'}]
@@ -147,6 +264,7 @@ export default function POS() {
   const [tenantHasProducts, setTenantHasProducts] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
   const [sampleOpen, setSampleOpen] = useState(false)
+  const [onboardingOpen, setOnboardingOpen] = useState(false)
   const [autoRotate, setAutoRotate] = useState(() => localStorage.getItem('bite_auto_rotate') === '1')
 
   useEffect(() => {
@@ -157,21 +275,26 @@ export default function POS() {
 
   const menuCheckedForTenant = menuLoadedTenantId === tenantId
   const shouldOfferSampleMenu = menuCheckedForTenant && tenantHasProducts === false
-  const samplePromptKey = tenantId ? `bite_sample_prompt_seen_${tenantId}` : null
+  const onboardingPromptKey = tenantId ? `bite_first_signup_onboarding_seen_v1_${tenantId}` : null
 
   useEffect(() => {
-    if (!tenantId || !dataLoaded || !shouldOfferSampleMenu || !samplePromptKey) return
-    if (localStorage.getItem(samplePromptKey)) return
-    setSampleOpen(true)
-    localStorage.setItem(samplePromptKey, '1')
-  }, [tenantId, dataLoaded, shouldOfferSampleMenu, samplePromptKey])
+    if (!tenantId || !dataLoaded || !shouldOfferSampleMenu || !onboardingPromptKey) return
+    if (localStorage.getItem(onboardingPromptKey)) return
+    setOnboardingOpen(true)
+  }, [tenantId, dataLoaded, shouldOfferSampleMenu, onboardingPromptKey])
 
   function dismissSamplePrompt() {
-    if (samplePromptKey) localStorage.setItem(samplePromptKey, '1')
+    if (onboardingPromptKey) localStorage.setItem(onboardingPromptKey, '1')
     setSampleOpen(false)
   }
 
+  function dismissOnboarding() {
+    if (onboardingPromptKey) localStorage.setItem(onboardingPromptKey, '1')
+    setOnboardingOpen(false)
+  }
+
   function openSamplePrompt() {
+    setOnboardingOpen(false)
     setSampleOpen(true)
   }
 
@@ -408,13 +531,19 @@ export default function POS() {
         {renderPage()}
       </div>
 
+      <FirstSignupOnboarding
+        open={onboardingOpen}
+        onClose={dismissOnboarding}
+        onAddSample={openSamplePrompt}
+      />
+
       <SampleMenuSeeder
         open={sampleOpen}
         onClose={dismissSamplePrompt}
         onSeeded={() => {
           setTenantHasProducts(true)
           setMenuLoadedTenantId(tenantId)
-          if (samplePromptKey) localStorage.setItem(samplePromptKey, '1')
+          if (onboardingPromptKey) localStorage.setItem(onboardingPromptKey, '1')
         }}
       />
     </div>
