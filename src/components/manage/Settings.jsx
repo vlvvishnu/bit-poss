@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../../supabase'
 import { useStore } from '../../store/useStore'
+import { loadAddons, saveAddons } from '../../utils/addons'
 
 function Field({ label, hint, children }) {
   return (
@@ -69,6 +70,13 @@ export default function SettingsPage() {
   const [savingBiz, setSavingBiz] = useState(false)
   const [savingUpi, setSavingUpi] = useState(false)
   const [savingPw,  setSavingPw]  = useState(false)
+  const [addons, setAddons] = useState([])
+  const [addonName, setAddonName] = useState('')
+  const [addonPrice, setAddonPrice] = useState('')
+
+  useEffect(() => {
+    setAddons(loadAddons(tenantId))
+  }, [tenantId])
 
   useEffect(() => {
     if (settings) {
