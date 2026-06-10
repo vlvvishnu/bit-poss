@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Bite">
+  <rect width="512" height="512" rx="96" fill="#1D9E75"/>
+  <path fill="#fff" d="M246 90c40-2 66 14 99 38 32 23 43 36 40 49-3 10-35 22-54 38-33 27-34 74 0 100 17 13 40 15 43 24 5 14-23 33-56 44-27 9-66 10-92-2-32-14-50-37-62-71l-22-65c-6-20-2-42 6-66l16-49c7-20 28-29 54-35 8-2 18-4 28-5Z"/>
+  <circle cx="263" cy="128" r="13" fill="#1D9E75"/>
+  <circle cx="216" cy="200" r="14" fill="#1D9E75"/>
+  <circle cx="258" cy="270" r="14" fill="#1D9E75"/>
+  <text x="256" y="417" text-anchor="middle" font-family="Georgia, 'DejaVu Serif', serif" font-size="86" font-weight="700" fill="#fff">Bite</text>
+</svg>
