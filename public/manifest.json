@@ -4,10 +4,13 @@
   "description": "The smart POS for modern restaurants by Pay4",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait-primary",
   "background_color": "#F9F7F4",
-  "theme_color": "#E8440A",
-  "categories": ["business", "productivity"],
+  "theme_color": "#F9F7F4",
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
