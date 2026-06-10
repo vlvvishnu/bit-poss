@@ -14,16 +14,27 @@ export const useStore = create((set, get) => ({
   setProducts:   (prods) => set({ products: prods }),
 
   // ── Cart ──────────────────────────────────────────────────────
-  // cart: { [productId]: { id, name, icon, price, qty } }
+  // cart: { [cartKey]: { id, productId, name, icon, price, qty, customization, details } }
   cart: {},
   addToCart: (product) => set(state => {
-    const existing = state.cart[product.id]
+    const key = product.cartKey || product.id
+    const existing = state.cart[key]
+    const qty = Math.max(1, Number(product.qty || 1))
     return {
       cart: {
         ...state.cart,
-        [product.id]: existing
+        [key]: existing
           ? { ...existing, qty: existing.qty + 1 }
-          : { id: product.id, name: product.name, icon: product.icon || '', price: Number(product.price), qty: 1 }
+          : {
+              id: key,
+              productId: product.productId || product.product_id || product.id,
+              name: product.name,
+              icon: product.icon || '',
+              price: Number(product.price),
+              qty,
+              customization: product.customization || null,
+              details: product.details || [],
+            }
       }
     }
   }),
@@ -35,6 +46,16 @@ export const useStore = create((set, get) => ({
       return { cart: rest }
     }
     return { cart: { ...state.cart, [productId]: { ...existing, qty: existing.qty - 1 } } }
+  }),
+  updateCartItem: (cartKey, updater) => set(state => {
+    const existing = state.cart[cartKey]
+    if (!existing) return state
+    const updated = updater(existing)
+    if (!updated) {
+      const { [cartKey]: _, ...rest } = state.cart
+      return { cart: rest }
+    }
+    return { cart: { ...state.cart, [cartKey]: updated } }
   }),
   clearCart: () => set({ cart: {} }),
   cartItems: () => Object.values(get().cart),
@@ -60,6 +81,6 @@ export const useStore = create((set, get) => ({
   },
 
   // ── Active page ───────────────────────────────────────────────
-  page: 'order',
+  page: 'takeaway',
   setPage: (p) => set({ page: p }),
 }))
