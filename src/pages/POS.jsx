@@ -134,6 +134,7 @@ const ONBOARDING_CARDS = [
     title: 'Manage your menu beautifully',
     body: 'Add products, categories, variants and add-ons from Manage items. Every sample product starts with Regular as the base size.',
     stat: 'Products · Categories · Add-ons',
+    themeChoice: true,
   },
   {
     icon: '⚡',
@@ -151,6 +152,7 @@ const ONBOARDING_CARDS = [
 ]
 
 function FirstSignupOnboarding({ open, onClose, onAddSample }) {
+  const { dark, setTheme } = useTheme()
   const [step, setStep] = useState(0)
   const card = ONBOARDING_CARDS[step]
   const last = step === ONBOARDING_CARDS.length - 1
@@ -224,13 +226,42 @@ function FirstSignupOnboarding({ open, onClose, onAddSample }) {
           lineHeight:1.05, letterSpacing:'-0.8px',
         }}>{card.title}</h2>
         <p style={{ margin:'0 0 18px', color:'var(--text2)', fontSize:'var(--fs-14)', lineHeight:1.65, maxWidth:420 }}>{card.body}</p>
+        {card.themeChoice && (
+          <div style={{
+            display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))', gap:10,
+            margin:'0 0 16px',
+          }}>
+            {[
+              { label:'Light', sub:'Clean daytime POS', icon:'☀️', value:false },
+              { label:'Dark', sub:'Premium night counter', icon:'🌙', value:true },
+            ].map(option => {
+              const active = dark === option.value
+              return (
+                <button key={option.label} type="button" onClick={() => setTheme(option.value)} style={{
+                  textAlign:'left', border:`1px solid ${active ? 'var(--brand)' : 'var(--border)'}`,
+                  background: active ? 'var(--brand-lt)' : 'var(--card)', color:'var(--text)',
+                  borderRadius:16, padding:'12px 12px', cursor:'pointer',
+                  boxShadow: active ? '0 12px 26px rgba(29,158,117,0.16)' : 'none',
+                  transition:'all 0.18s ease',
+                }}>
+                  <span style={{ display:'flex', alignItems:'center', gap:8, fontWeight:900, marginBottom:7 }}>
+                    <span>{option.icon}</span>
+                    <span>{option.label}</span>
+                    {active && <span style={{ marginLeft:'auto', color:'var(--brand)' }}>✓</span>}
+                  </span>
+                  <span style={{ display:'block', color:'var(--text2)', fontSize:'var(--fs-11)', lineHeight:1.35 }}>{option.sub}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
         <div style={{
           display:'flex', alignItems:'center', gap:10, borderRadius:14,
           background:'var(--card)', border:'1px solid var(--border)', padding:'12px 13px',
           color:'var(--text)', fontWeight:800, fontSize:'var(--fs-13)',
         }}>
           <span style={{ color:'var(--brand)' }}>●</span>
-          <span>{card.stat}</span>
+          <span>{card.themeChoice ? `${card.stat} · You can change theme later in More` : card.stat}</span>
         </div>
       </div>
     </Modal>
@@ -262,6 +293,7 @@ export default function POS() {
   const [dataLoaded, setDataLoaded] = useState(() => categories.length > 0 || products.length > 0)
   const [menuLoadedTenantId, setMenuLoadedTenantId] = useState(null)
   const [tenantHasProducts, setTenantHasProducts] = useState(null)
+  const [tenantHasOrderHistory, setTenantHasOrderHistory] = useState(null)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640)
   const [sampleOpen, setSampleOpen] = useState(false)
   const [onboardingOpen, setOnboardingOpen] = useState(false)
@@ -274,22 +306,22 @@ export default function POS() {
   }, [])
 
   const menuCheckedForTenant = menuLoadedTenantId === tenantId
-  const shouldOfferSampleMenu = menuCheckedForTenant && tenantHasProducts === false
-  const onboardingPromptKey = tenantId ? `bite_first_signup_onboarding_seen_v1_${tenantId}` : null
+  const shouldOfferSampleMenu = menuCheckedForTenant && tenantHasProducts === false && tenantHasOrderHistory === false
+  const onboardingPromptKey = tenantId ? `bite_first_signup_onboarding_session_${tenantId}` : null
 
   useEffect(() => {
     if (!tenantId || !dataLoaded || !shouldOfferSampleMenu || !onboardingPromptKey) return
-    if (localStorage.getItem(onboardingPromptKey)) return
+    if (sessionStorage.getItem(onboardingPromptKey)) return
     setOnboardingOpen(true)
   }, [tenantId, dataLoaded, shouldOfferSampleMenu, onboardingPromptKey])
 
   function dismissSamplePrompt() {
-    if (onboardingPromptKey) localStorage.setItem(onboardingPromptKey, '1')
+    if (onboardingPromptKey) sessionStorage.setItem(onboardingPromptKey, '1')
     setSampleOpen(false)
   }
 
   function dismissOnboarding() {
-    if (onboardingPromptKey) localStorage.setItem(onboardingPromptKey, '1')
+    if (onboardingPromptKey) sessionStorage.setItem(onboardingPromptKey, '1')
     setOnboardingOpen(false)
   }
 
@@ -338,6 +370,8 @@ export default function POS() {
   // ── Primary data load — fires when tenantId is set ─────────────
   useEffect(() => {
     if (!tenantId) {
+      setTenantHasProducts(null)
+      setTenantHasOrderHistory(null)
       setDataLoaded(true)
       return
     }
@@ -347,6 +381,7 @@ export default function POS() {
       setDataLoaded(false)
       setMenuLoadedTenantId(null)
       setTenantHasProducts(null)
+      setTenantHasOrderHistory(null)
       setCategories([])
       setProducts([])
       const menuPromise = loadData(tenantId)
@@ -381,15 +416,24 @@ export default function POS() {
   async function loadData(activeTenantId = tenantId) {
     if (!activeTenantId) return
     try {
-      const [{ data:cats, error:catError }, { data:prods, error:prodError }] = await Promise.all([
+      const [
+        { data:cats, error:catError },
+        { data:prods, error:prodError },
+        { data:orderHistory, error:orderHistoryError },
+      ] = await Promise.all([
         supabase.from('categories').select('*').eq('tenant_id', activeTenantId).order('sort_order'),
         supabase.from('products')
           .select('*, categories(name,icon)')
           .eq('tenant_id', activeTenantId)
           .order('sort_order'),
+        supabase.from('orders')
+          .select('id')
+          .eq('tenant_id', activeTenantId)
+          .limit(1),
       ])
       if (catError) throw catError
       if (prodError) throw prodError
+      if (orderHistoryError) throw orderHistoryError
       if (useStore.getState().tenantId !== activeTenantId) return
       setCategories(cats || [])
       const productRows = (prods || []).map(p => ({
@@ -399,10 +443,12 @@ export default function POS() {
       }))
       setProducts(productRows)
       setTenantHasProducts(productRows.length > 0)
+      setTenantHasOrderHistory((orderHistory || []).length > 0)
       setMenuLoadedTenantId(activeTenantId)
     } catch (error) {
       console.error('[BITE] menu load error:', error)
       setTenantHasProducts(null)
+      setTenantHasOrderHistory(null)
       setMenuLoadedTenantId(null)
       showToast?.('Menu is taking longer to load. You can still use the app.', 'warning')
     } finally {
@@ -543,7 +589,7 @@ export default function POS() {
         onSeeded={() => {
           setTenantHasProducts(true)
           setMenuLoadedTenantId(tenantId)
-          if (onboardingPromptKey) localStorage.setItem(onboardingPromptKey, '1')
+          if (onboardingPromptKey) sessionStorage.setItem(onboardingPromptKey, '1')
         }}
       />
     </div>

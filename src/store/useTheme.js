@@ -6,11 +6,13 @@ const DEFAULT_FONT_INDEX = 2
 export const useTheme = create((set, get) => ({
   dark: false,
   fontIndex: DEFAULT_FONT_INDEX,
-  toggle: () => {
-    const dark = !get().dark
+  setTheme: (dark) => {
     set({ dark })
     localStorage.setItem('bite_theme', dark ? 'dark' : 'light')
     applyTheme(dark)
+  },
+  toggle: () => {
+    get().setTheme(!get().dark)
   },
   increaseFont: () => {
     const fontIndex = Math.min(get().fontIndex + 1, FONT_STEPS.length - 1)
