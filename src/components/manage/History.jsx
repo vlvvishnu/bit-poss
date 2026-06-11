@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../supabase'
 import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 import { useStore } from '../../store/useStore'
+import ShareInvoiceButton from '../invoice/ShareInvoiceButton'
+import { invoiceUrl, qrImageUrl } from '../../utils/invoice'
 
 // ── helpers ───────────────────────────────────────────────────────
 function fmt(iso) {
@@ -21,6 +23,7 @@ function fmtFull(iso) {
 
 const STATUS = {
   paid:      { bg:'rgba(34,197,94,0.1)',   color:'#22C55E', label:'Paid'      },
+  completed: { bg:'rgba(34,197,94,0.1)',   color:'#22C55E', label:'Completed'  },
   pending:   { bg:'rgba(245,158,11,0.1)',  color:'#F59E0B', label:'Pending'   },
   refunded:  { bg:'rgba(239,68,68,0.1)',   color:'#EF4444', label:'Refunded'  },
   preparing: { bg:'rgba(59,130,246,0.1)',  color:'#3B82F6', label:'Preparing' },
@@ -45,6 +48,8 @@ const TYPE_LABEL = {
 
 // ── Order Detail panel / sheet ────────────────────────────────────
 function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }) {
+  const { settings } = useStore()
+  const [qrOpen, setQrOpen] = useState(false)
   if (!order) return null
   const items    = order.order_items || []
   const active   = items.filter(i => i.status !== 'rejected')
@@ -154,6 +159,29 @@ function OrderDetail({ order, onClose, onRefund, onResend, resending, isMobile }
             : '📱 Resend Invoice on WhatsApp'
           }
         </button>
+      )}
+
+      {(order.status === 'paid' || order.status === 'completed') && (order.invoice_token || order.id) && (
+        <button onClick={() => setQrOpen(true)}
+          style={{ width:'100%', marginTop:12, background:'var(--brand)', color:'#fff', border:'none',
+            borderRadius:8, padding:'10px', fontWeight:700, fontSize:'var(--fs-13)', cursor:'pointer' }}>
+          Show Invoice QR
+        </button>
+      )}
+      {qrOpen && (
+        <div style={{ position:'fixed', inset:0, zIndex:420, background:'rgba(0,0,0,0.72)', display:'grid', placeItems:'center', padding:18 }}>
+          <div style={{ width:'100%', maxWidth:390, background:'var(--card)', borderRadius:18, padding:18, textAlign:'center', border:'1px solid var(--border)' }}>
+            <div style={{ fontWeight:900, fontSize:'var(--fs-16)', marginBottom:4 }}>Show this to customer</div>
+            <div style={{ color:'var(--text2)', fontSize:'var(--fs-12)', marginBottom:12 }}>Scan to get your invoice</div>
+            <div style={{ background:'#fff', borderRadius:18, padding:14, display:'inline-block' }}>
+              <img alt="Invoice QR" src={qrImageUrl(invoiceUrl(order.invoice_token || order.id), 840)} style={{ width:280, height:280, display:'block', background:'#fff' }}/>
+            </div>
+            <div style={{ display:'grid', gap:8, marginTop:12 }}>
+              <ShareInvoiceButton restaurantName={settings?.biz_name || settings?.name || 'Restaurant'} total={order.total} url={invoiceUrl(order.invoice_token || order.id)}/>
+              <button onClick={() => setQrOpen(false)} style={{ width:'100%', background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:10, fontWeight:700 }}>Close</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Refund */}
@@ -418,7 +446,7 @@ export default function HistoryPage() {
               <div style={{ fontSize: 'var(--fs-10)', fontWeight:700, color:'var(--text3)',
                 textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:5 }}>Status</div>
               <div style={{ display:'flex', gap:4 }}>
-                {['all','paid','pending','refunded'].map(s => (
+                {['all','paid','completed','pending','refunded'].map(s => (
                   <button key={s} onClick={()=>setStatusFilter(s)}
                     style={{ padding:'3px 9px', borderRadius:20, fontSize: 'var(--fs-11)', fontWeight:600,
                       background:statusFilter===s?'var(--brand-lt)':'none',
