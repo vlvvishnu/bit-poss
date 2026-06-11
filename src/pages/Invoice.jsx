@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../supabase'
 import ShareInvoiceButton from '../components/invoice/ShareInvoiceButton'
-import { invoiceUrl, isValidCustomerPhone, normalizeIndianPhone } from '../utils/invoice'
+import { invoiceUrl, isMissingInvoiceTokenColumn, isValidCustomerPhone, normalizeIndianPhone } from '../utils/invoice'
 
 const BRAND = '#0F6E56'
 const ACCENT = '#1D9E75'
@@ -103,7 +103,7 @@ export default function Invoice() {
       }
       setLoading(true); setError('')
       let result = await supabase.from('orders').select('*, order_items(id,product_name,product_icon,qty,unit_price,status,notes)').eq('invoice_token', token).maybeSingle()
-      if (!result.data && !result.error) {
+      if ((!result.data && !result.error) || isMissingInvoiceTokenColumn(result.error)) {
         result = await supabase.from('orders').select('*, order_items(id,product_name,product_icon,qty,unit_price,status,notes)').eq('id', token).maybeSingle()
       }
       if (cancelled) return

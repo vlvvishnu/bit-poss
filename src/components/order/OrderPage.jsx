@@ -6,7 +6,7 @@ import { useTheme } from '../../store/useTheme'
 import Modal from '../ui/Modal'
 import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
 import ShareInvoiceButton from '../invoice/ShareInvoiceButton'
-import { generateInvoiceToken, invoiceUrl, isValidCustomerPhone, normalizeIndianPhone, qrImageUrl } from '../../utils/invoice'
+import { generateInvoiceToken, invoiceUrl, isMissingInvoiceTokenColumn, isValidCustomerPhone, normalizeIndianPhone, qrImageUrl } from '../../utils/invoice'
 
 const AddonGlyph = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -39,6 +39,46 @@ const StatusPill = ({ status }) => {
   return <span style={{ fontSize: 'var(--fs-10)',fontWeight:700,padding:'2px 6px',borderRadius:5,
     background:s.bg,color:s.color,whiteSpace:'nowrap' }}>{s.label}</span>
 }
+
+async function insertOrderWithInvoiceToken(row, selectColumns) {
+  const tokenizedRow = { ...row, invoice_token: generateInvoiceToken() }
+  let result = await supabase.from('orders').insert(tokenizedRow).select(selectColumns).single()
+  if (isMissingInvoiceTokenColumn(result.error)) {
+    const { invoice_token: _invoiceToken, ...fallbackRow } = tokenizedRow
+    const fallbackSelect = selectColumns.split(',').filter(col => col.trim() !== 'invoice_token').join(',')
+    result = await supabase.from('orders').insert(fallbackRow).select(fallbackSelect).single()
+    if (!result.error && result.data) result.data.invoice_token = null
+  }
+  return result
+}
+
+async function latestPaidDineOrderWithOptionalToken({ tenantId, tableNumber }) {
+  let query = supabase.from('orders')
+    .select('id,order_number,invoice_token,total,order_type')
+    .eq('tenant_id', tenantId)
+    .eq('order_type', 'dine')
+    .eq('table_number', String(tableNumber || ''))
+    .in('status', ['paid','completed'])
+    .order('created_at', { ascending:false })
+    .limit(1)
+    .maybeSingle()
+
+  let result = await query
+  if (isMissingInvoiceTokenColumn(result.error)) {
+    result = await supabase.from('orders')
+      .select('id,order_number,total,order_type')
+      .eq('tenant_id', tenantId)
+      .eq('order_type', 'dine')
+      .eq('table_number', String(tableNumber || ''))
+      .in('status', ['paid','completed'])
+      .order('created_at', { ascending:false })
+      .limit(1)
+      .maybeSingle()
+    if (!result.error && result.data) result.data.invoice_token = null
+  }
+  return result
+}
+
 const Spinner = ({ size=14 }) => (
   <span style={{ width:size,height:size,border:'2px solid rgba(255,255,255,0.35)',
     borderTopColor:'#fff',borderRadius:'50%',animation:'spin 0.6s linear infinite',
@@ -635,15 +675,8 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           .eq('table_number', String(tNum||''))
           .in('status', ['pending','preparing','ready'])
         if (error) throw error
-        const { data:paidOrder } = await supabase.from('orders')
-          .select('id,order_number,invoice_token,total,order_type')
-          .eq('tenant_id', tenantId)
-          .eq('order_type', 'dine')
-          .eq('table_number', String(tNum||''))
-          .in('status', ['paid','completed'])
-          .order('created_at', { ascending:false })
-          .limit(1)
-          .maybeSingle()
+        const { data:paidOrder, error:paidOrderError } = await latestPaidDineOrderWithOptionalToken({ tenantId, tableNumber:tNum })
+        if (paidOrderError) console.warn('[BITE] paid order lookup failed:', paidOrderError.message)
         showToast('Table checked out ✓', 'success')
         onSuccess({ ...(paidOrder || {}), order_number: paidOrder?.order_number || '—', total, payMethod, isDine:true })
         handleClose()
@@ -657,7 +690,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           ? orderType
           : 'takeaway'
 
-        const { data:order, error:oErr } = await supabase.from('orders').insert({
+        const { data:order, error:oErr } = await insertOrderWithInvoiceToken({
           tenant_id:      tenantId,
           status:         'paid',
           order_type:     safeOrderType,
@@ -667,9 +700,8 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           total:          Number(total.toFixed(2)),
           customer_name:  name  || null,
           customer_phone: normalizedPhone,
-          invoice_token:  generateInvoiceToken(),
           paid_at:        new Date().toISOString(),
-        }).select('id,order_number,invoice_token,customer_phone,order_type').single()
+        }, 'id,order_number,invoice_token,customer_phone,order_type')
         if (oErr) throw oErr
 
         const { error:iErr } = await supabase.from('order_items').insert(
@@ -981,11 +1013,11 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
 
     try {
       const s=sub, t=s*taxRate, tot=s+t
-      const { data:o, error:oErr } = await supabase.from('orders').insert({
+      const { data:o, error:oErr } = await insertOrderWithInvoiceToken({
         tenant_id:tenantId, status:'pending', order_type:'dine',
         table_number:String(tableNum), payment_method:'cash', invoice_token:generateInvoiceToken(),
         subtotal:Number(s.toFixed(2)), tax:Number(t.toFixed(2)), total:Number(tot.toFixed(2)),
-      }).select('id').single()
+      }, 'id')
       if (oErr) throw oErr
       const { error } = await supabase.from('order_items').insert(
         items.map(i=>({

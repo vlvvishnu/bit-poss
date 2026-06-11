@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../../supabase'
-import { normalizeIndianPhone } from '../../utils/invoice'
+import { isMissingInvoiceTokenColumn, normalizeIndianPhone } from '../../utils/invoice'
 
 const BRAND = '#0F6E56'
 const inputStyle = { width:'100%', border:'1.5px solid #B8D7CC', borderRadius:12, padding:'13px 14px', fontSize:16, outline:'none' }
@@ -32,12 +32,17 @@ export default function TakeawayLookup() {
     const normalized = normalizeIndianPhone(phone)
     if (!/^\d{10}$/.test(normalized)) { setError('Please enter a valid 10 digit mobile number.'); return }
     setLoading(true); setError(''); setSearched(true)
-    const { data, error:err } = await supabase.from('orders')
+    let result = await supabase.from('orders')
       .select('id,invoice_token,created_at,total,order_type,order_items(product_name,qty,unit_price,status)')
       .eq('tenant_id', tenant.id).eq('customer_phone', normalized).in('status', ['paid','completed']).order('created_at', { ascending:false }).limit(20)
+    if (isMissingInvoiceTokenColumn(result.error)) {
+      result = await supabase.from('orders')
+        .select('id,created_at,total,order_type,order_items(product_name,qty,unit_price,status)')
+        .eq('tenant_id', tenant.id).eq('customer_phone', normalized).in('status', ['paid','completed']).order('created_at', { ascending:false }).limit(20)
+    }
     setLoading(false)
-    if (err) { setError('We could not load invoices right now. Please try again.'); return }
-    setOrders(data || [])
+    if (result.error) { setError('We could not load invoices right now. Please try again.'); return }
+    setOrders(result.data || [])
   }
 
   if (!tenant && !loading) return <div style={{ minHeight:'100vh', display:'grid', placeItems:'center', fontFamily:'Inter,sans-serif', padding:20, textAlign:'center' }}>Restaurant not found. Please ask staff for help.</div>

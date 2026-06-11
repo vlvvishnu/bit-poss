@@ -28,6 +28,17 @@ export function isValidCustomerPhone(input = '') {
   return /^\d{10}$/.test(normalizeIndianPhone(input))
 }
 
+
+export function isMissingInvoiceTokenColumn(error) {
+  const message = String(error?.message || error?.details || error?.hint || '').toLowerCase()
+  return message.includes('invoice_token') && (
+    message.includes('schema cache') ||
+    message.includes('column') ||
+    message.includes('could not find') ||
+    message.includes('does not exist')
+  )
+}
+
 export function invoiceUrl(tokenOrId, origin = window.location.origin) {
   return `${origin}/invoice/${tokenOrId}`
 }

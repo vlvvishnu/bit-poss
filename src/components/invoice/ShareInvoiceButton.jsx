@@ -14,14 +14,23 @@ export default function ShareInvoiceButton({ restaurantName, total, url, compact
         onDismissed: () => showToast?.('Link copied!', 'success'),
       })}
       style={{
-        background:'#25D366', color:'#fff', border:'none', borderRadius: compact ? 10 : 12,
-        padding: compact ? '9px 12px' : '13px 14px', fontWeight:800,
-        fontSize: compact ? 'var(--fs-12)' : 'var(--fs-14)', cursor:'pointer',
-        display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
-        boxShadow:'0 10px 22px rgba(37,211,102,0.22)', width: compact ? 'auto' : '100%',
+        background:'var(--card2)',
+        color:'var(--text)',
+        border:'1.5px solid var(--border2)',
+        borderRadius: compact ? 10 : 12,
+        padding: compact ? '9px 12px' : '13px 14px',
+        fontWeight:900,
+        fontSize: compact ? 'var(--fs-12)' : 'var(--fs-14)',
+        cursor:'pointer',
+        display:'inline-flex',
+        alignItems:'center',
+        justifyContent:'center',
+        gap:8,
+        width: compact ? 'auto' : '100%',
+        boxShadow:'0 10px 22px rgba(0,0,0,0.08)',
       }}
     >
-      <span aria-hidden="true">↗</span>
+      <span aria-hidden="true" style={{ color:'var(--brand)', fontWeight:900 }}>↗</span>
       Share Invoice
     </button>
   )
