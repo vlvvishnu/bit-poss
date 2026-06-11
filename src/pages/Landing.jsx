@@ -74,7 +74,6 @@ export default function Landing() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
-      event.preventDefault()
       window.__biteDeferredPrompt = event
       setDeferredPrompt(event)
     }
