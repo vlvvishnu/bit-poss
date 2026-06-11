@@ -23,6 +23,15 @@
   <script>var quickQtyProductId = null;</script>
   <script>
     window.__biteDeferredPrompt = null
+    // Backward-compatible guard for stale bundles from older QR settings builds.
+    // If an old cached JS file still calls these removed identifiers, keep the
+    // Settings page alive while the loader clears caches and fetches fresh code.
+    var qrVersion = window.__biteQrVersion || '1'
+    var setQrVersion = window.setQrVersion || function(value) {
+      qrVersion = String(value || '1')
+      window.__biteQrVersion = qrVersion
+    }
+    window.setQrVersion = setQrVersion
   </script>
   <script type="module" src="/src/main-loader.jsx"></script>
 </body>
