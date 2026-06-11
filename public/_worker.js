@@ -140,7 +140,7 @@ function verificationEmailHtml({ origin, verifyUrl, name, bizName }) {
   const safeName = escapeHtml(name || 'there')
   const safeBizName = escapeHtml(bizName || 'your restaurant')
   const safeVerifyUrl = escapeHtml(verifyUrl)
-  const logoUrl = `${origin}/icon-192.png`
+  const logoUrl = `${origin}/email-logo.svg?v=2`
 
   return `<!doctype html>
 <html lang="en">
@@ -156,7 +156,7 @@ function verificationEmailHtml({ origin, verifyUrl, name, bizName }) {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #E8E4DF;border-radius:24px;overflow:hidden;box-shadow:0 18px 50px rgba(26,18,8,0.10);">
             <tr>
               <td style="background:#1A1208;padding:30px 28px;text-align:center;">
-                <img src="${logoUrl}" width="64" height="64" alt="BITE." style="display:block;margin:0 auto 14px;border-radius:16px;">
+                <img src="${logoUrl}" width="72" height="72" alt="BITE." style="display:block;margin:0 auto 14px;border-radius:18px;">
                 <div style="font-family:'Plus Jakarta Sans',Arial,sans-serif;font-size:28px;font-weight:800;letter-spacing:-0.8px;color:#F5F0E8;">BITE<span style="color:#1D9E75;">.</span></div>
                 <div style="margin-top:6px;color:rgba(245,240,232,0.62);font-size:13px;">Restaurant POS by Pay4</div>
               </td>
@@ -393,7 +393,17 @@ export default {
       || !url.pathname.includes('.')  // SPA routes like /dashboard
 
     if (!isHtml) {
-      return env.ASSETS.fetch(request)
+      const assetResponse = await env.ASSETS.fetch(request)
+      if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname === '/sw.js') {
+        const headers = new Headers(assetResponse.headers)
+        headers.set('Cache-Control', 'no-store, must-revalidate')
+        return new Response(assetResponse.body, {
+          status: assetResponse.status,
+          statusText: assetResponse.statusText,
+          headers,
+        })
+      }
+      return assetResponse
     }
 
     const response = await env.ASSETS.fetch(request)
@@ -407,6 +417,14 @@ window.__ENV__ = {
   SUPABASE_URL:      "${(env.SUPABASE_URL      || '').replace(/"/g, '')}",
   SUPABASE_ANON_KEY: "${(env.SUPABASE_ANON_KEY || '').replace(/"/g, '')}",
 };
+// Compatibility shim for stale QR settings bundles that referenced removed
+// qrVersion / setQrVersion symbols. Keep this before every app script.
+var qrVersion = window.__biteQrVersion || '1';
+var setQrVersion = window.setQrVersion || function(value) {
+  qrVersion = String(value || '1');
+  window.__biteQrVersion = qrVersion;
+};
+window.setQrVersion = setQrVersion;
 </script>`
 
     const injected = html.replace('<head>', '<head>\n' + envScript)
