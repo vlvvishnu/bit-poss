@@ -26,7 +26,6 @@ export default function Install() {
 
     // Capture install prompt (Android/Chrome)
     const handler = (e) => {
-      e.preventDefault()
       window.__biteDeferredPrompt = e
       setDeferredPrompt(e)
     }
