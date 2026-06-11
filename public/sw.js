@@ -1,5 +1,5 @@
 // BITE. POS Service Worker
-const CACHE = 'bite-pos-v4'
+const CACHE = 'bite-pos-v5'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
@@ -19,6 +19,11 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url)
   const isHttp = url.protocol === 'http:' || url.protocol === 'https:'
   if (!isHttp) return
+
+  // Only handle same-origin static app resources. Let the browser/network
+  // handle third-party QR/image/API requests so a transient failure is not
+  // converted into our app-level 503 Offline response.
+  if (url.origin !== self.location.origin) return
 
   if (url.hostname.includes('supabase.co')) return
   if (url.hostname.includes('googleapis.com')) return
