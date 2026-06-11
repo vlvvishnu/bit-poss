@@ -147,7 +147,7 @@ function InlineTableName({ table, editing, onEdit, onCommit }) {
 
 function QrListRow({ row, index, editable, editing, onEdit, onCommit, onDelete, onPreview, onDownload }) {
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'40px minmax(150px, 1fr) 74px minmax(180px, 2fr) 132px', gap:12, alignItems:'center', padding:'11px 12px', borderBottom:'1px solid var(--border)' }}>
+    <div className="qr-row">
       <div style={{ color:'var(--text3)', fontWeight:800, fontSize:'var(--fs-12)' }}>{index}</div>
       <div style={{ minWidth:0 }}>
         {editable ? (
@@ -156,14 +156,14 @@ function QrListRow({ row, index, editable, editing, onEdit, onCommit, onDelete, 
           <span style={{ fontWeight:900, color:'var(--text)' }}>{row.name}</span>
         )}
       </div>
-      <button title="Expand QR preview" onClick={() => onPreview(row)} style={{ width:48, height:48, background:'#fff', border:'1px solid var(--border)', borderRadius:10, padding:5, cursor:'pointer' }}>
-        <img alt={`${row.name} QR preview`} src={qrImageUrl(row.url, 96)} style={{ width:36, height:36, display:'block' }}/>
+      <button title="Expand QR preview" onClick={() => onPreview(row)} style={{ width:40, height:40, background:'#fff', border:'1px solid var(--border)', borderRadius:10, padding:4, cursor:'pointer' }}>
+        <img alt={`${row.name} QR preview`} src={qrImageUrl(row.url, 96)} style={{ width:30, height:30, display:'block' }}/>
       </button>
-      <div title={row.url} style={{ color:'var(--text3)', fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize:'var(--fs-11)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{row.url}</div>
-      <div style={{ display:'flex', justifyContent:'flex-end', gap:6 }}>
-        <button onClick={() => onDownload(row)} style={{ background:'var(--brand)', color:'#fff', border:'none', borderRadius:9, padding:'8px 10px', fontWeight:900, fontSize:'var(--fs-11)', cursor:'pointer', whiteSpace:'nowrap' }}>↓ Stand</button>
+      <div title={row.url} className="qr-url">{row.url}</div>
+      <div className="qr-actions">
+        <button onClick={() => onDownload(row)} className="qr-stand-btn">↓ Stand</button>
         {editable && (
-          <button title="Delete table" onClick={() => onDelete(row)} style={{ background:'var(--card2)', color:'var(--text2)', border:'1px solid var(--border)', borderRadius:9, padding:'8px 9px', fontWeight:900, cursor:'pointer' }}>⋯</button>
+          <button title="Delete table" aria-label={`Delete ${row.name}`} onClick={() => onDelete(row)} className="qr-delete-btn">🗑</button>
         )}
       </div>
     </div>
@@ -173,10 +173,10 @@ function QrListRow({ row, index, editable, editing, onEdit, onCommit, onDelete, 
 function QrRowsTable(props) {
   const { rows, editable, editingId, onEdit, onCommit, onDelete, onPreview, onDownload } = props
   return (
-    <div style={{ border:'1px solid var(--border)', borderRadius:14, overflow:'auto', background:'var(--card)' }}>
-      <div style={{ minWidth:760 }}>
-        <div style={{ display:'grid', gridTemplateColumns:'40px minmax(150px, 1fr) 74px minmax(180px, 2fr) 132px', gap:12, alignItems:'center', padding:'9px 12px', background:'var(--card2)', borderBottom:'1px solid var(--border)', color:'var(--text3)', fontSize:'var(--fs-10)', fontWeight:900, textTransform:'uppercase', letterSpacing:'0.5px' }}>
-          <span>#</span><span>Table name</span><span>QR preview</span><span>URL</span><span style={{ textAlign:'right' }}>Actions</span>
+    <div className="qr-table">
+      <div style={{ minWidth:'100%' }}>
+        <div className="qr-row qr-head">
+          <span>#</span><span>Table name</span><span>QR</span><span>URL</span><span style={{ textAlign:'right' }}>Actions</span>
         </div>
         {rows.map((row, idx) => (
           <QrListRow
@@ -306,6 +306,96 @@ function TablesQrManager({ tenantId, settings, bizName, tableCount, setTableCoun
 
   return (
     <div style={{ marginBottom:28 }}>
+      <style>{`
+        .qr-table {
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          overflow-x: auto;
+          overflow-y: hidden;
+          background: var(--card);
+          max-width: 100%;
+        }
+        .qr-row {
+          display: grid;
+          grid-template-columns: 32px minmax(82px, 1fr) 48px minmax(86px, 1.4fr) minmax(94px, auto);
+          gap: 8px;
+          align-items: center;
+          padding: 11px 10px;
+          border-bottom: 1px solid var(--border);
+          min-width: 0;
+        }
+        .qr-head {
+          background: var(--card2);
+          color: var(--text3);
+          font-size: var(--fs-10);
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          padding-top: 9px;
+          padding-bottom: 9px;
+        }
+        .qr-url {
+          color: var(--text3);
+          font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+          font-size: var(--fs-10);
+          line-height: 1.35;
+          overflow: hidden;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+        }
+        .qr-actions {
+          position: sticky;
+          right: 0;
+          z-index: 1;
+          display: flex;
+          justify-content: flex-end;
+          gap: 5px;
+          background: var(--card);
+          box-shadow: -10px 0 14px var(--card);
+        }
+        .qr-head .qr-actions, .qr-head span:last-child {
+          position: sticky;
+          right: 0;
+          z-index: 2;
+          background: var(--card2);
+          box-shadow: -10px 0 14px var(--card2);
+        }
+        .qr-stand-btn {
+          background: var(--brand);
+          color: #fff;
+          border: none;
+          border-radius: 9px;
+          padding: 8px 9px;
+          font-weight: 900;
+          font-size: var(--fs-11);
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .qr-delete-btn {
+          background: var(--card2);
+          color: var(--red);
+          border: 1px solid var(--border);
+          border-radius: 9px;
+          padding: 8px 8px;
+          font-weight: 900;
+          cursor: pointer;
+          line-height: 1;
+        }
+        @media (max-width: 520px) {
+          .qr-row {
+            grid-template-columns: 22px minmax(64px, 0.95fr) 42px minmax(58px, 1fr) 86px;
+            gap: 5px;
+            padding: 10px 7px;
+          }
+          .qr-head { font-size: 9px; letter-spacing: 0; }
+          .qr-url { font-size: 9px; -webkit-line-clamp: 3; }
+          .qr-stand-btn { padding: 7px 6px; font-size: 10px; }
+          .qr-delete-btn { padding: 7px 6px; }
+        }
+      `}</style>
       <div style={{ display:'flex', justifyContent:'space-between', gap:16, alignItems:'flex-start', marginBottom:16 }}>
         <div>
           <h3 style={{ margin:'0 0 6px', color:'var(--text)', fontFamily:"'Plus Jakarta Sans'", fontSize:'var(--fs-18)' }}>Tables QR</h3>
