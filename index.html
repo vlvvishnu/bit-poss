@@ -23,55 +23,16 @@
   <script>var quickQtyProductId = null;</script>
   <script>
     window.__biteDeferredPrompt = null
-    window.addEventListener('beforeinstallprompt', (event) => {
-      event.preventDefault()
-      window.__biteDeferredPrompt = event
-    })
-
-    // Register service worker for PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', async () => {
-        let refreshing = false
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (refreshing) return
-          refreshing = true
-          window.location.reload()
-        })
-
-        // One-time hard reset for stale SW/bundle issues.
-        const CACHE_RESET_VERSION = 'sw-reset-v1'
-        if (localStorage.getItem(CACHE_RESET_VERSION) !== 'done') {
-          const regs = await navigator.serviceWorker.getRegistrations()
-          await Promise.all(regs.map(r => r.unregister()))
-          const keys = await caches.keys()
-          await Promise.all(keys.map(k => caches.delete(k)))
-          localStorage.setItem(CACHE_RESET_VERSION, 'done')
-          window.location.reload()
-          return
-        }
-
-        navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('[BITE] SW registered')
-
-            if (registration.waiting) {
-              registration.waiting.postMessage({ type: 'SKIP_WAITING' })
-            }
-
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing
-              if (!newWorker) return
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  newWorker.postMessage({ type: 'SKIP_WAITING' })
-                }
-              })
-            })
-          })
-          .catch(e => console.log('[BITE] SW failed:', e))
-      })
+    // Backward-compatible guard for stale bundles from older QR settings builds.
+    // If an old cached JS file still calls these removed identifiers, keep the
+    // Settings page alive while the loader clears caches and fetches fresh code.
+    var qrVersion = window.__biteQrVersion || '1'
+    var setQrVersion = window.setQrVersion || function(value) {
+      qrVersion = String(value || '1')
+      window.__biteQrVersion = qrVersion
     }
+    window.setQrVersion = setQrVersion
   </script>
-  <script type="module" src="/src/main.jsx"></script>
+  <script type="module" src="/src/main-loader.jsx"></script>
 </body>
 </html>

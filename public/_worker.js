@@ -393,7 +393,17 @@ export default {
       || !url.pathname.includes('.')  // SPA routes like /dashboard
 
     if (!isHtml) {
-      return env.ASSETS.fetch(request)
+      const assetResponse = await env.ASSETS.fetch(request)
+      if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css') || url.pathname === '/sw.js') {
+        const headers = new Headers(assetResponse.headers)
+        headers.set('Cache-Control', 'no-store, must-revalidate')
+        return new Response(assetResponse.body, {
+          status: assetResponse.status,
+          statusText: assetResponse.statusText,
+          headers,
+        })
+      }
+      return assetResponse
     }
 
     const response = await env.ASSETS.fetch(request)
@@ -407,6 +417,14 @@ window.__ENV__ = {
   SUPABASE_URL:      "${(env.SUPABASE_URL      || '').replace(/"/g, '')}",
   SUPABASE_ANON_KEY: "${(env.SUPABASE_ANON_KEY || '').replace(/"/g, '')}",
 };
+// Compatibility shim for stale QR settings bundles that referenced removed
+// qrVersion / setQrVersion symbols. Keep this before every app script.
+var qrVersion = window.__biteQrVersion || '1';
+var setQrVersion = window.setQrVersion || function(value) {
+  qrVersion = String(value || '1');
+  window.__biteQrVersion = qrVersion;
+};
+window.setQrVersion = setQrVersion;
 </script>`
 
     const injected = html.replace('<head>', '<head>\n' + envScript)
