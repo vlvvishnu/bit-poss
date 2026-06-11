@@ -5,6 +5,8 @@ import { useStore } from '../../store/useStore'
 import { useTheme } from '../../store/useTheme'
 import Modal from '../ui/Modal'
 import { sendInvoiceWhatsApp } from '../../utils/whatsapp'
+import ShareInvoiceButton from '../invoice/ShareInvoiceButton'
+import { generateInvoiceToken, invoiceUrl, isValidCustomerPhone, normalizeIndianPhone, qrImageUrl } from '../../utils/invoice'
 
 const AddonGlyph = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -616,6 +618,12 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
 
   async function confirm() {
     if (!tenantId) { setError('Not connected — refresh'); return }
+    const normalizedPhone = normalizeIndianPhone(phone)
+    if (!isDine && !isValidCustomerPhone(phone)) {
+      setStep(1)
+      setError('Takeaway orders require a valid 10 digit customer phone number before payment.')
+      return
+    }
     setLoading(true); setError('')
     try {
       if (isDine && existingOrderId) {
@@ -627,8 +635,17 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           .eq('table_number', String(tNum||''))
           .in('status', ['pending','preparing','ready'])
         if (error) throw error
+        const { data:paidOrder } = await supabase.from('orders')
+          .select('id,order_number,invoice_token,total,order_type')
+          .eq('tenant_id', tenantId)
+          .eq('order_type', 'dine')
+          .eq('table_number', String(tNum||''))
+          .in('status', ['paid','completed'])
+          .order('created_at', { ascending:false })
+          .limit(1)
+          .maybeSingle()
         showToast('Table checked out ✓', 'success')
-        onSuccess({ order_number:'—', total, payMethod, isDine:true })
+        onSuccess({ ...(paidOrder || {}), order_number: paidOrder?.order_number || '—', total, payMethod, isDine:true })
         handleClose()
       } else {
         const txRate = (settings?.tax_rate||0)/100
@@ -649,9 +666,10 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           tax:            Number(t.toFixed(2)),
           total:          Number(total.toFixed(2)),
           customer_name:  name  || null,
-          customer_phone: phone || null,
+          customer_phone: normalizedPhone,
+          invoice_token:  generateInvoiceToken(),
           paid_at:        new Date().toISOString(),
-        }).select('id,order_number').single()
+        }).select('id,order_number,invoice_token,customer_phone,order_type').single()
         if (oErr) throw oErr
 
         const { error:iErr } = await supabase.from('order_items').insert(
@@ -674,10 +692,10 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
         handleClose()
 
         // Auto-send WhatsApp invoice (non-blocking)
-        if (phone) {
+        if (normalizedPhone) {
           const bizName = settings?.biz_name || settings?.name || 'Restaurant'
           sendInvoiceWhatsApp(
-            { id: order.id, customer_phone: phone },
+            { id: order.invoice_token || order.id, customer_phone: normalizedPhone },
             bizName
           )
             .then(r => { if (r.success) showToast('📱 Invoice sent on WhatsApp', 'success') })
@@ -706,7 +724,10 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
           {loading?'Processing…':`Collect ₹${total.toFixed(2)} →`}
         </button>
       ) : step===1 ? (
-        <button onClick={()=>{setError('');setStep(2)}}
+        <button onClick={()=>{
+          if (!isValidCustomerPhone(phone)) { setError('Enter a valid 10 digit customer phone number to continue.'); return }
+          setPhone(normalizeIndianPhone(phone)); setError(''); setStep(2)
+        }}
           style={{ width:'100%',background:'var(--brand)',color:'#fff',border:'none',
             borderRadius:8,padding:13,fontWeight:700,fontSize: 'var(--fs-14)',cursor:'pointer' }}>
           Next: Payment →
@@ -768,7 +789,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
       {!isDine && step===1 && (
         <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
           {[
-            {label:'Phone', value:phone, set:setPhone, type:'tel',  placeholder:'+91 98765'},
+            {label:'Phone (required)', value:phone, set:setPhone, type:'tel',  placeholder:'+91 98765 43210'},
             {label:'Name',  value:name,  set:setName,  type:'text', placeholder:'Optional'},
           ].map(f=>(
             <label key={f.label} style={{ display:'flex',flexDirection:'column',gap:4 }}>
@@ -781,13 +802,11 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
                   color:'var(--text)',fontSize: 'var(--fs-14)',outline:'none' }}/>
             </label>
           ))}
-          {phone && (
-            <div style={{ fontSize: 'var(--fs-11)',color:'#25D366',display:'flex',alignItems:'center',gap:5,
-              background:'rgba(37,211,102,0.06)',border:'1px solid rgba(37,211,102,0.2)',
-              borderRadius:7,padding:'6px 10px' }}>
-              📱 Invoice will be sent on WhatsApp
-            </div>
-          )}
+          <div style={{ fontSize: 'var(--fs-11)',color:isValidCustomerPhone(phone)?'#25D366':'var(--amber)',display:'flex',alignItems:'center',gap:5,
+            background:'rgba(37,211,102,0.06)',border:'1px solid rgba(37,211,102,0.2)',
+            borderRadius:7,padding:'6px 10px' }}>
+            📱 Takeaway phone is mandatory. +91 or 0 prefixes are stripped automatically.
+          </div>
         </div>
       )}
       {/* Step 2 — Payment method */}
@@ -818,26 +837,41 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
 }
 
 function SuccessModal({ order, onClose }) {
+  const { settings, showToast } = useStore()
   if (!order) return null
+
+  const restaurantName = settings?.biz_name || settings?.name || 'Restaurant'
+  const token = order.invoice_token || order.id
+  const url = token ? invoiceUrl(token) : ''
+
+  async function done() {
+    if (order.id) {
+      const { error } = await supabase.from('orders').update({ status:'completed' }).eq('id', order.id).in('status', ['paid'])
+      if (error) showToast?.('Order completed locally. Could not update status right now.', 'warning')
+    }
+    onClose()
+  }
+
   return (
-    <Modal open onClose={onClose}
-      title={order.isDine?'Table Checked Out ✓':'Order Complete ✓'}
-      footer={
-        <button onClick={onClose} style={{ width:'100%',background:'var(--brand)',
-          color:'#fff',border:'none',borderRadius:8,padding:13,fontWeight:700,cursor:'pointer' }}>
-          Done
-        </button>
-      }>
+    <Modal open onClose={() => {}} title="Show this to customer" footer={
+      <button onClick={done} style={{ width:'100%',background:'var(--brand)', color:'#fff',border:'none',borderRadius:8,padding:13,fontWeight:700,cursor:'pointer' }}>
+        Done
+      </button>
+    }>
       <div style={{ textAlign:'center',padding:'8px 0' }}>
-        <div style={{ fontSize: 'var(--fs-48)',marginBottom:8 }}>✅</div>
-        <div style={{ fontSize: 'var(--fs-28)',fontWeight:800,color:'var(--brand)',margin:'8px 0' }}>
+        <div style={{ fontSize:'var(--fs-13)', color:'var(--text2)', fontWeight:800, marginBottom:10 }}>Scan to get your invoice</div>
+        {url ? (
+          <div style={{ background:'#fff', borderRadius:18, padding:14, display:'inline-block', border:'1px solid var(--border)' }}>
+            <img alt="Invoice QR" src={qrImageUrl(url, 840)} style={{ width:280, height:280, display:'block', background:'#fff' }}/>
+          </div>
+        ) : <div style={{ color:'var(--red)' }}>Invoice QR is unavailable.</div>}
+        <div style={{ fontSize: 'var(--fs-28)',fontWeight:800,color:'var(--brand)',margin:'12px 0 8px' }}>
           ₹{Number(order.total).toFixed(2)}
         </div>
-        <div style={{ fontSize: 'var(--fs-13)',color:'var(--text2)' }}>
-          {order.payMethod==='cash'?'💵 Cash':
-           order.payMethod==='upi' ?'📱 UPI' :
-           order.payMethod==='card'?'💳 Card':'🔖 Other'}
+        <div style={{ fontSize: 'var(--fs-13)',color:'var(--text2)', marginBottom:14 }}>
+          {order.payMethod==='cash'?'💵 Cash': order.payMethod==='upi' ?'📱 UPI' : order.payMethod==='card'?'💳 Card':'🔖 Other'}
         </div>
+        {url && <ShareInvoiceButton restaurantName={restaurantName} total={order.total} url={url}/>}
       </div>
     </Modal>
   )
@@ -949,7 +983,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
       const s=sub, t=s*taxRate, tot=s+t
       const { data:o, error:oErr } = await supabase.from('orders').insert({
         tenant_id:tenantId, status:'pending', order_type:'dine',
-        table_number:String(tableNum), payment_method:'cash',
+        table_number:String(tableNum), payment_method:'cash', invoice_token:generateInvoiceToken(),
         subtotal:Number(s.toFixed(2)), tax:Number(t.toFixed(2)), total:Number(tot.toFixed(2)),
       }).select('id').single()
       if (oErr) throw oErr

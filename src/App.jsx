@@ -4,6 +4,9 @@ import { useStore } from './store/useStore'
 import Landing from './pages/Landing'
 import POS from './pages/POS'
 import Install from './pages/Install'
+import Invoice from './pages/Invoice'
+import TakeawayLookup from './pages/customer/TakeawayLookup'
+import TableLanding from './pages/customer/TableLanding'
 import Toast from './components/ui/Toast'
 
 export default function App() {
@@ -107,6 +110,23 @@ export default function App() {
       subscription.unsubscribe()
     }
   }, [])
+
+  const publicPage = path.startsWith('/invoice/')
+    ? <Invoice />
+    : /^\/t\/[^/]+\/takeaway/.test(path)
+      ? <TakeawayLookup />
+      : /^\/t\/[^/]+\/table\/[^/]+/.test(path)
+        ? <TableLanding />
+        : null
+
+  if (publicPage) {
+    return (
+      <>
+        <Toast />
+        {publicPage}
+      </>
+    )
+  }
 
   if (status === 'loading') {
     return (
