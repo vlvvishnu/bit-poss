@@ -57,6 +57,34 @@ function Section({ title, children }) {
   )
 }
 
+
+class SettingsSectionBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error) {
+    console.error('[BITE] settings section error:', error)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ border:'1px solid rgba(239,68,68,0.24)', background:'rgba(239,68,68,0.08)', color:'var(--text)', borderRadius:14, padding:14 }}>
+          <div style={{ fontWeight:900, marginBottom:4 }}>QR settings could not load</div>
+          <div style={{ color:'var(--text2)', fontSize:'var(--fs-12)', lineHeight:1.45 }}>Refresh the page to try again. Other settings remain available.</div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
 function qrTableStorageKey(tenantId) {
   return `bite-table-qr-names-${tenantId || 'local'}`
 }
@@ -433,15 +461,17 @@ export default function SettingsPage() {
 
         {/* ── QR Codes ─────────────────────────────────────────── */}
         <Section title="🔳 QR Codes">
-          <TablesQrManager
-            tenantId={tenantId}
-            settings={settings}
-            bizName={bizName}
-            tableCount={tableCount}
-            setTableCount={setTableCount}
-            setSettings={setSettings}
-            showToast={showToast}
-          />
+          <SettingsSectionBoundary>
+            <TablesQrManager
+              tenantId={tenantId}
+              settings={settings}
+              bizName={bizName}
+              tableCount={tableCount}
+              setTableCount={setTableCount}
+              setSettings={setSettings}
+              showToast={showToast}
+            />
+          </SettingsSectionBoundary>
         </Section>
 
         {/* ── Change Password ───────────────────────────────────── */}
