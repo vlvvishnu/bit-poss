@@ -23,10 +23,6 @@
   <script>var quickQtyProductId = null;</script>
   <script>
     window.__biteDeferredPrompt = null
-    window.addEventListener('beforeinstallprompt', (event) => {
-      event.preventDefault()
-      window.__biteDeferredPrompt = event
-    })
 
     // Register service worker for PWA
     if ('serviceWorker' in navigator) {
@@ -39,7 +35,7 @@
         })
 
         // One-time hard reset for stale SW/bundle issues.
-        const CACHE_RESET_VERSION = 'sw-reset-v1'
+        const CACHE_RESET_VERSION = 'sw-reset-v2'
         if (localStorage.getItem(CACHE_RESET_VERSION) !== 'done') {
           const regs = await navigator.serviceWorker.getRegistrations()
           await Promise.all(regs.map(r => r.unregister()))
