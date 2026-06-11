@@ -1015,7 +1015,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
       const s=sub, t=s*taxRate, tot=s+t
       const { data:o, error:oErr } = await insertOrderWithInvoiceToken({
         tenant_id:tenantId, status:'pending', order_type:'dine',
-        table_number:String(tableNum), payment_method:'cash',
+        table_number:String(tableNum), payment_method:'cash', invoice_token:generateInvoiceToken(),
         subtotal:Number(s.toFixed(2)), tax:Number(t.toFixed(2)), total:Number(tot.toFixed(2)),
       }, 'id')
       if (oErr) throw oErr
