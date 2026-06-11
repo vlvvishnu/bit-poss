@@ -337,6 +337,7 @@ export default function SettingsPage() {
   const [addonPrice, setAddonPrice] = useState('')
   useEffect(() => {
     setAddons(loadAddons(tenantId))
+    setQrVersion(localStorage.getItem(`bite-qr-version-${tenantId}`) || '1')
   }, [tenantId])
 
   useEffect(() => {
