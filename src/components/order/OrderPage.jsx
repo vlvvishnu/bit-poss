@@ -580,6 +580,118 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
   )
 }
 
+function DesktopCategorySidebar({ categories, activeCat, onSelect, collapsed, onToggle, dark }) {
+  return (
+    <aside style={{
+      width:collapsed ? 60 : 240,
+      flexShrink:0,
+      borderRight:'1px solid var(--border)',
+      background:dark ? '#111111' : '#FAFAFA',
+      display:'flex',
+      flexDirection:'column',
+      overflow:'hidden',
+      transition:'width 0.2s ease',
+    }}>
+      <div style={{
+        height:48,
+        padding:collapsed ? '8px 10px' : '8px 12px',
+        borderBottom:'1px solid var(--border)',
+        display:'flex',
+        alignItems:'center',
+        justifyContent:collapsed ? 'center' : 'space-between',
+        gap:8,
+      }}>
+        {!collapsed && (
+          <div style={{
+            fontSize:'var(--fs-10)',
+            fontWeight:800,
+            color:'var(--text3)',
+            letterSpacing:'0.7px',
+            textTransform:'uppercase',
+            whiteSpace:'nowrap',
+          }}>
+            Browse Categories
+          </div>
+        )}
+        <button
+          type="button"
+          aria-label={collapsed ? 'Expand categories' : 'Collapse categories'}
+          onClick={onToggle}
+          style={{
+            width:34,
+            height:30,
+            borderRadius:9,
+            border:'1px solid var(--border)',
+            background:dark ? '#1A1A1A' : '#FFFFFF',
+            color:'var(--text)',
+            cursor:'pointer',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+            fontWeight:800,
+          }}
+        >
+          {collapsed ? '☰' : '‹'}
+        </button>
+      </div>
+      <div style={{ flex:1,overflowY:'auto',padding:collapsed ? '8px 7px' : '10px 8px' }}>
+        {categories.map(cat => {
+          const active = activeCat === String(cat.id)
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              title={cat.name}
+              onClick={() => onSelect(cat.id)}
+              style={{
+                width:'100%',
+                minHeight:44,
+                border:'none',
+                borderRadius:10,
+                padding:collapsed ? '0' : '0 10px',
+                marginBottom:4,
+                background:active ? (dark ? '#252525' : '#EEEEEE') : 'transparent',
+                color:'var(--text)',
+                display:'flex',
+                alignItems:'center',
+                justifyContent:collapsed ? 'center' : 'flex-start',
+                gap:10,
+                textAlign:'left',
+                cursor:'pointer',
+              }}
+            >
+              <span style={{
+                width:collapsed ? 34 : 18,
+                height:collapsed ? 34 : 18,
+                borderRadius:collapsed ? 10 : 999,
+                display:'flex',
+                alignItems:'center',
+                justifyContent:'center',
+                color:active ? '#1D9E75' : 'var(--text3)',
+                fontSize:collapsed ? 16 : 13,
+                background:collapsed && active ? 'rgba(29,158,117,0.16)' : 'transparent',
+                flexShrink:0,
+              }}>
+                {cat.icon || (cat.id === 'all' ? '▦' : '○')}
+              </span>
+              {!collapsed && (
+                <>
+                  <span style={{ flex:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',fontSize:'var(--fs-13)',fontWeight:active ? 800 : 600 }}>
+                    {cat.name}
+                  </span>
+                  <span style={{ fontSize:'var(--fs-11)',color:'var(--text3)',fontVariantNumeric:'tabular-nums' }}>
+                    {cat.count}
+                  </span>
+                </>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    </aside>
+  )
+}
+
 // ── Mobile bottom sheet ────────────────────────────────────────────
 function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   cartItems, onAdd, onRemove, onSendToKitchen, onCheckout, onTableCheckout,
@@ -924,6 +1036,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [sheetOpen, setSheetOpen]       = useState(false)
   const [confirmKOT, setConfirmKOT]     = useState(false)
   const [isMobile, setIsMobile]         = useState(window.innerWidth < 768)
+  const [isDesktop, setIsDesktop]       = useState(window.innerWidth >= 1024)
   const [itemNotes, setItemNotes]       = useState({})
   const [customLines, setCustomLines]   = useState({})
   const [optimisticRounds, setOptimisticRounds] = useState([])
@@ -938,6 +1051,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [openAccordion, setOpenAccordion] = useState(0)
   const [perItemConfig, setPerItemConfig] = useState([])
   const [catSheetOpen, setCatSheetOpen] = useState(false)
+  const [categorySidebarCollapsed, setCategorySidebarCollapsed] = useState(false)
   const productScrollRef = useRef(null)
   const categorySectionRefs = useRef({})
   // Legacy compatibility shim: older compiled snippets may still reference these symbols.
@@ -946,7 +1060,10 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const clearLongPressTimer = () => {}
 
   useEffect(() => {
-    const h = () => setIsMobile(window.innerWidth < 768)
+    const h = () => {
+      setIsMobile(window.innerWidth < 768)
+      setIsDesktop(window.innerWidth >= 1024)
+    }
     window.addEventListener('resize', h)
     return () => window.removeEventListener('resize', h)
   }, [])
@@ -1285,6 +1402,16 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
 
 
       <div style={{ flex:1,display:'flex',overflow:'hidden' }}>
+        {isDesktop && (
+          <DesktopCategorySidebar
+            categories={categoryOptions}
+            activeCat={activeCat}
+            onSelect={selectCategory}
+            collapsed={categorySidebarCollapsed}
+            onToggle={() => setCategorySidebarCollapsed(prev => !prev)}
+            dark={dark}
+          />
+        )}
         <div ref={productScrollRef} style={{ flex:1,overflowY:'auto',padding:10,paddingBottom:isMobile ? ((cartCount>0 || isDine) ? 120 : 64) : 24 }}>
           {products.length===0&&(
             <div style={{ textAlign:'center',padding:40,color:'var(--text2)' }}>
@@ -1502,7 +1629,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         </div>
       )}
 
-      {(
+      {!isDesktop && (
         <button
           type="button"
           onClick={() => setCatSheetOpen(true)}
@@ -1549,7 +1676,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         </button>
       )}
 
-      {catSheetOpen && (
+      {catSheetOpen && !isDesktop && (
         <div onClick={()=>setCatSheetOpen(false)} style={{ position:'fixed',inset:0,zIndex:200,background:dark?'rgba(0,0,0,0.55)':'rgba(0,0,0,0.4)',display:'flex',alignItems:'flex-end',justifyContent:isMobile?'center':'flex-start' }}>
           <div onClick={e=>e.stopPropagation()} style={{
             width:isMobile?'100%':'min(420px, calc(100vw - 320px))',
