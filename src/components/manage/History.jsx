@@ -160,6 +160,29 @@ function OrderDetail({ order, onClose, onRefund, isMobile }) {
         </div>
       )}
 
+      {(order.status === 'paid' || order.status === 'completed') && (order.invoice_token || order.id) && (
+        <button onClick={() => setQrOpen(true)}
+          style={{ width:'100%', marginTop:12, background:'var(--brand)', color:'#fff', border:'none',
+            borderRadius:8, padding:'10px', fontWeight:700, fontSize:'var(--fs-13)', cursor:'pointer' }}>
+          Show Invoice QR
+        </button>
+      )}
+      {qrOpen && (
+        <div style={{ position:'fixed', inset:0, zIndex:420, background:'rgba(0,0,0,0.72)', display:'grid', placeItems:'center', padding:18 }}>
+          <div style={{ width:'100%', maxWidth:390, background:'var(--card)', borderRadius:18, padding:18, textAlign:'center', border:'1px solid var(--border)' }}>
+            <div style={{ fontWeight:900, fontSize:'var(--fs-16)', marginBottom:4 }}>Show this to customer</div>
+            <div style={{ color:'var(--text2)', fontSize:'var(--fs-12)', marginBottom:12 }}>Scan to get your invoice</div>
+            <div style={{ background:'#fff', borderRadius:18, padding:14, display:'inline-block' }}>
+              <img alt="Invoice QR" src={qrImageUrl(invoiceUrl(order.invoice_token || order.id), 840)} style={{ width:280, height:280, display:'block', background:'#fff' }}/>
+            </div>
+            <div style={{ display:'grid', gap:8, marginTop:12 }}>
+              <ShareInvoiceButton restaurantName={settings?.biz_name || settings?.name || 'Restaurant'} total={order.total} url={invoiceUrl(order.invoice_token || order.id)}/>
+              <button onClick={() => setQrOpen(false)} style={{ width:'100%', background:'var(--card2)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:10, fontWeight:700 }}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Refund */}
       {order.status === 'paid' && (
         <button onClick={() => onRefund(order.id)}
