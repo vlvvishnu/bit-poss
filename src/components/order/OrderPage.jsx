@@ -85,6 +85,44 @@ const Spinner = ({ size=14 }) => (
     display:'inline-block',flexShrink:0 }}/>
 )
 
+const emptyDiscount = { type:'percent', value:'' }
+const normalizeDiscountValue = value => Math.max(0, Number(value || 0))
+const discountAmountFor = (subtotal, discount = emptyDiscount) => {
+  const base = Math.max(0, Number(subtotal || 0))
+  const value = normalizeDiscountValue(discount.value)
+  if (!base || !value) return 0
+  const raw = discount.type === 'amount' ? value : base * Math.min(value, 100) / 100
+  return Math.min(base, raw)
+}
+
+function DiscountControls({ subtotal, discount, onChange }) {
+  const current = discount || emptyDiscount
+  const amount = discountAmountFor(subtotal, current)
+  return (
+    <div style={{ margin:'8px 0',padding:8,border:'1px solid var(--border)',borderRadius:8,background:'var(--bg)' }}>
+      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:6 }}>
+        <span style={{ fontSize:'var(--fs-11)',fontWeight:800,color:'var(--text2)',textTransform:'uppercase',letterSpacing:'0.4px' }}>Discount</span>
+        {amount > 0 && (
+          <button type="button" onClick={() => onChange?.({ ...current, value:'' })}
+            style={{ background:'none',border:'none',color:'var(--red)',fontSize:'var(--fs-10)',fontWeight:700,cursor:'pointer',padding:0 }}>Clear</button>
+        )}
+      </div>
+      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:6 }}>
+        <select value={current.type} onChange={e => onChange?.({ ...current, type:e.target.value })}
+          style={{ minWidth:0,padding:'8px 9px',border:'1px solid var(--border2)',borderRadius:7,background:'var(--card)',color:'var(--text)',fontSize:'var(--fs-12)',outline:'none' }}>
+          <option value="percent">Percentage (%)</option>
+          <option value="amount">Amount (₹)</option>
+        </select>
+        <input value={current.value} type="number" min="0" max={current.type === 'percent' ? '100' : undefined} step="0.01"
+          onChange={e => onChange?.({ ...current, value:e.target.value })}
+          placeholder={current.type === 'percent' ? 'e.g. 10' : 'e.g. 50'}
+          style={{ minWidth:0,padding:'8px 9px',border:'1px solid var(--border2)',borderRadius:7,background:'var(--card)',color:'var(--text)',fontSize:'var(--fs-12)',outline:'none' }}/>
+      </div>
+      {amount > 0 && <div style={{ marginTop:5,fontSize:'var(--fs-10)',color:'var(--brand)',fontWeight:700 }}>− ₹{amount.toFixed(2)} applied</div>}
+    </div>
+  )
+}
+
 // ── Table picker ───────────────────────────────────────────────────
 function TablePicker({ count, selected, onSelect, tenantId }) {
   const [activeTables, setActiveTables] = useState(new Set())
@@ -308,7 +346,7 @@ function TableOrderPanel({
   onAddToCart, onRemoveFromCart,
   onSendToKitchen, sendingKOT, onCheckout,
   settings, isMobile, notes, onChangeNote,
-  optimisticRounds, onRealDataLoaded,
+  optimisticRounds, onRealDataLoaded, discount, onDiscountChange,
 }) {
   const { tenantId, showToast } = useStore()
   const [rounds, setRounds] = useState([])
@@ -359,8 +397,10 @@ function TableOrderPanel({
 
   const allActive = rounds.flatMap(o => (o.order_items||[]).filter(i=>i.status!=='rejected'))
   const sub    = allActive.reduce((s,i)=>s+Number(i.unit_price)*i.qty,0)
-  const tax    = sub*taxRate
-  const total  = sub+tax
+  const discountAmount = discountAmountFor(sub, discount)
+  const taxableSub = Math.max(0, sub - discountAmount)
+  const tax    = taxableSub*taxRate
+  const total  = taxableSub+tax
   const primaryId = rounds[rounds.length-1]?.id
 
   const newRoundOrder = {
@@ -437,6 +477,13 @@ function TableOrderPanel({
 
       {allActive.length>0 && (
         <div style={{ borderTop:'1px solid var(--border)',padding:12,flexShrink:0 }}>
+          <DiscountControls subtotal={sub} discount={discount} onChange={onDiscountChange}/>
+          {discountAmount>0 && (
+            <div style={{ display:'flex',justifyContent:'space-between',
+              fontSize: 'var(--fs-11)',color:'var(--text3)',marginBottom:2 }}>
+              <span>Discount</span><span>-₹{discountAmount.toFixed(2)}</span>
+            </div>
+          )}
           {taxRate>0 && (
             <div style={{ display:'flex',justifyContent:'space-between',
               fontSize: 'var(--fs-11)',color:'var(--text3)',marginBottom:2 }}>
@@ -452,7 +499,7 @@ function TableOrderPanel({
           </div>
           <button
             onClick={() => onCheckout({
-              orderId:primaryId, total, sub, tax,
+              orderId:primaryId, total, sub:taxableSub, grossSub:sub, discount:discount || emptyDiscount, discountAmount, tax,
               activeItems:allActive, tableNum, tableName,
               tableNumber:tableNum,
             })}
@@ -467,7 +514,7 @@ function TableOrderPanel({
 }
 
 // ── Non-dine cart panel ────────────────────────────────────────────
-function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, notes, getSelectedAddons, getCustomLines, onUpdateAddonQty }) {
+function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, notes, getSelectedAddons, getCustomLines, onUpdateAddonQty, discount, onDiscountChange }) {
   const detailLines = item => [
     ...(item.details || []),
     ...(getCustomLines?.(item.id) || []),
@@ -483,7 +530,9 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
   }
   const sub    = items.reduce((s,i)=>s+i.price*i.qty + extraTotal(i),0)
   const taxRate= (settings?.tax_rate||0)/100
-  const total  = sub+sub*taxRate
+  const discountAmount = discountAmountFor(sub, discount)
+  const taxableSub = Math.max(0, sub - discountAmount)
+  const total  = taxableSub+taxableSub*taxRate
   const typeLabel = orderType==='delivery'?'🚚 Delivery':'🛍 Takeaway'
 
   return (
@@ -560,8 +609,14 @@ function CartPanel({ items, orderType, onAdd, onRemove, onCheckout, settings, no
           <div style={{ display:'flex',justifyContent:'space-between',fontSize:'var(--fs-12)',color:'var(--text2)',marginBottom:6 }}>
             <span>Subtotal</span><span>₹{sub.toFixed(2)}</span>
           </div>
+          <DiscountControls subtotal={sub} discount={discount} onChange={onDiscountChange}/>
+          {discountAmount>0 && (
+            <div style={{ display:'flex',justifyContent:'space-between',fontSize:'var(--fs-12)',color:'var(--text2)',marginBottom:6 }}>
+              <span>Discount</span><span>-₹{discountAmount.toFixed(2)}</span>
+            </div>
+          )}
           <div style={{ display:'flex',justifyContent:'space-between',fontSize:'var(--fs-12)',color:'var(--text2)',marginBottom:8 }}>
-            <span>Taxes & charges</span><span>₹{(total-sub).toFixed(2)}</span>
+            <span>Taxes & charges</span><span>₹{(total-taxableSub).toFixed(2)}</span>
           </div>
           <div style={{ height:1,background:'var(--border)',marginBottom:8 }} />
           <div style={{ display:'flex',justifyContent:'space-between',
@@ -695,7 +750,7 @@ function DesktopCategorySidebar({ categories, activeCat, onSelect, collapsed, on
 // ── Mobile bottom sheet ────────────────────────────────────────────
 function MobileSheet({ open, onClose, isDine, tableNum, tableName,
   cartItems, onAdd, onRemove, onSendToKitchen, onCheckout, onTableCheckout,
-  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded, getSelectedAddons, getCustomLines, onUpdateAddonQty }) {
+  sendingKOT, settings, notes, onChangeNote, optimisticRounds, onRealDataLoaded, getSelectedAddons, getCustomLines, onUpdateAddonQty, discount, onDiscountChange }) {
 
   if (!open) return null
   return (
@@ -728,12 +783,14 @@ function MobileSheet({ open, onClose, isDine, tableNum, tableName,
               onCheckout={data => { onTableCheckout(data); onClose() }}
               settings={settings} isMobile={true} notes={notes} onChangeNote={onChangeNote}
               optimisticRounds={optimisticRounds} onRealDataLoaded={onRealDataLoaded}
+              discount={discount} onDiscountChange={onDiscountChange}
             />
           ) : (
             <CartPanel items={cartItems} orderType="takeaway"
               onAdd={onAdd} onRemove={onRemove}
               onCheckout={() => { onCheckout(); onClose() }}
-              settings={settings} notes={notes} getSelectedAddons={getSelectedAddons} getCustomLines={getCustomLines} onUpdateAddonQty={onUpdateAddonQty}/>
+              settings={settings} notes={notes} getSelectedAddons={getSelectedAddons} getCustomLines={getCustomLines} onUpdateAddonQty={onUpdateAddonQty}
+              discount={discount} onDiscountChange={onDiscountChange}/>
           )}
         </div>
       </div>
@@ -755,7 +812,7 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
   if (!checkoutData) return null
 
   // Destructure AFTER the null guard
-  const { items, orderType, tableNum, tableName, total, sub, tax, existingOrderId } = checkoutData
+  const { items, orderType, tableNum, tableName, total, sub, discountAmount = 0, tax, existingOrderId } = checkoutData
   const isDine = orderType === 'dine'
   const upiId  = settings?.upi_id || ''
   const PAY = [
@@ -923,6 +980,18 @@ function CheckoutModal({ open, onClose, checkoutData, onSuccess }) {
             <span>₹{(Number(i.unit_price||i.price)*i.qty).toFixed(2)}</span>
           </div>
         ))}
+        {discountAmount > 0 && (
+          <div style={{ display:'flex',justifyContent:'space-between',fontSize: 'var(--fs-12)',
+            color:'var(--text2)',padding:'4px 0',borderBottom:'1px solid var(--border)' }}>
+            <span>Discount</span><span>-₹{Number(discountAmount).toFixed(2)}</span>
+          </div>
+        )}
+        {tax > 0 && (
+          <div style={{ display:'flex',justifyContent:'space-between',fontSize: 'var(--fs-12)',
+            color:'var(--text2)',padding:'4px 0',borderBottom:'1px solid var(--border)' }}>
+            <span>Taxes & charges</span><span>₹{Number(tax).toFixed(2)}</span>
+          </div>
+        )}
         <div style={{ display:'flex',justifyContent:'space-between',fontSize: 'var(--fs-14)',
           fontWeight:800,marginTop:5 }}>
           <span>Total</span>
@@ -1052,6 +1121,8 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   const [perItemConfig, setPerItemConfig] = useState([])
   const [catSheetOpen, setCatSheetOpen] = useState(false)
   const [categorySidebarCollapsed, setCategorySidebarCollapsed] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
+  const [cartDiscount, setCartDiscount] = useState(emptyDiscount)
   const productScrollRef = useRef(null)
   const categorySectionRefs = useRef({})
   // Legacy compatibility shim: older compiled snippets may still reference these symbols.
@@ -1069,7 +1140,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }, [])
 
   useEffect(() => {
-    clearCart(); setItemNotes({}); setCustomLines({}); setOptimisticRounds([])
+    clearCart(); setItemNotes({}); setCustomLines({}); setOptimisticRounds([]); setCartDiscount(emptyDiscount)
   }, [tableNum])
 
   useEffect(() => () => clearLongPressTimer(), [])
@@ -1108,8 +1179,14 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
   }
   const sub        = cartSubtotal() + items.reduce((sum, item) => sum + itemExtraTotal(item), 0)
   const taxRate    = (settings?.tax_rate||0)/100
-  const total      = sub + sub * taxRate
+  const cartDiscountAmount = discountAmountFor(sub, cartDiscount)
+  const cartTaxableSub = Math.max(0, sub - cartDiscountAmount)
+  const total      = cartTaxableSub + cartTaxableSub * taxRate
   const cartCount  = items.reduce((s,i) => s+i.qty, 0)
+
+  useEffect(() => {
+    if (items.length === 0) setCartDiscount(emptyDiscount)
+  }, [items.length])
 
   async function handleSendToKitchen() {
     if (!tableNum)    { showToast('Select a table first','warning'); return }
@@ -1342,7 +1419,7 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
 
   function openCheckout() {
     if (!items.length){ showToast('Cart is empty','warning'); return }
-    setCheckoutData({ items: cartItemsWithExtras(), orderType, tableNum, tableName, total, sub, tax:sub*taxRate, existingOrderId:null })
+    setCheckoutData({ items: cartItemsWithExtras(), orderType, tableNum, tableName, total, sub:cartTaxableSub, grossSub:sub, discount:cartDiscount, discountAmount:cartDiscountAmount, tax:cartTaxableSub*taxRate, existingOrderId:null })
     setSheetOpen(false)
   }
 
@@ -1350,21 +1427,27 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
     setCheckoutData({
       items:data.activeItems, orderType:'dine',
       tableNum:data.tableNum, tableName:data.tableName,
-      total:data.total, sub:data.sub, tax:data.tax,
+      total:data.total, sub:data.sub, grossSub:data.grossSub, discount:data.discount, discountAmount:data.discountAmount, tax:data.tax,
       existingOrderId:data.orderId, tableNumber:data.tableNum,
     })
     setSheetOpen(false); setConfirmKOT(false)
   }
 
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.trim().toLowerCase()
+    if (!q) return products
+    return products.filter(p => [p.name, p.catName, p.price].some(value => String(value || '').toLowerCase().includes(q)))
+  }, [products, productSearch])
+
   const groups = useMemo(() => {
     const map = {}
-    products.forEach(p=>{
+    filteredProducts.forEach(p=>{
       const key = p.category_id||'other'
       if (!map[key]) map[key] = { id:String(key), name:p.catName||'Other', icon:p.catIcon||'', items:[] }
       map[key].items.push(p)
     })
     return Object.values(map)
-  }, [products])
+  }, [filteredProducts])
 
   const categoryOptions = useMemo(() => {
     const counts = products.reduce((map, product) => {
@@ -1413,6 +1496,10 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
           />
         )}
         <div ref={productScrollRef} style={{ flex:1,overflowY:'auto',padding:10,paddingBottom:isMobile ? ((cartCount>0 || isDine) ? 120 : 64) : 24 }}>
+          <div style={{ position:'sticky',top:0,zIndex:20,background:'var(--bg)',padding:'0 0 8px' }}>
+            <input value={productSearch} onChange={e=>setProductSearch(e.target.value)} placeholder="Search products…"
+              style={{ width:'100%',padding:'10px 12px',border:'1px solid var(--border2)',borderRadius:10,background:'var(--card)',color:'var(--text)',fontSize:'var(--fs-13)',outline:'none' }}/>
+          </div>
           {products.length===0&&(
             <div style={{ textAlign:'center',padding:40,color:'var(--text2)' }}>
               <div style={{ fontSize: 'var(--fs-32)',marginBottom:8 }}>🍽</div>
@@ -1424,6 +1511,11 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                   padding:'10px 14px',fontWeight:800,fontSize: 'var(--fs-12)',
                 }}>Add sample menu</button>
               )}
+            </div>
+          )}
+          {products.length>0 && groups.length===0 && (
+            <div style={{ textAlign:'center',padding:30,color:'var(--text3)',fontSize:'var(--fs-12)' }}>
+              No products match “{productSearch}”.
             </div>
           )}
           {groups.map((group,gi)=>(
@@ -1562,12 +1654,14 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
                 notes={itemNotes} onChangeNote={handleNoteChange}
                 optimisticRounds={optimisticRounds}
                 onRealDataLoaded={() => setOptimisticRounds([])}
+                discount={cartDiscount} onDiscountChange={setCartDiscount}
               />
             ) : (
               <CartPanel items={items} orderType={orderType}
                 onAdd={addToCart} onRemove={removeFromCart}
                 onCheckout={openCheckout} settings={settings}
-                notes={itemNotes} getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]} onUpdateAddonQty={updateCartAddonQty}/>
+                notes={itemNotes} getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]} onUpdateAddonQty={updateCartAddonQty}
+                discount={cartDiscount} onDiscountChange={setCartDiscount}/>
             )}
           </div>
         )}
@@ -1785,11 +1879,12 @@ export default function OrderPage({ defaultType='takeaway', onAddSampleMenu }) {
         notes={itemNotes} onChangeNote={handleNoteChange}
         optimisticRounds={optimisticRounds}
         onRealDataLoaded={() => setOptimisticRounds([])}
-        getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]} onUpdateAddonQty={updateCartAddonQty}/>
+        getSelectedAddons={selectedAddonsForProduct} getCustomLines={(id)=>customLines[id]||[]} onUpdateAddonQty={updateCartAddonQty}
+        discount={cartDiscount} onDiscountChange={setCartDiscount}/>
 
       <CheckoutModal open={!!checkoutData} onClose={()=>setCheckoutData(null)}
         checkoutData={checkoutData}
-        onSuccess={o=>{ setSuccessOrder(o); setCheckoutData(null); setCustomLines({}); setAddonCounts({}) }}/>
+        onSuccess={o=>{ setSuccessOrder(o); setCheckoutData(null); setCustomLines({}); setAddonCounts({}); setCartDiscount(emptyDiscount) }}/>
       <SuccessModal order={successOrder} onClose={()=>setSuccessOrder(null)}/>
     </div>
   )
